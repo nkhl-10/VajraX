@@ -1,0 +1,232 @@
+-- Phase 9: Production-Grade SQLDelight Schema for VAJRAX
+-- Full Relational Integrity, Performance Indexes, and Multi-system Queries
+
+-- 1. USER & AUTH (Offline / Test Account Support)
+CREATE TABLE UserSessionEntity (
+    userId TEXT NOT NULL PRIMARY KEY,
+    email TEXT NOT NULL,
+    displayName TEXT NOT NULL,
+    isGuest INTEGER NOT NULL DEFAULT 0,
+    activePathId TEXT,
+    createdAt TEXT NOT NULL
+);
+
+-- 2. LIFE PATHS & PHILOSOPHY
+CREATE TABLE LifePathEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT,
+    isActive INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE PrincipleEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    lifePathId TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    FOREIGN KEY (lifePathId) REFERENCES LifePathEntity(id) ON DELETE CASCADE
+);
+
+-- 3. PRACTICES (The Daily System)
+CREATE TABLE PracticeEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    principleId TEXT,
+    title TEXT NOT NULL,
+    targetDurationMinutes INTEGER NOT NULL,
+    minimumDurationMinutes INTEGER NOT NULL,
+    preferredTime TEXT, -- "06:30", "09:00"
+    trackingMode TEXT NOT NULL, -- 'MANUAL', 'PASSIVE', 'TIMER', 'HYBRID'
+    isActive INTEGER NOT NULL DEFAULT 1,
+    FOREIGN KEY (principleId) REFERENCES PrincipleEntity(id) ON DELETE SET NULL
+);
+
+-- 4. ACTION RECORDS (Timeline Execution)
+CREATE TABLE ActionRecordEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    practiceId TEXT NOT NULL,
+    date TEXT NOT NULL, -- "YYYY-MM-DD"
+    scheduledTime TEXT, -- "09:00"
+    status TEXT NOT NULL, -- 'PENDING', 'ONGOING', 'COMPLETE', 'MINIMUM', 'SKIPPED', 'MISSED'
+    completedAt TEXT, -- ISO8601
+    durationMinutes INTEGER,
+    FOREIGN KEY (practiceId) REFERENCES PracticeEntity(id) ON DELETE CASCADE
+);
+
+-- 5. EVIDENCE & REFLECTION (Real Growth Logging)
+CREATE TABLE EvidenceEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    actionRecordId TEXT NOT NULL,
+    reflectionRating TEXT, -- 'EASY', 'OKAY', 'HARD'
+    note TEXT,
+    mediaPath TEXT,
+    createdAt TEXT NOT NULL,
+    FOREIGN KEY (actionRecordId) REFERENCES ActionRecordEntity(id) ON DELETE CASCADE
+);
+
+-- 6. BOOK → LIFE (Knowledge to 7-Day Experiments)
+CREATE TABLE BookIdeaEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    bookTitle TEXT NOT NULL,
+    author TEXT NOT NULL,
+    idea TEXT NOT NULL,
+    practicalApplication TEXT NOT NULL,
+    isExperimentActive INTEGER NOT NULL DEFAULT 0,
+    experimentDaysLeft INTEGER,
+    createdAt TEXT NOT NULL
+);
+
+-- 7. BEHAVIORAL PATTERNS & RECOMMENDATIONS (Daṇḍa & Bheda)
+CREATE TABLE PatternInsightEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    recommendation TEXT NOT NULL,
+    isApplied INTEGER NOT NULL DEFAULT 0,
+    createdAt TEXT NOT NULL
+);
+
+-- ==========================================
+-- INDEXES FOR 16ms / FLUID QUERY PERFORMANCE
+-- ==========================================
+CREATE INDEX idx_action_date ON ActionRecordEntity(date);
+CREATE INDEX idx_action_practice ON ActionRecordEntity(practiceId);
+CREATE INDEX idx_practice_active ON PracticeEntity(isActive);
+CREATE INDEX idx_principle_path ON PrincipleEntity(lifePathId);
+CREATE INDEX idx_evidence_record ON EvidenceEntity(actionRecordId);
+
+-- ==========================================
+-- QUERIES
+-- ==========================================
+
+-- User Session
+insertOrUpdateUser:
+INSERT OR REPLACE INTO UserSessionEntity(userId, email, displayName, isGuest, activePathId, createdAt)
+VALUES (?, ?, ?, ?, ?, ?);
+
+getCurrentUser:
+SELECT * FROM UserSessionEntity LIMIT 1;
+
+clearUserSession:
+DELETE FROM UserSessionEntity;
+
+-- Life Paths
+insertLifePath:
+INSERT OR REPLACE INTO LifePathEntity(id, name, description, isActive)
+VALUES (?, ?, ?, ?);
+
+getAllLifePaths:
+SELECT * FROM LifePathEntity;
+
+getActiveLifePath:
+SELECT * FROM LifePathEntity WHERE isActive = 1 LIMIT 1;
+
+setActiveLifePath:
+UPDATE LifePathEntity SET isActive = CASE WHEN id = ? THEN 1 ELSE 0 END;
+
+-- Principles
+insertPrinciple:
+INSERT OR REPLACE INTO PrincipleEntity(id, lifePathId, title, description)
+VALUES (?, ?, ?, ?);
+
+getPrinciplesForPath:
+SELECT * FROM PrincipleEntity WHERE lifePathId = ?;
+
+-- Practices
+insertPractice:
+INSERT OR REPLACE INTO PracticeEntity(id, principleId, title, targetDurationMinutes, minimumDurationMinutes, preferredTime, trackingMode, isActive)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+getAllPractices:
+SELECT * FROM PracticeEntity;
+
+getActivePractices:
+SELECT * FROM PracticeEntity WHERE isActive = 1;
+
+togglePracticeActive:
+UPDATE PracticeEntity SET isActive = ? WHERE id = ?;
+
+-- Action Records & Living Timeline
+insertActionRecord:
+INSERT OR REPLACE INTO ActionRecordEntity(id, practiceId, date, scheduledTime, status, completedAt, durationMinutes)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+updateActionStatus:
+UPDATE ActionRecordEntity 
+SET status = ?, completedAt = ?, durationMinutes = ?
+WHERE id = ?;
+
+getTodayTimeline:
+SELECT 
+    ActionRecordEntity.id,
+    ActionRecordEntity.practiceId,
+    ActionRecordEntity.date,
+    ActionRecordEntity.scheduledTime,
+    ActionRecordEntity.status,
+    ActionRecordEntity.completedAt,
+    ActionRecordEntity.durationMinutes,
+    PracticeEntity.title, 
+    PracticeEntity.targetDurationMinutes, 
+    PracticeEntity.minimumDurationMinutes,
+    PracticeEntity.trackingMode
+FROM ActionRecordEntity
+JOIN PracticeEntity ON ActionRecordEntity.practiceId = PracticeEntity.id
+WHERE ActionRecordEntity.date = ? 
+ORDER BY ActionRecordEntity.scheduledTime ASC;
+
+getActionRecordsBetweenDates:
+SELECT * FROM ActionRecordEntity
+WHERE date >= ? AND date <= ?;
+
+countCompletedActionsBetweenDates:
+SELECT COUNT(*) FROM ActionRecordEntity
+WHERE date >= ? AND date <= ? AND (status = 'COMPLETE' OR status = 'MINIMUM');
+
+countTotalActionsBetweenDates:
+SELECT COUNT(*) FROM ActionRecordEntity
+WHERE date >= ? AND date <= ?;
+
+-- Evidence
+insertEvidence:
+INSERT OR REPLACE INTO EvidenceEntity(id, actionRecordId, reflectionRating, note, mediaPath, createdAt)
+VALUES (?, ?, ?, ?, ?, ?);
+
+getRecentEvidence:
+SELECT 
+    EvidenceEntity.id,
+    EvidenceEntity.actionRecordId,
+    EvidenceEntity.reflectionRating,
+    EvidenceEntity.note,
+    EvidenceEntity.mediaPath,
+    EvidenceEntity.createdAt,
+    ActionRecordEntity.date,
+    ActionRecordEntity.durationMinutes,
+    PracticeEntity.title AS practiceTitle
+FROM EvidenceEntity
+JOIN ActionRecordEntity ON EvidenceEntity.actionRecordId = ActionRecordEntity.id
+JOIN PracticeEntity ON ActionRecordEntity.practiceId = PracticeEntity.id
+ORDER BY EvidenceEntity.createdAt DESC
+LIMIT ?;
+
+-- Book Ideas & Experiments
+insertBookIdea:
+INSERT OR REPLACE INTO BookIdeaEntity(id, bookTitle, author, idea, practicalApplication, isExperimentActive, experimentDaysLeft, createdAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+getAllBookIdeas:
+SELECT * FROM BookIdeaEntity ORDER BY createdAt DESC;
+
+updateExperimentStatus:
+UPDATE BookIdeaEntity 
+SET isExperimentActive = ?, experimentDaysLeft = ?, practicalApplication = ?
+WHERE id = ?;
+
+-- Pattern Insights
+insertPatternInsight:
+INSERT OR REPLACE INTO PatternInsightEntity(id, title, description, recommendation, isApplied, createdAt)
+VALUES (?, ?, ?, ?, ?, ?);
+
+getActivePatternInsights:
+SELECT * FROM PatternInsightEntity WHERE isApplied = 0 ORDER BY createdAt DESC;
+
+markPatternInsightApplied:
+UPDATE PatternInsightEntity SET isApplied = 1 WHERE id = ?;

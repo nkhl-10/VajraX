@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>VAJRAX - Life Path</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed": "#271900",
+                        "surface-container-low": "#1f1b15",
+                        "on-error": "#690005",
+                        "on-secondary": "#2c3136",
+                        "on-secondary-fixed": "#171c21",
+                        "background": "#17130d",
+                        "inverse-on-surface": "#343029",
+                        "secondary-fixed-dim": "#c2c7cd",
+                        "on-tertiary-fixed-variant": "#1f477d",
+                        "primary-container": "#d6a84f",
+                        "on-primary-container": "#583e00",
+                        "on-tertiary": "#003063",
+                        "primary-fixed-dim": "#f0bf64",
+                        "error": "#ffb4ab",
+                        "tertiary": "#afcbff",
+                        "surface-container-high": "#2e2922",
+                        "tertiary-fixed-dim": "#a9c7ff",
+                        "on-background": "#eae1d6",
+                        "inverse-surface": "#eae1d6",
+                        "on-surface": "#eae1d6",
+                        "surface": "#17130d",
+                        "inverse-primary": "#7c5800",
+                        "outline": "#9b8f7e",
+                        "surface-tint": "#f0bf64",
+                        "secondary-fixed": "#dee3ea",
+                        "on-secondary-fixed-variant": "#42474d",
+                        "surface-variant": "#39342d",
+                        "on-tertiary-container": "#194278",
+                        "surface-dim": "#17130d",
+                        "surface-container": "#231f19",
+                        "on-tertiary-fixed": "#001b3d",
+                        "primary": "#f4c367",
+                        "surface-container-lowest": "#110e08",
+                        "outline-variant": "#4e4637",
+                        "on-primary-fixed-variant": "#5e4200",
+                        "on-secondary-container": "#b1b5bc",
+                        "tertiary-container": "#8db0ed",
+                        "on-primary": "#412d00",
+                        "tertiary-fixed": "#d6e3ff",
+                        "secondary": "#c2c7cd",
+                        "secondary-container": "#42474d",
+                        "surface-container-highest": "#39342d",
+                        "surface-bright": "#3d3831",
+                        "on-surface-variant": "#d2c5b2",
+                        "on-error-container": "#ffdad6",
+                        "primary-fixed": "#ffdea6",
+                        "error-container": "#93000a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "16px",
+                        "unit": "8px",
+                        "container-margin": "24px",
+                        "stack-xl": "64px",
+                        "stack-lg": "32px",
+                        "stack-sm": "8px",
+                        "stack-md": "16px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Manrope"],
+                        "display-lg": ["Manrope"],
+                        "title-md": ["Manrope"],
+                        "headline-lg-mobile": ["Manrope"],
+                        "headline-lg": ["Manrope"],
+                        "label-md": ["Manrope"],
+                        "body-lg": ["Manrope"],
+                        "label-sm": ["Manrope"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: #0B0D0F; /* Level 0 Base Void */
+            color: #eae1d6;
+        }
+        .surface-card {
+            background-color: #14181C; /* Level 1 Surface */
+            border: 1px solid #1B2025;
+        }
+        .surface-elevated {
+            background-color: #1B2025; /* Level 2 Elevated */
+        }
+        .glass-veil {
+            background-color: rgba(20, 24, 28, 0.6);
+            backdrop-filter: blur(20px);
+        }
+        .vajra-gold {
+            color: #f4c367;
+        }
+        .bg-vajra-gold {
+            background-color: #f4c367;
+        }
+    </style>
+</head>
+<body class="font-body-md text-body-md antialiased min-h-screen flex flex-col relative pb-[90px] md:pb-0">
+<!-- Top App Bar -->
+<header class="bg-background/60 dark:bg-background/60 backdrop-blur-xl flex justify-between items-center w-full px-container-margin py-4 docked full-width top-0 z-50 fixed md:hidden bg-transparent flat no shadows">
+<button class="text-primary dark:text-primary hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="text-headline-lg-mobile font-headline-lg-mobile font-bold tracking-tighter text-primary dark:text-primary">VAJRAX</h1>
+<button class="text-primary dark:text-primary hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</header>
+<!-- Desktop Sidebar (Hidden on Mobile) -->
+<aside class="hidden md:flex flex-col w-64 fixed h-screen surface-card z-40 pt-24 px-6 border-r border-outline-variant/10">
+<h1 class="text-headline-lg font-headline-lg font-bold tracking-tighter text-primary mb-12">VAJRAX</h1>
+<nav class="flex flex-col gap-4">
+<a class="flex items-center gap-4 text-on-surface-variant hover:text-primary transition-colors py-2" href="#"><span class="material-symbols-outlined">calendar_today</span> <span class="font-label-md text-label-md">Today</span></a>
+<a class="flex items-center gap-4 text-primary bg-primary-container/10 rounded-lg px-3 py-2 -mx-3" href="#"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">insights</span> <span class="font-label-md text-label-md">Path</span></a>
+<a class="flex items-center gap-4 text-on-surface-variant hover:text-primary transition-colors py-2" href="#"><span class="material-symbols-outlined">menu_book</span> <span class="font-label-md text-label-md">Learn</span></a>
+<a class="flex items-center gap-4 text-on-surface-variant hover:text-primary transition-colors py-2" href="#"><span class="material-symbols-outlined">auto_awesome</span> <span class="font-label-md text-label-md">Grow</span></a>
+<a class="flex items-center gap-4 text-on-surface-variant hover:text-primary transition-colors py-2" href="#"><span class="material-symbols-outlined">fact_check</span> <span class="font-label-md text-label-md">Review</span></a>
+</nav>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 w-full max-w-4xl mx-auto px-container-margin pt-24 md:pt-16 md:pl-72 z-10">
+<div class="mb-stack-lg animate-fade-in-up">
+<div class="inline-flex items-center gap-2 mb-4">
+<div class="w-2 h-2 rounded-full bg-vajra-gold shadow-[0_0_8px_rgba(244,195,103,0.5)]"></div>
+<span class="text-label-sm font-label-sm text-on-surface-variant tracking-wider uppercase">Current Focus</span>
+</div>
+<h2 class="text-display-lg font-display-lg text-on-surface mb-2">High Performance</h2>
+<p class="text-body-lg font-body-lg text-on-surface-variant max-w-2xl">Excellence in health, focus, and relentless execution.</p>
+</div>
+<!-- Path Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6 mb-stack-xl">
+<!-- Core Principles Card -->
+<div class="surface-card rounded-2xl p-6 md:col-span-8 flex flex-col justify-between hover:scale-[1.01] transition-transform duration-300">
+<div>
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-title-md font-title-md text-on-surface">Core Principles</h3>
+<span class="material-symbols-outlined text-primary/60">architecture</span>
+</div>
+<ul class="space-y-4">
+<li class="flex items-start gap-4">
+<span class="material-symbols-outlined vajra-gold text-[20px] mt-1">vital_signs</span>
+<div>
+<h4 class="text-body-md font-body-md font-medium text-on-surface">Peak Health</h4>
+<p class="text-label-md font-label-md text-on-surface-variant">Prioritize physical and mental vitality as the foundation of execution.</p>
+</div>
+</li>
+<li class="flex items-start gap-4">
+<span class="material-symbols-outlined vajra-gold text-[20px] mt-1">center_focus_strong</span>
+<div>
+<h4 class="text-body-md font-body-md font-medium text-on-surface">Deep Focus</h4>
+<p class="text-label-md font-label-md text-on-surface-variant">Protect attention ruthlessly. Eliminate shallow distractions.</p>
+</div>
+</li>
+</ul>
+</div>
+<div class="mt-8 pt-4 border-t border-outline-variant/10">
+<button class="text-label-md font-label-md text-primary hover:text-primary-fixed transition-colors flex items-center gap-2">
+                        View All Principles <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Active Practices Mini-Card -->
+<div class="surface-card rounded-2xl p-6 md:col-span-4 flex flex-col justify-between hover:scale-[1.01] transition-transform duration-300">
+<div>
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-title-md font-title-md text-on-surface">Practices</h3>
+<span class="material-symbols-outlined text-primary/60">task_alt</span>
+</div>
+<div class="text-display-lg font-display-lg text-on-surface mb-1">5 <span class="text-title-md text-on-surface-variant">active</span></div>
+<p class="text-label-sm font-label-sm text-on-surface-variant">Daily routines synchronized.</p>
+</div>
+<div class="mt-6 flex flex-wrap gap-2">
+<span class="px-3 py-1 rounded-full surface-elevated text-label-sm font-label-sm text-on-surface-variant">Morning Run</span>
+<span class="px-3 py-1 rounded-full surface-elevated text-label-sm font-label-sm text-on-surface-variant">Deep Work Block</span>
+</div>
+</div>
+<!-- Recommended Resources Glass Card -->
+<div class="md:col-span-12 relative rounded-2xl overflow-hidden min-h-[200px] flex items-end p-6 border border-outline-variant/20 shadow-2xl">
+<!-- Background Image Placeholder for Premium Feel -->
+<div class="absolute inset-0 bg-cover bg-center opacity-30" data-alt="A dark, moody abstract background featuring slow-moving, elegant wisps of gold dust floating in a deep charcoal void, representing focus and premium mental clarity in a minimalist style." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCzqYPznVN36XZbzF1hCyO9t9lQVs0haV1PiHZu6qkKmA709Pd0HUxQZ5LzKoYLWMQYPBcQWVBwBe_rgWLk1P3yDZWqlXvrJT_nhufwpjq9qXS-2K96x4T9fNvXXnA5RcHs2ZdzSxKntlZEaxu1_BLwl2U5x0lcYf8Aov-WB3IO3cwV-nq-p9avB4CVpSDj66126HL_61aYIKxiowvIfyQT1bBSYH-_VKVRQmcEJ1sD_O2h0F6OhQK7Ng')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-[#14181C] via-[#14181C]/80 to-transparent"></div>
+<div class="relative z-10 w-full flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+<div>
+<h3 class="text-title-md font-title-md text-on-surface mb-2">Curated Resources</h3>
+<p class="text-label-md font-label-md text-on-surface-variant max-w-md">Books, articles, and frameworks tailored to accelerate your high-performance journey.</p>
+</div>
+<button class="bg-vajra-gold text-on-primary-fixed px-6 py-3 rounded-lg font-label-md text-label-md font-bold hover:opacity-90 transition-opacity whitespace-nowrap shadow-[0_4px_14px_rgba(244,195,103,0.2)]">
+                         Explore Library
+                     </button>
+</div>
+</div>
+</div>
+<!-- Alternative Paths -->
+<div class="mb-stack-xl">
+<h3 class="text-title-md font-title-md text-on-surface mb-6 border-b border-outline-variant/10 pb-2">Explore Other Paths</h3>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="surface-card rounded-xl p-5 flex items-center justify-between cursor-pointer hover:bg-surface-elevated transition-colors group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full surface-elevated flex items-center justify-center text-on-surface-variant group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">self_improvement</span>
+</div>
+<div>
+<h4 class="text-body-md font-body-md font-medium text-on-surface">Self-Mastery</h4>
+<p class="text-label-sm font-label-sm text-on-surface-variant">Discipline, Independence, Boundaries.</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</div>
+<div class="surface-card rounded-xl p-5 flex items-center justify-between cursor-pointer hover:bg-surface-elevated transition-colors group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full surface-elevated flex items-center justify-center text-on-surface-variant group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">local_library</span>
+</div>
+<div>
+<h4 class="text-body-md font-body-md font-medium text-on-surface">Scholar</h4>
+<p class="text-label-sm font-label-sm text-on-surface-variant">Learning, Reading, Thinking.</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Nav Bar (Mobile Only) -->
+<nav class="md:hidden bg-surface-container/60 dark:bg-surface-container/60 backdrop-blur-2xl text-primary dark:text-primary border-t border-outline-variant/10 shadow-lg fixed bottom-0 left-0 w-full flex justify-around items-center px-4 py-3 pb-safe z-50">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant opacity-60 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">calendar_today</span>
+<span class="text-label-sm font-label-sm mt-1">Today</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary bg-primary-container/20 rounded-xl px-3 py-1 scale-95 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">insights</span>
+<span class="text-label-sm font-label-sm mt-1 font-bold">Path</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant opacity-60 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">menu_book</span>
+<span class="text-label-sm font-label-sm mt-1">Learn</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant opacity-60 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">auto_awesome</span>
+<span class="text-label-sm font-label-sm mt-1">Grow</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant opacity-60 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">fact_check</span>
+<span class="text-label-sm font-label-sm mt-1">Review</span>
+</a>
+</nav>
+</body></html>

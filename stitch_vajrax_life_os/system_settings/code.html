@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Settings &amp; System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-background": "#eae1d6",
+                    "on-secondary-fixed": "#171c21",
+                    "surface-container-highest": "#39342d",
+                    "secondary-fixed": "#dee3ea",
+                    "surface-dim": "#17130d",
+                    "primary-container": "#d6a84f",
+                    "secondary-fixed-dim": "#c2c7cd",
+                    "on-secondary": "#2c3136",
+                    "on-primary-fixed-variant": "#5e4200",
+                    "on-surface": "#eae1d6",
+                    "surface-container-lowest": "#110e08",
+                    "on-secondary-fixed-variant": "#42474d",
+                    "error": "#ffb4ab",
+                    "surface-tint": "#f0bf64",
+                    "on-tertiary-fixed-variant": "#1f477d",
+                    "surface-container": "#231f19",
+                    "on-tertiary-container": "#194278",
+                    "on-secondary-container": "#b1b5bc",
+                    "outline": "#9b8f7e",
+                    "tertiary-fixed-dim": "#a9c7ff",
+                    "secondary": "#c2c7cd",
+                    "surface-container-low": "#1f1b15",
+                    "primary-fixed": "#ffdea6",
+                    "primary": "#f4c367",
+                    "outline-variant": "#4e4637",
+                    "on-error-container": "#ffdad6",
+                    "error-container": "#93000a",
+                    "on-surface-variant": "#d2c5b2",
+                    "tertiary-fixed": "#d6e3ff",
+                    "primary-fixed-dim": "#f0bf64",
+                    "surface": "#17130d",
+                    "inverse-on-surface": "#343029",
+                    "tertiary-container": "#8db0ed",
+                    "tertiary": "#afcbff",
+                    "on-primary-container": "#583e00",
+                    "surface-variant": "#39342d",
+                    "inverse-surface": "#eae1d6",
+                    "background": "#17130d",
+                    "surface-container-high": "#2e2922",
+                    "secondary-container": "#42474d",
+                    "on-tertiary": "#003063",
+                    "surface-bright": "#3d3831",
+                    "on-primary-fixed": "#271900",
+                    "on-primary": "#412d00",
+                    "on-tertiary-fixed": "#001b3d",
+                    "inverse-primary": "#7c5800",
+                    "on-error": "#690005"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "16px",
+                    "stack-xl": "64px",
+                    "unit": "8px",
+                    "stack-md": "16px",
+                    "container-margin": "24px",
+                    "stack-lg": "32px",
+                    "stack-sm": "8px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Manrope"],
+                    "display-lg": ["Manrope"],
+                    "body-md": ["Manrope"],
+                    "headline-lg-mobile": ["Manrope"],
+                    "body-lg": ["Manrope"],
+                    "label-md": ["Manrope"],
+                    "label-sm": ["Manrope"],
+                    "title-md": ["Manrope"]
+            },
+            "fontSize": {
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "title-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body {
+            background-color: #0B0D0F; /* Level 0 (Base) void color per guidelines */
+            color: theme('colors.on-background');
+            font-family: 'Manrope', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* Neumorphic Input Focus effect */
+        .glass-input:focus {
+            border-bottom-color: theme('colors.primary');
+            outline: none;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.4);
+        }
+
+        /* Base Surface Level 1 */
+        .surface-card {
+            background-color: #14181C;
+            border: 1px solid #1B2025;
+        }
+
+        /* Interactive Surface */
+        .surface-interactive:active {
+            transform: scale(0.98);
+        }
+        
+        /* Custom Toggle Switch styling */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: theme('colors.primary');
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: theme('colors.primary');
+        }
+        .toggle-checkbox:checked + .toggle-label::after {
+            transform: translateX(100%);
+            border-color: white;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col relative pb-[80px]">
+<!-- TopAppBar Structure from JSON, modified for sub-page (suppressed navigation shell as requested for sub-pages, but providing a top bar for 'Settings' context) -->
+<!-- Note: Following "Contextual State & Identity" rule, settings is a top-level destination in many apps, but here we provide a specialized header -->
+<header class="sticky top-0 z-50 bg-background/60 dark:bg-background/60 backdrop-blur-xl w-full px-container-margin py-4 flex justify-between items-center transition-all">
+<button class="text-on-surface-variant dark:text-on-surface-variant hover:opacity-80 transition-opacity active:scale-95 flex items-center justify-center p-2 rounded-full">
+<span class="material-symbols-outlined text-2xl">arrow_back</span>
+</button>
+<h1 class="text-headline-lg-mobile font-headline-lg-mobile font-bold tracking-tighter text-primary dark:text-primary">System</h1>
+<div class="w-10 h-10 rounded-full bg-surface-container-highest overflow-hidden border border-outline-variant/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-on-surface-variant">person</span>
+</div>
+</header>
+<main class="flex-1 w-full max-w-2xl mx-auto px-container-margin pt-stack-md pb-stack-xl space-y-stack-xl">
+<!-- User Profile Card -->
+<section class="surface-card rounded-xl p-6 flex items-center gap-6 shadow-sm">
+<div class="relative group cursor-pointer">
+<div class="w-20 h-20 rounded-full bg-surface-container overflow-hidden border-2 border-primary/20 flex items-center justify-center relative z-10">
+<span class="material-symbols-outlined text-4xl text-primary/50">account_circle</span>
+</div>
+<div class="absolute inset-0 rounded-full bg-primary/10 blur-md group-hover:bg-primary/20 transition-all z-0"></div>
+</div>
+<div class="flex-1">
+<h2 class="text-title-md font-title-md text-on-surface">Initiate Protocol</h2>
+<p class="text-body-md font-body-md text-on-surface-variant mt-1">Mastery Path Active</p>
+</div>
+<button class="bg-surface-container hover:bg-surface-container-high border border-outline-variant/50 text-on-surface px-4 py-2 rounded-lg text-label-md font-label-md transition-colors surface-interactive">
+                Edit
+            </button>
+</section>
+<!-- Notification Sanity -->
+<section class="space-y-4">
+<div class="flex items-center gap-3 border-b border-surface-container-highest pb-2 mb-4">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">notifications_paused</span>
+<h3 class="text-label-md font-label-md text-primary uppercase tracking-widest">Notification Sanity</h3>
+</div>
+<div class="surface-card rounded-xl overflow-hidden divide-y divide-surface-container-highest">
+<div class="p-4 flex items-center justify-between hover:bg-surface-container-lowest/50 transition-colors">
+<div>
+<p class="text-body-md font-body-md text-on-surface">Minimal Disruptions</p>
+<p class="text-label-sm font-label-sm text-on-surface-variant mt-1">Only crucial alerts break the silence.</p>
+</div>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer z-10 top-0 bottom-0 m-auto right-6" id="toggle1" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-container-highest cursor-pointer" for="toggle1"></label>
+</div>
+</div>
+<div class="p-4 flex items-center justify-between hover:bg-surface-container-lowest/50 transition-colors">
+<div>
+<p class="text-body-md font-body-md text-on-surface">Daily Summary</p>
+<p class="text-label-sm font-label-sm text-on-surface-variant mt-1">Receive one digest at 20:00.</p>
+</div>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+<input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-on-surface-variant border-4 appearance-none cursor-pointer z-10 top-0 bottom-0 m-auto right-6" id="toggle2" name="toggle" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-6 rounded-full bg-surface-container-highest cursor-pointer" for="toggle2"></label>
+</div>
+</div>
+</div>
+</section>
+<!-- Visual Language -->
+<section class="space-y-4">
+<div class="flex items-center gap-3 border-b border-surface-container-highest pb-2 mb-4">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">palette</span>
+<h3 class="text-label-md font-label-md text-primary uppercase tracking-widest">Visual Language</h3>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="surface-card rounded-xl p-4 border-primary/30 flex flex-col items-center justify-center text-center cursor-pointer surface-interactive relative overflow-hidden">
+<div class="absolute inset-0 bg-primary/5"></div>
+<span class="material-symbols-outlined text-3xl text-primary mb-2">dark_mode</span>
+<p class="text-label-md font-label-md text-on-surface">Abyssal Dark</p>
+<p class="text-label-sm font-label-sm text-primary mt-1">Active</p>
+</div>
+<div class="surface-card rounded-xl p-4 flex flex-col items-center justify-center text-center cursor-pointer surface-interactive opacity-50 hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-3xl text-on-surface-variant mb-2">light_mode</span>
+<p class="text-label-md font-label-md text-on-surface">Clarity Light</p>
+</div>
+</div>
+<div class="surface-card rounded-xl p-5 mt-4">
+<p class="text-label-md font-label-md text-on-surface mb-4">Morphism Intensity</p>
+<div class="w-full bg-surface-container-highest h-1 rounded-full relative">
+<div class="absolute top-0 left-0 h-full bg-primary rounded-full w-[60%]"></div>
+<div class="absolute top-1/2 left-[60%] w-4 h-4 bg-primary rounded-full -translate-y-1/2 -translate-x-1/2 shadow-[0_0_10px_rgba(244,195,103,0.5)] cursor-pointer"></div>
+</div>
+<div class="flex justify-between mt-2">
+<span class="text-label-sm font-label-sm text-on-surface-variant">Solid</span>
+<span class="text-label-sm font-label-sm text-primary">Glass</span>
+</div>
+</div>
+</section>
+<!-- Data Sovereignty -->
+<section class="space-y-4">
+<div class="flex items-center gap-3 border-b border-surface-container-highest pb-2 mb-4">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">security</span>
+<h3 class="text-label-md font-label-md text-primary uppercase tracking-widest">Data Sovereignty</h3>
+</div>
+<div class="surface-card rounded-xl overflow-hidden divide-y divide-surface-container-highest">
+<button class="w-full p-4 flex items-center justify-between text-left hover:bg-surface-container-lowest/50 transition-colors group">
+<div>
+<p class="text-body-md font-body-md text-on-surface group-hover:text-primary transition-colors">Export Vault</p>
+<p class="text-label-sm font-label-sm text-on-surface-variant mt-1">Download all evidence and metrics.</p>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">download</span>
+</button>
+<button class="w-full p-4 flex items-center justify-between text-left hover:bg-surface-container-lowest/50 transition-colors group">
+<div>
+<p class="text-body-md font-body-md text-error">Initiate Purge</p>
+<p class="text-label-sm font-label-sm text-on-surface-variant mt-1">Irreversibly delete all records.</p>
+</div>
+<span class="material-symbols-outlined text-error">delete_forever</span>
+</button>
+</div>
+</section>
+<!-- App Info -->
+<div class="flex flex-col items-center justify-center pt-stack-md opacity-40">
+<div class="text-headline-lg-mobile font-headline-lg-mobile font-bold tracking-tighter text-on-surface-variant mb-1">VAJRAX</div>
+<p class="text-label-sm font-label-sm text-on-surface-variant text-center">Version OS.0.9.4<br/>Build 4920</p>
+</div>
+</main>
+<!-- Navigation suppressed per 'Semantic Shell' mandate for settings/sub-pages, allowing focus on the canvas -->
+<script>
+        // Simple toggle interactions for visual feedback
+        document.querySelectorAll('.toggle-checkbox').forEach(toggle => {
+            toggle.addEventListener('change', function() {
+                const label = this.nextElementSibling;
+                if(this.checked) {
+                    this.style.right = '0';
+                    this.style.borderColor = 'theme("colors.primary")';
+                    label.style.backgroundColor = 'theme("colors.primary")';
+                } else {
+                    this.style.right = '1.5rem';
+                    this.style.borderColor = '#eae1d6'; // fallback to on-surface
+                    label.style.backgroundColor = '#39342d'; // surface-container-highest
+                }
+            });
+        });
+    </script>
+</body></html>

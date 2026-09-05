@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Growth Evidence Timeline - VAJRAX</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-container": "#b1b5bc",
+                    "secondary-container": "#42474d",
+                    "on-primary-container": "#583e00",
+                    "secondary-fixed-dim": "#c2c7cd",
+                    "error": "#ffb4ab",
+                    "on-tertiary-fixed": "#001b3d",
+                    "on-error": "#690005",
+                    "outline-variant": "#4e4637",
+                    "on-surface": "#eae1d6",
+                    "on-tertiary-container": "#194278",
+                    "on-primary": "#412d00",
+                    "surface-variant": "#39342d",
+                    "surface-container-highest": "#39342d",
+                    "on-surface-variant": "#d2c5b2",
+                    "background": "#17130d",
+                    "primary-fixed": "#ffdea6",
+                    "on-secondary-fixed-variant": "#42474d",
+                    "on-tertiary-fixed-variant": "#1f477d",
+                    "tertiary-fixed": "#d6e3ff",
+                    "tertiary": "#afcbff",
+                    "on-primary-fixed": "#271900",
+                    "tertiary-container": "#8db0ed",
+                    "on-error-container": "#ffdad6",
+                    "inverse-surface": "#eae1d6",
+                    "surface-container": "#231f19",
+                    "tertiary-fixed-dim": "#a9c7ff",
+                    "on-background": "#eae1d6",
+                    "surface-container-high": "#2e2922",
+                    "on-secondary": "#2c3136",
+                    "surface-container-lowest": "#110e08",
+                    "on-primary-fixed-variant": "#5e4200",
+                    "secondary": "#c2c7cd",
+                    "outline": "#9b8f7e",
+                    "primary-fixed-dim": "#f0bf64",
+                    "inverse-primary": "#7c5800",
+                    "secondary-fixed": "#dee3ea",
+                    "surface-dim": "#17130d",
+                    "surface": "#17130d",
+                    "inverse-on-surface": "#343029",
+                    "error-container": "#93000a",
+                    "primary": "#f4c367",
+                    "surface-container-low": "#1f1b15",
+                    "on-tertiary": "#003063",
+                    "surface-tint": "#f0bf64",
+                    "surface-bright": "#3d3831",
+                    "on-secondary-fixed": "#171c21",
+                    "primary-container": "#d6a84f"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-md": "16px",
+                    "container-margin": "24px",
+                    "unit": "8px",
+                    "stack-xl": "64px",
+                    "gutter": "16px",
+                    "stack-lg": "32px",
+                    "stack-sm": "8px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Manrope"],
+                    "body-lg": ["Manrope"],
+                    "body-md": ["Manrope"],
+                    "display-lg": ["Manrope"],
+                    "headline-lg-mobile": ["Manrope"],
+                    "title-md": ["Manrope"],
+                    "label-md": ["Manrope"],
+                    "label-sm": ["Manrope"]
+            },
+            "fontSize": {
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+                    "title-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .waveform-bar {
+            width: 4px;
+            background-color: theme('colors.primary');
+            border-radius: 2px;
+            animation: pulse 1.5s infinite ease-in-out alternate;
+        }
+        @keyframes pulse {
+            0% { height: 8px; opacity: 0.5; }
+            100% { height: 24px; opacity: 1; }
+        }
+        .waveform-bar:nth-child(2) { animation-delay: 0.2s; }
+        .waveform-bar:nth-child(3) { animation-delay: 0.4s; }
+        .waveform-bar:nth-child(4) { animation-delay: 0.1s; }
+        .waveform-bar:nth-child(5) { animation-delay: 0.5s; }
+        .waveform-bar:nth-child(6) { animation-delay: 0.3s; }
+        .waveform-bar:nth-child(7) { animation-delay: 0.6s; }
+        
+        .timeline-dot::before {
+            content: '';
+            position: absolute;
+            left: -33px; /* Adjust based on padding */
+            top: 24px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: theme('colors.surface-container-highest');
+            border: 2px solid theme('colors.background');
+            z-index: 10;
+        }
+        @media (min-width: 768px) {
+            .timeline-dot::before {
+                left: -49px; /* Adjust for desktop md:ml-10 */
+            }
+        }
+        .timeline-dot.mastery::before {
+            background-color: theme('colors.primary');
+            box-shadow: 0 0 10px theme('colors.primary/40');
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen pb-24 md:pb-0 font-body-md selection:bg-primary/20 selection:text-primary">
+<!-- TopAppBar -->
+<header class="fixed top-0 z-50 flex justify-between items-center w-full px-container-margin py-4 bg-background/60 dark:bg-background/60 backdrop-blur-xl border-none">
+<div class="flex items-center gap-4">
+<button class="text-primary dark:text-primary hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-[24px]">menu</span>
+</button>
+<span class="text-headline-lg-mobile md:text-headline-lg font-headline-lg-mobile md:font-headline-lg font-bold tracking-tighter text-primary dark:text-primary">VAJRAX</span>
+</div>
+<!-- Web Navigation (Hidden on Mobile) -->
+<nav class="hidden md:flex gap-8 items-center">
+<a class="text-on-surface-variant dark:text-on-surface-variant text-label-md font-label-md hover:opacity-80 transition-opacity flex flex-col items-center" href="#">Today</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant text-label-md font-label-md hover:opacity-80 transition-opacity flex flex-col items-center" href="#">Path</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant text-label-md font-label-md hover:opacity-80 transition-opacity flex flex-col items-center" href="#">Learn</a>
+<a class="text-primary dark:text-primary text-label-md font-label-md hover:opacity-80 transition-opacity scale-95 transition-transform duration-150 flex flex-col items-center" href="#">
+                Grow
+                <div class="w-1 h-1 rounded-full bg-primary mt-1"></div>
+</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant text-label-md font-label-md hover:opacity-80 transition-opacity flex flex-col items-center" href="#">Review</a>
+</nav>
+<button class="w-10 h-10 rounded-full overflow-hidden border border-outline-variant/30 hover:border-primary/50 transition-colors">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="A sleek, minimal geometric user avatar featuring dark matte textures and a single subtle gold accent line. Cinematic lighting, professional dark-mode aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDXBxdoA1p2vrTYp80NKLHgyJtcKmHBTl_oTCXnwr_K-brhxRnfBFy8gnkbyyzaRQEt4HJA1WZ38lWML94ApPOgm4Gs-WPoUVTZJR1uvtF5X9h97OBmi4MMUQczexK0ycEEFZx5_sIvxHJUUUfBOpb6-X-fAm_WdtKB8tXbi0cTQY5CHj43bbLNxwb9TkqGlKycq5gygbBEvFhDSI6xyCCAmdYo0eaven5B9Y4_4Nb4nTLguWFaHX8j9w"/>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-24 md:pt-32 px-container-margin max-w-3xl mx-auto flex flex-col gap-stack-xl">
+<!-- Header Section -->
+<section class="flex flex-col gap-unit">
+<h1 class="text-display-lg font-display-lg text-on-background">Evidence Timeline</h1>
+<p class="text-body-lg font-body-lg text-on-surface-variant max-w-lg">A permanent record of your discipline. Each entry is a testament to the path.</p>
+</section>
+<!-- Timeline Container -->
+<section class="relative border-l-2 border-surface-container-highest ml-3 md:ml-6 pl-8 md:pl-12 flex flex-col gap-stack-lg pb-stack-xl">
+<!-- Timeline Item 1: Photo Evidence (Mastery) -->
+<article class="timeline-dot mastery relative flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="px-3 py-1 rounded-full bg-primary/10 text-primary text-label-sm font-label-sm border border-primary/20 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">bolt</span>
+                            Deep Work
+                        </span>
+<time class="text-label-md font-label-md text-on-surface-variant">Today, 14:30</time>
+</div>
+</div>
+<!-- Glassmorphic Photo Card -->
+<div class="group relative rounded-2xl overflow-hidden border border-primary/30 shadow-[0_4px_30px_rgba(244,195,103,0.05)] bg-surface-container">
+<div class="absolute inset-0 bg-gradient-to-t from-background/90 via-background/40 to-transparent z-10"></div>
+<img alt="Deep work evidence" class="w-full h-64 object-cover filter blur-[2px] group-hover:blur-0 transition-all duration-500 scale-105 group-hover:scale-100" data-alt="A highly stylized, slightly blurred photograph of a clean, minimalist desk setup in a dimly lit room. A glowing monitor displays lines of code, casting a soft light. Dark-first aesthetic with deep blacks and subtle warm tungsten accents. Professional and atmospheric." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzuJjdgTVkd_FVqFjPBxVfJPyfN0Otscd8EuPtIVO01aJzmj_mFrLnbxELRfWKuibqbPIGy-_9Xg2QHUn1v50vxMpPpkmyYORzrgcm-3I6NzokCJHyCSCKohALF4BsrzBc_t_nKfBm9uIn1jjwedFRhiJ69kE1x9m7kStXOYb7P34wtYsrt_DA_oLY_jIBdSY5nuvOZpgMZi4gpzeX4KSQYD8R2SmrDW1IjrQ-0DISOW9EWC4dBmEm1g"/>
+<div class="absolute bottom-0 left-0 w-full p-6 z-20 flex flex-col gap-2 backdrop-blur-md bg-surface-container/30 border-t border-outline-variant/20">
+<h3 class="text-title-md font-title-md text-on-background flex items-center gap-2">
+                            Architecture Module Finalized
+                            <span class="material-symbols-outlined text-primary text-[18px]">verified</span>
+</h3>
+<p class="text-body-md font-body-md text-on-surface-variant line-clamp-2">Completed the core routing logic and state management for the new feature branch. 120 minutes of uninterrupted focus.</p>
+</div>
+</div>
+</article>
+<!-- Timeline Item 2: Voice Memo -->
+<article class="timeline-dot relative flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<span class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface text-label-sm font-label-sm border border-outline-variant/30 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">mic</span>
+                        Reflection
+                    </span>
+<time class="text-label-md font-label-md text-on-surface-variant">Yesterday, 21:15</time>
+</div>
+<div class="rounded-2xl border border-surface-container-highest bg-surface-container p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center gap-6 hover:border-outline-variant transition-colors cursor-pointer">
+<button class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0 hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+<div class="flex-1 flex flex-col gap-2 w-full">
+<div class="flex items-center justify-between">
+<span class="text-label-md font-label-md text-on-surface">Evening Synthesis</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">03:42</span>
+</div>
+<!-- Waveform simulation -->
+<div class="flex items-center gap-1 h-8 px-2 w-full bg-background/50 rounded-lg overflow-hidden">
+<div class="waveform-bar" style="height: 40%"></div>
+<div class="waveform-bar" style="height: 70%"></div>
+<div class="waveform-bar" style="height: 30%"></div>
+<div class="waveform-bar" style="height: 90%"></div>
+<div class="waveform-bar" style="height: 60%"></div>
+<div class="waveform-bar" style="height: 20%"></div>
+<div class="waveform-bar" style="height: 50%"></div>
+<div class="waveform-bar" style="height: 80%"></div>
+<div class="waveform-bar" style="height: 40%"></div>
+<div class="waveform-bar" style="height: 100%"></div>
+<div class="waveform-bar" style="height: 30%"></div>
+<div class="waveform-bar" style="height: 60%"></div>
+<div class="waveform-bar" style="height: 20%"></div>
+<div class="waveform-bar" style="height: 50%"></div>
+<div class="w-full border-t border-dashed border-outline-variant/30 ml-2"></div>
+</div>
+</div>
+</div>
+</article>
+<!-- Timeline Item 3: Text Snippet -->
+<article class="timeline-dot relative flex flex-col gap-4">
+<div class="flex items-center gap-3">
+<span class="px-3 py-1 rounded-full bg-surface-container-high text-on-surface text-label-sm font-label-sm border border-outline-variant/30 flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">edit_document</span>
+                        Strategy
+                    </span>
+<time class="text-label-md font-label-md text-on-surface-variant">Oct 24, 08:00</time>
+</div>
+<div class="rounded-2xl border border-surface-container-highest bg-surface-container p-6 shadow-sm flex flex-col gap-4 relative overflow-hidden">
+<!-- Subtle neumorphic inner shadow top -->
+<div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-b from-background/20 to-transparent"></div>
+<h3 class="text-title-md font-title-md text-on-background">Q4 Pivot Notes</h3>
+<p class="text-body-md font-body-md text-on-surface-variant leading-relaxed">
+                        The current trajectory relies too heavily on external validation metrics. Need to shift focus back to core system stability. The 'Golden Ratio' applies here: 80% foundational work, 20% experimental expansion. Action items documented in the main vault.
+                    </p>
+</div>
+</article>
+</section>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 py-3 pb-safe bg-surface-container/60 dark:bg-surface-container/60 backdrop-blur-2xl z-50 border-none shadow-lg">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant opacity-60 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">calendar_today</span>
+<span class="text-label-sm font-label-sm mt-1">Today</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant opacity-60 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">insights</span>
+<span class="text-label-sm font-label-sm mt-1">Path</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant opacity-60 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">menu_book</span>
+<span class="text-label-sm font-label-sm mt-1">Learn</span>
+</a>
+<!-- ACTIVE TAB -->
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary bg-primary-container/20 rounded-xl px-4 py-1.5 scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<span class="text-label-sm font-label-sm mt-1">Grow</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant opacity-60 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined text-[24px]">fact_check</span>
+<span class="text-label-sm font-label-sm mt-1">Review</span>
+</a>
+</nav>
+</body></html>

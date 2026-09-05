@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Growth: Weekly Review</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-container": "#b1b5bc",
+                    "secondary-container": "#42474d",
+                    "on-primary-container": "#583e00",
+                    "secondary-fixed-dim": "#c2c7cd",
+                    "error": "#ffb4ab",
+                    "on-tertiary-fixed": "#001b3d",
+                    "on-error": "#690005",
+                    "outline-variant": "#4e4637",
+                    "on-surface": "#eae1d6",
+                    "on-tertiary-container": "#194278",
+                    "on-primary": "#412d00",
+                    "surface-variant": "#39342d",
+                    "surface-container-highest": "#39342d",
+                    "on-surface-variant": "#d2c5b2",
+                    "background": "#17130d",
+                    "primary-fixed": "#ffdea6",
+                    "on-secondary-fixed-variant": "#42474d",
+                    "on-tertiary-fixed-variant": "#1f477d",
+                    "tertiary-fixed": "#d6e3ff",
+                    "tertiary": "#afcbff",
+                    "on-primary-fixed": "#271900",
+                    "tertiary-container": "#8db0ed",
+                    "on-error-container": "#ffdad6",
+                    "inverse-surface": "#eae1d6",
+                    "surface-container": "#231f19",
+                    "tertiary-fixed-dim": "#a9c7ff",
+                    "on-background": "#eae1d6",
+                    "surface-container-high": "#2e2922",
+                    "on-secondary": "#2c3136",
+                    "surface-container-lowest": "#110e08",
+                    "on-primary-fixed-variant": "#5e4200",
+                    "secondary": "#c2c7cd",
+                    "outline": "#9b8f7e",
+                    "primary-fixed-dim": "#f0bf64",
+                    "inverse-primary": "#7c5800",
+                    "secondary-fixed": "#dee3ea",
+                    "surface-dim": "#17130d",
+                    "surface": "#17130d",
+                    "inverse-on-surface": "#343029",
+                    "error-container": "#93000a",
+                    "primary": "#f4c367",
+                    "surface-container-low": "#1f1b15",
+                    "on-tertiary": "#003063",
+                    "surface-tint": "#f0bf64",
+                    "surface-bright": "#3d3831",
+                    "on-secondary-fixed": "#171c21",
+                    "primary-container": "#d6a84f"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "stack-md": "16px",
+                    "container-margin": "24px",
+                    "unit": "8px",
+                    "stack-xl": "64px",
+                    "gutter": "16px",
+                    "stack-lg": "32px",
+                    "stack-sm": "8px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Manrope"],
+                    "body-lg": ["Manrope"],
+                    "body-md": ["Manrope"],
+                    "display-lg": ["Manrope"],
+                    "headline-lg-mobile": ["Manrope"],
+                    "title-md": ["Manrope"],
+                    "label-md": ["Manrope"],
+                    "label-sm": ["Manrope"]
+            },
+            "fontSize": {
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "600"}],
+                    "title-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { background-color: #0B0D0F; color: #eae1d6; }
+        .vajra-glass { background: rgba(20, 24, 28, 0.6); backdrop-filter: blur(20px); border: 1px solid #1B2025; }
+        .vajra-surface { background-color: #14181C; border: 1px solid #1B2025; }
+        .vajra-elevated { background-color: #1B2025; border: 1px solid #39342d; }
+        .vajra-gold-text { color: #f4c367; }
+        .vajra-ring { stroke: #f4c367; stroke-width: 4; fill: none; stroke-linecap: round; }
+        .vajra-ring-bg { stroke: #1B2025; stroke-width: 4; fill: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="antialiased min-h-screen flex flex-col font-body-md text-body-md overflow-x-hidden">
+<!-- TopAppBar (Web) -->
+<header class="hidden md:flex justify-between items-center w-full px-container-margin py-4 bg-background/60 dark:bg-background/60 backdrop-blur-xl docked full-width top-0 z-50 bg-transparent flat no shadows">
+<div class="flex items-center gap-4 text-primary dark:text-primary hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-headline-lg font-headline-lg">menu</span>
+</div>
+<div class="text-headline-lg font-headline-lg font-bold tracking-tighter text-primary dark:text-primary">
+            VAJRAX
+        </div>
+<div class="w-10 h-10 rounded-full bg-surface-container overflow-hidden hover:opacity-80 transition-opacity cursor-pointer">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="A subtle, highly aesthetic user avatar image. Dark mode theme. A sleek, minimal portrait or geometric abstraction representing a premium user profile. Soft rim lighting, high contrast, matching the Vajrax dark-first aesthetic with deep blacks and subtle warm tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBRe4atqfC-XYXDyEGg3fYZk8hf5jmOT1HDR_0oh09deLEDokBshSkjWAtkedT_sdlPU0vOPLtxGpI48F9DU3R7jvIZu_vzI45EVzm4v8N87CTb-wHmMnBv_mqbhr5mEvo9G-324ll2uhUTgtEL2psw532q1Ktg-IrJsT9BU0b_SpiMGwgnQPspAwwvlaN3fgjtZO5uX6CU_rfklx6XH1Bg3MPkkNT5SwFwK6mwVlI4OdkXgVvCMcIfRA"/>
+</div>
+</header>
+<!-- TopAppBar (Mobile) -->
+<header class="md:hidden flex justify-between items-center w-full px-container-margin py-4 bg-background/60 dark:bg-background/60 backdrop-blur-xl docked full-width top-0 z-50 bg-transparent flat no shadows">
+<div class="flex items-center gap-4 text-primary dark:text-primary hover:opacity-80 transition-opacity">
+<span class="material-symbols-outlined text-headline-lg-mobile font-headline-lg-mobile">menu</span>
+</div>
+<div class="text-headline-lg-mobile font-headline-lg-mobile font-bold tracking-tighter text-primary dark:text-primary">
+            VAJRAX
+        </div>
+<div class="w-8 h-8 rounded-full bg-surface-container overflow-hidden hover:opacity-80 transition-opacity cursor-pointer">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="A subtle, highly aesthetic user avatar image. Dark mode theme. A sleek, minimal portrait or geometric abstraction representing a premium user profile. Soft rim lighting, high contrast, matching the Vajrax dark-first aesthetic with deep blacks and subtle warm tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCm8ZaHAdkv1D00sIjfXxughIMVRQ44thDmaBXqck9g96lUAWQ5v2IsOQCRpIXqxPbn22STEIVfQhKP3M0omk39A77BXVN00gu-zDWqbfzsxCg0SeIvdQP0-obPzBkD5V2R_7Hh6RnUE8rSWr5-WreYTCEr7uR9mCY4TrtP5tMOoYgPAlsmtC4Kg4ObUsZdcbcyC9q4i3IWFI_Li1O0PLXPcPIAp7CFbESKRAgs_GVMfW4IBvFdNlf_Aw"/>
+</div>
+</header>
+<main class="flex-grow px-container-margin py-stack-lg max-w-5xl mx-auto w-full pb-32 md:pb-stack-lg">
+<header class="mb-stack-lg text-center md:text-left">
+<h1 class="text-display-lg font-display-lg text-on-surface mb-unit">Weekly Review</h1>
+<p class="text-body-lg font-body-lg text-on-surface-variant">Sept 18 - 24. A summary of intent.</p>
+</header>
+<!-- Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+<!-- Consistency Score -->
+<div class="md:col-span-4 vajra-surface rounded-xl p-container-margin flex flex-col items-center justify-center relative overflow-hidden transition-transform duration-200 hover:scale-[1.02]">
+<h3 class="text-label-md font-label-md text-on-surface-variant uppercase tracking-widest absolute top-6 left-6">Consistency</h3>
+<div class="relative w-40 h-40 mt-8 mb-4">
+<svg class="w-full h-full -rotate-90 transform" viewbox="0 0 100 100">
+<circle class="vajra-ring-bg" cx="50" cy="50" r="45"></circle>
+<circle class="vajra-ring" cx="50" cy="50" r="45" stroke-dasharray="282.7" stroke-dashoffset="45.2"></circle> <!-- 84% -->
+</svg>
+<div class="absolute inset-0 flex items-center justify-center flex-col">
+<span class="text-display-lg font-display-lg vajra-gold-text">84<span class="text-title-md font-title-md">%</span></span>
+</div>
+</div>
+<p class="text-label-sm font-label-sm text-on-surface-variant">Top 15% this month</p>
+</div>
+<!-- Strongest Area & Pattern -->
+<div class="md:col-span-8 grid grid-rows-2 gap-gutter">
+<!-- Strongest Area -->
+<div class="vajra-surface rounded-xl p-container-margin flex items-center justify-between transition-transform duration-200 hover:scale-[1.01]">
+<div>
+<h3 class="text-label-md font-label-md text-on-surface-variant uppercase tracking-widest mb-unit">Strongest Area</h3>
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-[32px]">bolt</span>
+<span class="text-title-md font-title-md text-on-surface">Focus &amp; Execution</span>
+</div>
+</div>
+<div class="text-right">
+<span class="block text-headline-lg font-headline-lg vajra-gold-text">+12%</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant">vs last week</span>
+</div>
+</div>
+<!-- Pattern Detected -->
+<div class="vajra-glass rounded-xl p-container-margin flex items-start gap-4">
+<div class="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-primary" data-weight="fill">insights</span>
+</div>
+<div>
+<h3 class="text-label-md font-label-md text-primary mb-2">Pattern Detected</h3>
+<p class="text-body-md font-body-md text-on-surface leading-relaxed">
+                            Morning focus sessions are <strong class="vajra-gold-text font-semibold">31% higher quality</strong> on days immediately following a reading session.
+                        </p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden bg-surface-container/60 dark:bg-surface-container/60 backdrop-blur-2xl text-primary dark:text-primary docked full-width bottom-0 z-50 border-outline-variant/10 shadow-lg fixed bottom-0 left-0 w-full flex justify-around items-center px-4 py-3 pb-safe bg-surface-container-highest/40 backdrop-blur-xl">
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant opacity-60 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">calendar_today</span>
+<span class="text-label-sm font-label-sm">Today</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant opacity-60 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">insights</span>
+<span class="text-label-sm font-label-sm">Path</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant opacity-60 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">menu_book</span>
+<span class="text-label-sm font-label-sm">Learn</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary dark:text-primary bg-primary-container/20 rounded-xl px-3 py-1 scale-90 transition-transform duration-200" href="#">
+<span class="material-symbols-outlined mb-1" data-weight="fill">auto_awesome</span>
+<span class="text-label-sm font-label-sm">Grow</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant dark:text-on-surface-variant opacity-60 hover:text-primary dark:hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined mb-1">fact_check</span>
+<span class="text-label-sm font-label-sm">Review</span>
+</a>
+</nav>
+</body></html>

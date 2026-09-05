@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Path Selection &amp; Blending</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-background": "#eae1d6",
+                    "on-secondary-fixed": "#171c21",
+                    "surface-container-highest": "#39342d",
+                    "secondary-fixed": "#dee3ea",
+                    "surface-dim": "#17130d",
+                    "primary-container": "#d6a84f",
+                    "secondary-fixed-dim": "#c2c7cd",
+                    "on-secondary": "#2c3136",
+                    "on-primary-fixed-variant": "#5e4200",
+                    "on-surface": "#eae1d6",
+                    "surface-container-lowest": "#110e08",
+                    "on-secondary-fixed-variant": "#42474d",
+                    "error": "#ffb4ab",
+                    "surface-tint": "#f0bf64",
+                    "on-tertiary-fixed-variant": "#1f477d",
+                    "surface-container": "#231f19",
+                    "on-tertiary-container": "#194278",
+                    "on-secondary-container": "#b1b5bc",
+                    "outline": "#9b8f7e",
+                    "tertiary-fixed-dim": "#a9c7ff",
+                    "secondary": "#c2c7cd",
+                    "surface-container-low": "#1f1b15",
+                    "primary-fixed": "#ffdea6",
+                    "primary": "#f4c367",
+                    "outline-variant": "#4e4637",
+                    "on-error-container": "#ffdad6",
+                    "error-container": "#93000a",
+                    "on-surface-variant": "#d2c5b2",
+                    "tertiary-fixed": "#d6e3ff",
+                    "primary-fixed-dim": "#f0bf64",
+                    "surface": "#17130d",
+                    "inverse-on-surface": "#343029",
+                    "tertiary-container": "#8db0ed",
+                    "tertiary": "#afcbff",
+                    "on-primary-container": "#583e00",
+                    "surface-variant": "#39342d",
+                    "inverse-surface": "#eae1d6",
+                    "background": "#17130d",
+                    "surface-container-high": "#2e2922",
+                    "secondary-container": "#42474d",
+                    "on-tertiary": "#003063",
+                    "surface-bright": "#3d3831",
+                    "on-primary-fixed": "#271900",
+                    "on-primary": "#412d00",
+                    "on-tertiary-fixed": "#001b3d",
+                    "inverse-primary": "#7c5800",
+                    "on-error": "#690005"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "16px",
+                    "stack-xl": "64px",
+                    "unit": "8px",
+                    "stack-md": "16px",
+                    "container-margin": "24px",
+                    "stack-lg": "32px",
+                    "stack-sm": "8px"
+            },
+            "fontFamily": {
+                    "headline-lg": [
+                            "Manrope"
+                    ],
+                    "display-lg": [
+                            "Manrope"
+                    ],
+                    "body-md": [
+                            "Manrope"
+                    ],
+                    "headline-lg-mobile": [
+                            "Manrope"
+                    ],
+                    "body-lg": [
+                            "Manrope"
+                    ],
+                    "label-md": [
+                            "Manrope"
+                    ],
+                    "label-sm": [
+                            "Manrope"
+                    ],
+                    "title-md": [
+                            "Manrope"
+                    ]
+            },
+            "fontSize": {
+                    "headline-lg": [
+                            "32px",
+                            {
+                                    "lineHeight": "40px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "display-lg": [
+                            "48px",
+                            {
+                                    "lineHeight": "56px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "body-md": [
+                            "16px",
+                            {
+                                    "lineHeight": "24px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-lg-mobile": [
+                            "28px",
+                            {
+                                    "lineHeight": "36px",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "body-lg": [
+                            "18px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "label-md": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "letterSpacing": "0.01em",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "label-sm": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "title-md": [
+                            "20px",
+                            {
+                                    "lineHeight": "28px",
+                                    "fontWeight": "600"
+                            }
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+<style>
+        .glass-card {
+            background: rgba(23, 19, 13, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid #1B2025;
+        }
+        .neumorphic-inset {
+            box-shadow: inset 2px 2px 5px rgba(0,0,0,0.5), inset -2px -2px 5px rgba(255,255,255,0.05);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex flex-col font-body-md selection:bg-primary selection:text-on-primary">
+<!-- Top Navigation (Onboarding flow - no shell per rules, but a contextual back button is ok) -->
+<header class="w-full px-container-margin py-4 flex items-center justify-between z-50">
+<button class="text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center p-2 rounded-full glass-card">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+</button>
+<span class="text-label-md font-label-md text-on-surface-variant uppercase tracking-widest">Step 3 of 5</span>
+<div class="w-10"></div> <!-- Spacer for balance -->
+</header>
+<main class="flex-grow flex flex-col px-container-margin pb-stack-xl mt-stack-md">
+<!-- Header Section -->
+<div class="mb-stack-lg">
+<h1 class="text-headline-lg-mobile font-headline-lg-mobile text-on-surface mb-2">Choose your Path</h1>
+<p class="text-body-md font-body-md text-on-surface-variant">Select a primary path or blend philosophies to create a custom hybrid identity. You can change this later.</p>
+</div>
+<!-- Path Selection Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-stack-xl flex-grow">
+<!-- Path 1: High Performance -->
+<label class="cursor-pointer relative block">
+<input class="peer sr-only" name="path" type="checkbox" value="high_performance"/>
+<div class="glass-card rounded-xl p-5 flex flex-col h-full border border-surface-container-highest transition-all duration-300 peer-checked:border-primary peer-checked:bg-surface-container/80 hover:border-outline-variant">
+<div class="flex items-start justify-between mb-4">
+<div class="w-12 h-12 rounded-lg bg-surface flex items-center justify-center border border-surface-container-highest peer-checked:border-primary">
+<span class="material-symbols-outlined text-primary text-[28px]" data-icon="mountain_flag" style="font-variation-settings: 'FILL' 1;">mountain_flag</span>
+</div>
+<div class="w-6 h-6 rounded-full border border-surface-container-highest flex items-center justify-center peer-checked:bg-primary peer-checked:border-primary transition-colors">
+<span class="material-symbols-outlined text-on-primary text-[16px] opacity-0 peer-checked:opacity-100 transition-opacity" data-icon="check">check</span>
+</div>
+</div>
+<h3 class="text-title-md font-title-md text-on-surface mb-1">High Performance</h3>
+<p class="text-label-md font-label-md text-on-surface-variant mb-4">Excellence in health, focus and execution.</p>
+<div class="mt-auto space-y-2">
+<div class="flex items-center text-label-sm font-label-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] mr-2" data-icon="bolt">bolt</span> + Deep Work Blocks
+                        </div>
+<div class="flex items-center text-label-sm font-label-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] mr-2" data-icon="fitness_center">fitness_center</span> + Physical Mastery
+                        </div>
+</div>
+</div>
+</label>
+<!-- Path 2: Self-Mastery -->
+<label class="cursor-pointer relative block">
+<input class="peer sr-only" name="path" type="checkbox" value="self_mastery"/>
+<div class="glass-card rounded-xl p-5 flex flex-col h-full border border-surface-container-highest transition-all duration-300 peer-checked:border-primary peer-checked:bg-surface-container/80 hover:border-outline-variant">
+<div class="flex items-start justify-between mb-4">
+<div class="w-12 h-12 rounded-lg bg-surface flex items-center justify-center border border-surface-container-highest peer-checked:border-primary">
+<span class="material-symbols-outlined text-primary text-[28px]" data-icon="self_improvement" style="font-variation-settings: 'FILL' 1;">self_improvement</span>
+</div>
+<div class="w-6 h-6 rounded-full border border-surface-container-highest flex items-center justify-center peer-checked:bg-primary peer-checked:border-primary transition-colors">
+<span class="material-symbols-outlined text-on-primary text-[16px] opacity-0 peer-checked:opacity-100 transition-opacity" data-icon="check">check</span>
+</div>
+</div>
+<h3 class="text-title-md font-title-md text-on-surface mb-1">Self-Mastery</h3>
+<p class="text-label-md font-label-md text-on-surface-variant mb-4">Discipline, boundaries and inner strength.</p>
+<div class="mt-auto space-y-2">
+<div class="flex items-center text-label-sm font-label-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] mr-2" data-icon="psychology">psychology</span> + Morning Reflection
+                        </div>
+<div class="flex items-center text-label-sm font-label-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] mr-2" data-icon="shield">shield</span> + Habit Tracking
+                        </div>
+</div>
+</div>
+</label>
+<!-- Path 3: Scholar -->
+<label class="cursor-pointer relative block">
+<input class="peer sr-only" name="path" type="checkbox" value="scholar"/>
+<div class="glass-card rounded-xl p-5 flex flex-col h-full border border-surface-container-highest transition-all duration-300 peer-checked:border-primary peer-checked:bg-surface-container/80 hover:border-outline-variant">
+<div class="flex items-start justify-between mb-4">
+<div class="w-12 h-12 rounded-lg bg-surface flex items-center justify-center border border-surface-container-highest peer-checked:border-primary">
+<span class="material-symbols-outlined text-primary text-[28px]" data-icon="menu_book" style="font-variation-settings: 'FILL' 1;">menu_book</span>
+</div>
+<div class="w-6 h-6 rounded-full border border-surface-container-highest flex items-center justify-center peer-checked:bg-primary peer-checked:border-primary transition-colors">
+<span class="material-symbols-outlined text-on-primary text-[16px] opacity-0 peer-checked:opacity-100 transition-opacity" data-icon="check">check</span>
+</div>
+</div>
+<h3 class="text-title-md font-title-md text-on-surface mb-1">Scholar</h3>
+<p class="text-label-md font-label-md text-on-surface-variant mb-4">Learning, knowledge and intellectual growth.</p>
+<div class="mt-auto space-y-2">
+<div class="flex items-center text-label-sm font-label-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] mr-2" data-icon="import_contacts">import_contacts</span> + Daily Reading
+                        </div>
+<div class="flex items-center text-label-sm font-label-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] mr-2" data-icon="edit_note">edit_note</span> + Synthesize
+                        </div>
+</div>
+</div>
+</label>
+<!-- Path 4: Wealth Builder -->
+<label class="cursor-pointer relative block">
+<input class="peer sr-only" name="path" type="checkbox" value="wealth_builder"/>
+<div class="glass-card rounded-xl p-5 flex flex-col h-full border border-surface-container-highest transition-all duration-300 peer-checked:border-primary peer-checked:bg-surface-container/80 hover:border-outline-variant">
+<div class="flex items-start justify-between mb-4">
+<div class="w-12 h-12 rounded-lg bg-surface flex items-center justify-center border border-surface-container-highest peer-checked:border-primary">
+<span class="material-symbols-outlined text-primary text-[28px]" data-icon="account_balance" style="font-variation-settings: 'FILL' 1;">account_balance</span>
+</div>
+<div class="w-6 h-6 rounded-full border border-surface-container-highest flex items-center justify-center peer-checked:bg-primary peer-checked:border-primary transition-colors">
+<span class="material-symbols-outlined text-on-primary text-[16px] opacity-0 peer-checked:opacity-100 transition-opacity" data-icon="check">check</span>
+</div>
+</div>
+<h3 class="text-title-md font-title-md text-on-surface mb-1">Wealth Builder</h3>
+<p class="text-label-md font-label-md text-on-surface-variant mb-4">Skills, career and financial freedom.</p>
+<div class="mt-auto space-y-2">
+<div class="flex items-center text-label-sm font-label-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] mr-2" data-icon="timeline">timeline</span> + Skill Acquisition
+                        </div>
+<div class="flex items-center text-label-sm font-label-sm text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px] mr-2" data-icon="payments">payments</span> + Asset Tracking
+                        </div>
+</div>
+</div>
+</label>
+</div>
+</main>
+<!-- Bottom Fixed Action Bar -->
+<div class="fixed bottom-0 w-full px-container-margin py-4 bg-background/80 backdrop-blur-xl border-t border-surface-container-highest flex items-center justify-center z-50 pb-safe">
+<button class="w-full max-w-md bg-primary text-on-primary font-label-md text-label-md py-4 rounded-xl flex items-center justify-center hover:opacity-90 transition-opacity shadow-lg">
+            Blend Selected Paths
+        </button>
+</div>
+</body></html>
