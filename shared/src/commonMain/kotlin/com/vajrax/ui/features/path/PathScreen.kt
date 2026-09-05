@@ -3,14 +3,14 @@ package com.vajrax.ui.features.path
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -21,9 +21,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vajrax.ui.theme.LuminaTheme
 
+data class DiscoverTemplateItem(
+    val id: String,
+    val title: String,
+    val subtitle: String,
+    val taskCount: Int,
+    val frequency: String,
+    val author: String? = null,
+    val isBookmarked: Boolean = false
+)
+
 /**
- * Figma-Faithful Discover Screen for Lumina Life OS.
- * Features clean framework cards, category pills, active system highlights, and practice switches.
+ * 1:1 Figma-Faithful Discover Screen for Lumina Life OS.
+ * Features Provided Templates and Community Templates with clean metadata and 'Use' CTA buttons.
  */
 @Composable
 fun PathScreen(
@@ -31,9 +41,20 @@ fun PathScreen(
     onIntent: (PathIntent) -> Unit
 ) {
     val colors = LuminaTheme.colors
-    var selectedCategory by remember { mutableStateOf("All") }
+    var searchQuery by remember { mutableStateOf("") }
+    var activeFilter by remember { mutableStateOf<String?>(null) }
 
-    val categories = listOf("All", "Performance", "Philosophy", "Health", "Mindfulness")
+    val providedTemplates = listOf(
+        DiscoverTemplateItem("morning_discipline", "Morning Discipline", "Build a structured morning routine", 6, "Daily"),
+        DiscoverTemplateItem("deep_work_block", "Deep Work Block", "Lock in focus and maximize high-output hours", 4, "Daily"),
+        DiscoverTemplateItem("30_day_challenge", "30-Day Challenge", "A rigorous month-long discipline protocol", 8, "30 days"),
+        DiscoverTemplateItem("6am_routine", "6 AM Routine", "Wake up early and win the morning", 5, "Daily")
+    )
+
+    val communityTemplates = listOf(
+        DiscoverTemplateItem("evening_wind_down", "Evening Wind Down", "Slow down your mind for deep, restful recovery", 4, "Daily", author = "sarah", isBookmarked = true),
+        DiscoverTemplateItem("fitness_starter_pack", "Fitness Starter Pack", "Essential daily habits for athletic consistency", 5, "Daily", author = "mike", isBookmarked = true)
+    )
 
     Column(
         modifier = Modifier
@@ -46,53 +67,49 @@ fun PathScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // ==========================================
-        // 1. PAGE HEADER
+        // 1. HEADER (Title + Search Icon Button)
         // ==========================================
-        Text(
-            text = "Discover",
-            color = colors.onSurface,
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = (-0.5).sp
-        )
-        Spacer(modifier = Modifier.height(2.dp))
-        Text(
-            text = "Operating frameworks & daily life protocols",
-            color = colors.onSurfaceVariant,
-            fontSize = 13.sp
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Filter Categories Row (Horizontally Scrollable)
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            categories.forEach { cat ->
-                val isSelected = cat == selectedCategory
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(if (isSelected) colors.primary else colors.surface)
-                        .border(
-                            width = 1.dp,
-                            color = if (isSelected) colors.primary else colors.outlineVariant,
-                            shape = RoundedCornerShape(16.dp)
-                        )
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) { selectedCategory = cat }
-                        .padding(horizontal = 14.dp, vertical = 7.dp)
-                ) {
-                    Text(
-                        text = cat,
-                        color = if (isSelected) Color.White else colors.onSurfaceVariant,
-                        fontSize = 12.sp,
-                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+            Text(
+                text = "Discover",
+                color = colors.onSurface,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.6).sp
+            )
+
+            // Search Icon Circle Button
+            Box(
+                modifier = Modifier
+                    .size(42.dp)
+                    .clip(CircleShape)
+                    .background(colors.surface)
+                    .border(1.dp, colors.outlineVariant.copy(alpha = 0.8f), CircleShape)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { /* Search action */ },
+                contentAlignment = Alignment.Center
+            ) {
+                // Search Magnifier Icon
+                androidx.compose.foundation.Canvas(modifier = Modifier.size(18.dp)) {
+                    val stroke = 1.8.dp.toPx()
+                    drawCircle(
+                        color = Color(0xFF64748B),
+                        radius = size.width * 0.35f,
+                        center = androidx.compose.ui.geometry.Offset(size.width * 0.42f, size.height * 0.42f),
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = stroke)
+                    )
+                    drawLine(
+                        color = Color(0xFF64748B),
+                        start = androidx.compose.ui.geometry.Offset(size.width * 0.67f, size.height * 0.67f),
+                        end = androidx.compose.ui.geometry.Offset(size.width * 0.92f, size.height * 0.92f),
+                        strokeWidth = stroke,
+                        cap = androidx.compose.ui.graphics.StrokeCap.Round
                     )
                 }
             }
@@ -101,295 +118,224 @@ fun PathScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         // ==========================================
-        // 2. ACTIVE SYSTEM ELEVATED CARD
-        // ==========================================
-        val activePath = state.activePath ?: state.availablePaths.firstOrNull()
-
-        if (activePath != null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(26.dp))
-                    .background(colors.surface)
-                    .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(26.dp))
-                    .padding(20.dp)
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(14.dp))
-                                .background(colors.primaryContainer)
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = "ACTIVE FRAMEWORK",
-                                color = colors.primary,
-                                fontSize = 10.5.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.6.sp
-                            )
-                        }
-
-                        Text(
-                            text = "${state.practices.size} practices active",
-                            color = colors.onSurfaceVariant,
-                            fontSize = 12.5.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-
-                    Text(
-                        text = activePath.name,
-                        color = colors.onSurface,
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = (-0.3).sp
-                    )
-
-                    if (!activePath.description.isNullOrBlank()) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = activePath.description,
-                            color = colors.onSurfaceVariant,
-                            fontSize = 13.sp,
-                            lineHeight = 18.sp
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 3 Mini Stat Highlights
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(colors.surfaceContainerLow)
-                                .padding(vertical = 10.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("4.5h", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = colors.onSurface)
-                                Text("Deep Work", fontSize = 10.5.sp, color = colors.onSurfaceVariant)
-                            }
-                        }
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(colors.surfaceContainerLow)
-                                .padding(vertical = 10.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("100%", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = colors.onSurface)
-                                Text("Adherence", fontSize = 10.5.sp, color = colors.onSurfaceVariant)
-                            }
-                        }
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(colors.surfaceContainerLow)
-                                .padding(vertical = 10.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("14 Days", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = colors.onSurface)
-                                Text("Streak", fontSize = 10.5.sp, color = colors.onSurfaceVariant)
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // ==========================================
-        // 3. AVAILABLE SYSTEMS DIRECTORY
+        // 2. PROVIDED TEMPLATES
         // ==========================================
         Text(
-            text = "AVAILABLE FRAMEWORKS",
-            color = colors.onSurfaceVariant,
-            fontSize = 11.sp,
+            text = "PROVIDED TEMPLATES",
+            color = Color(0xFF8B95A5),
+            fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
-            letterSpacing = 1.2.sp
+            letterSpacing = 0.8.sp
         )
         Spacer(modifier = Modifier.height(12.dp))
 
-        val filteredPaths = remember(state.availablePaths, selectedCategory) {
-            if (selectedCategory == "All") {
-                state.availablePaths
-            } else {
-                state.availablePaths.filter { path ->
-                    when (selectedCategory) {
-                        "Performance" -> path.id in listOf("high_performance", "wealth_builder", "creator")
-                        "Philosophy" -> path.id in listOf("self_mastery", "scholar", "purpose_driven")
-                        "Health" -> path.id in listOf("high_performance", "balanced_life")
-                        "Mindfulness" -> path.id in listOf("mindful_life", "balanced_life", "self_mastery")
-                        else -> true
-                    }
-                }
-            }
-        }
-
-        Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            filteredPaths.forEach { path ->
-                val isActive = path.id == activePath?.id
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(colors.surface)
-                        .border(
-                            width = 1.dp,
-                            color = if (isActive) colors.primary.copy(alpha = 0.5f) else colors.outlineVariant.copy(alpha = 0.7f),
-                            shape = RoundedCornerShape(20.dp)
-                        )
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) { onIntent(PathIntent.SelectPath(path.id)) }
-                        .padding(18.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = path.name,
-                                color = if (isActive) colors.primary else colors.onSurface,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            if (!path.description.isNullOrBlank()) {
-                                Spacer(modifier = Modifier.height(3.dp))
-                                Text(
-                                    text = path.description,
-                                    color = colors.onSurfaceVariant,
-                                    fontSize = 12.5.sp,
-                                    lineHeight = 16.sp,
-                                    maxLines = 2
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.width(14.dp))
-
-                        if (isActive) {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(colors.primary)
-                                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Text(
-                                    text = "Active",
-                                    color = Color.White,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(colors.primaryContainer)
-                                    .clickable { onIntent(PathIntent.SelectPath(path.id)) }
-                                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Text(
-                                    text = "Adopt",
-                                    color = colors.primary,
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-                }
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            providedTemplates.forEach { item ->
+                FigmaTemplateCard(
+                    item = item,
+                    onUse = { onIntent(PathIntent.SelectPath(item.id)) }
+                )
             }
         }
 
         Spacer(modifier = Modifier.height(28.dp))
 
         // ==========================================
-        // 4. SYSTEM PRACTICES & TOGGLES
+        // 3. COMMUNITY TEMPLATES
         // ==========================================
-        if (state.practices.isNotEmpty()) {
-            Text(
-                text = "SYSTEM PRACTICES",
-                color = colors.onSurfaceVariant,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.2.sp
-            )
-            Spacer(modifier = Modifier.height(12.dp))
+        Text(
+            text = "COMMUNITY TEMPLATES",
+            color = Color(0xFF8B95A5),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.8.sp
+        )
+        Spacer(modifier = Modifier.height(12.dp))
 
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                state.practices.forEach { practice ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(18.dp))
-                            .background(colors.surface)
-                            .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(18.dp))
-                            .padding(horizontal = 16.dp, vertical = 12.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = practice.title,
-                                    color = colors.onSurface,
-                                    fontSize = 14.5.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = "${practice.targetDurationMinutes}m target · ${practice.minimumDurationMinutes}m min",
-                                    color = colors.onSurfaceVariant,
-                                    fontSize = 12.sp
-                                )
+        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            communityTemplates.forEach { item ->
+                FigmaTemplateCard(
+                    item = item,
+                    onUse = { onIntent(PathIntent.SelectPath(item.id)) }
+                )
+            }
+        }
+
+        // Safe clearance for bottom navigation dock
+        Spacer(modifier = Modifier.navigationBarsPadding().height(96.dp))
+    }
+}
+
+@Composable
+private fun FigmaTemplateCard(
+    item: DiscoverTemplateItem,
+    onUse: () -> Unit
+) {
+    val colors = LuminaTheme.colors
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(colors.surface)
+            .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(22.dp))
+            .padding(18.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            // Title & Use Button Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = item.title,
+                        color = colors.onSurface,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = (-0.2).sp
+                    )
+
+                    if (item.author != null) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = "by @${item.author}",
+                            color = colors.primary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = item.subtitle,
+                        color = colors.onSurfaceVariant,
+                        fontSize = 13.5.sp,
+                        lineHeight = 18.sp
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    if (item.isBookmarked) {
+                        // Bookmark icon
+                        androidx.compose.foundation.Canvas(modifier = Modifier.size(16.dp)) {
+                            val w = size.width
+                            val h = size.height
+                            val path = androidx.compose.ui.graphics.Path().apply {
+                                moveTo(2f, 1f)
+                                lineTo(w - 2f, 1f)
+                                lineTo(w - 2f, h - 1f)
+                                lineTo(w / 2f, h * 0.65f)
+                                lineTo(2f, h - 1f)
+                                close()
                             }
-                            Switch(
-                                checked = practice.isActive,
-                                onCheckedChange = { onIntent(PathIntent.TogglePractice(practice.id, it)) },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = Color.White,
-                                    checkedTrackColor = colors.primary,
-                                    uncheckedThumbColor = colors.outline,
-                                    uncheckedTrackColor = colors.surfaceContainerHigh
+                            drawPath(
+                                path = path,
+                                color = Color(0xFF94A3B8),
+                                style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                    width = 1.6.dp.toPx(),
+                                    join = androidx.compose.ui.graphics.StrokeJoin.Round
                                 )
                             )
                         }
                     }
+
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(colors.primary)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null,
+                                onClick = onUse
+                            )
+                            .padding(horizontal = 22.dp, vertical = 9.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Use",
+                            color = Color.White,
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Metadata Row: [list icon] 6 tasks   [clock icon] Daily
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    // Task list vector icon
+                    androidx.compose.foundation.Canvas(modifier = Modifier.size(14.dp)) {
+                        val stroke = 1.5.dp.toPx()
+                        drawLine(Color(0xFF94A3B8), androidx.compose.ui.geometry.Offset(1f, 3f), androidx.compose.ui.geometry.Offset(4f, 3f), strokeWidth = stroke)
+                        drawLine(Color(0xFF94A3B8), androidx.compose.ui.geometry.Offset(7f, 3f), androidx.compose.ui.geometry.Offset(size.width, 3f), strokeWidth = stroke)
+                        drawLine(Color(0xFF94A3B8), androidx.compose.ui.geometry.Offset(1f, 7.5f), androidx.compose.ui.geometry.Offset(4f, 7.5f), strokeWidth = stroke)
+                        drawLine(Color(0xFF94A3B8), androidx.compose.ui.geometry.Offset(7f, 7.5f), androidx.compose.ui.geometry.Offset(size.width, 7.5f), strokeWidth = stroke)
+                        drawLine(Color(0xFF94A3B8), androidx.compose.ui.geometry.Offset(1f, 12f), androidx.compose.ui.geometry.Offset(4f, 12f), strokeWidth = stroke)
+                        drawLine(Color(0xFF94A3B8), androidx.compose.ui.geometry.Offset(7f, 12f), androidx.compose.ui.geometry.Offset(size.width, 12f), strokeWidth = stroke)
+                    }
+                    Text(
+                        text = "${item.taskCount} tasks",
+                        color = colors.onSurfaceVariant,
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    // Clock vector icon
+                    androidx.compose.foundation.Canvas(modifier = Modifier.size(14.dp)) {
+                        val stroke = 1.5.dp.toPx()
+                        drawCircle(
+                            color = Color(0xFF94A3B8),
+                            radius = size.width * 0.44f,
+                            center = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = stroke)
+                        )
+                        drawLine(
+                            color = Color(0xFF94A3B8),
+                            start = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f),
+                            end = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height * 0.28f),
+                            strokeWidth = stroke,
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round
+                        )
+                        drawLine(
+                            color = Color(0xFF94A3B8),
+                            start = androidx.compose.ui.geometry.Offset(size.width / 2f, size.height / 2f),
+                            end = androidx.compose.ui.geometry.Offset(size.width * 0.72f, size.height / 2f),
+                            strokeWidth = stroke,
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round
+                        )
+                    }
+                    Text(
+                        text = item.frequency,
+                        color = colors.onSurfaceVariant,
+                        fontSize = 12.5.sp,
+                        fontWeight = FontWeight.Medium
+                    )
                 }
             }
         }
-
-        // Safe clearance for bottom navigation bar
-        Spacer(modifier = Modifier.navigationBarsPadding().height(96.dp))
     }
 }
+
 
 

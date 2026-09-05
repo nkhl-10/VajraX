@@ -9,13 +9,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vajrax.ui.theme.LocalThemeModeController
@@ -23,19 +25,15 @@ import com.vajrax.ui.theme.LuminaTheme
 import com.vajrax.ui.theme.ThemeMode
 
 /**
- * Figma-Faithful Profile & Settings Screen for Lumina Life OS.
- * Features user identity hero card, coaching persona cards, grouped preference toggles,
- * and system sync & database status.
+ * 1:1 Figma-Faithful Profile Screen for Lumina Life OS.
+ * Features centered user identity (John Doe, JD avatar, Edit Profile),
+ * Current Template progress card (Morning Discipline, Day 12 of 30, 40%),
+ * My Templates list, and Preferences.
  */
 @Composable
 fun ProfileScreen() {
     val colors = LuminaTheme.colors
     val themeController = LocalThemeModeController.current
-
-    var selectedPersona by remember { mutableStateOf("High Performance") }
-    var notificationsEnabled by remember { mutableStateOf(true) }
-    var hapticsEnabled by remember { mutableStateOf(true) }
-    var eveningReviewEnabled by remember { mutableStateOf(true) }
 
     Column(
         modifier = Modifier
@@ -48,27 +46,88 @@ fun ProfileScreen() {
         Spacer(modifier = Modifier.height(16.dp))
 
         // ==========================================
-        // 1. PAGE HEADER
+        // 1. HEADER
         // ==========================================
         Text(
             text = "Profile",
             color = colors.onSurface,
-            fontSize = 28.sp,
+            fontSize = 32.sp,
             fontWeight = FontWeight.Bold,
-            letterSpacing = (-0.5).sp
+            letterSpacing = (-0.6).sp
         )
-        Spacer(modifier = Modifier.height(2.dp))
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // ==========================================
+        // 2. USER PROFILE HERO (Centered)
+        // ==========================================
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // JD Avatar Circle
+            Box(
+                modifier = Modifier
+                    .size(76.dp)
+                    .clip(CircleShape)
+                    .background(colors.primary),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "JD",
+                    color = Color.White,
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            Text(
+                text = "John Doe",
+                color = colors.onSurface,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.3).sp
+            )
+
+            Spacer(modifier = Modifier.height(3.dp))
+
+            Text(
+                text = "john@example.com",
+                color = Color(0xFF64748B),
+                fontSize = 13.5.sp
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Edit Profile",
+                color = colors.primary,
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.SemiBold,
+                textDecoration = TextDecoration.Underline,
+                modifier = Modifier.clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { /* Edit profile */ }
+            )
+        }
+
+        Spacer(modifier = Modifier.height(28.dp))
+
+        // ==========================================
+        // 3. CURRENT TEMPLATE CARD
+        // ==========================================
         Text(
-            text = "Identity, coaching tone, and system preferences",
-            color = colors.onSurfaceVariant,
-            fontSize = 13.sp
+            text = "CURRENT TEMPLATE",
+            color = Color(0xFF8B95A5),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.8.sp
         )
+        Spacer(modifier = Modifier.height(12.dp))
 
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // ==========================================
-        // 2. USER IDENTITY HERO CARD
-        // ==========================================
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -78,390 +137,296 @@ fun ProfileScreen() {
                 .padding(20.dp)
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
+                Text(
+                    text = "Morning Discipline",
+                    color = colors.onSurface,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.3).sp
+                )
+                Spacer(modifier = Modifier.height(3.dp))
+                Text(
+                    text = "Build a structured morning routine",
+                    color = colors.onSurfaceVariant,
+                    fontSize = 13.5.sp
+                )
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                // Progress Info Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Day 12 of 30",
+                        color = colors.primary,
+                        fontSize = 13.5.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "40% Complete",
+                        color = Color(0xFF64748B),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Progress Bar (40%)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(6.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(Color(0xFFEEF2FF))
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(56.dp)
-                            .clip(CircleShape)
-                            .background(colors.primaryContainer)
-                            .border(1.5.dp, colors.primary.copy(alpha = 0.3f), CircleShape),
+                            .fillMaxWidth(0.40f)
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(3.dp))
+                            .background(colors.primary)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Action Buttons Row: [View Template] [Change Template]
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Outlined "View Template" Button
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(colors.surface)
+                            .border(1.5.dp, colors.primary, RoundedCornerShape(14.dp))
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { /* View Template action */ },
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "AV",
+                            text = "View Template",
                             color = colors.primary,
-                            fontSize = 20.sp,
+                            fontSize = 13.5.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
 
-                    Column(modifier = Modifier.weight(1f)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            Text(
-                                text = "Alexander Vance",
-                                color = colors.onSurface,
-                                fontSize = 17.sp,
-                                fontWeight = FontWeight.Bold,
-                                letterSpacing = (-0.2).sp
-                            )
-
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(colors.primaryContainer)
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text(
-                                    text = "PRO",
-                                    color = colors.primary,
-                                    fontSize = 10.5.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(2.dp))
-
-                        Text(
-                            text = "alex.vance@lumina.io",
-                            color = colors.onSurfaceVariant,
-                            fontSize = 12.5.sp
-                        )
-
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        Text(
-                            text = "Active: High Performance Architecture",
-                            color = colors.primary,
-                            fontSize = 11.5.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-                HorizontalDivider(color = colors.outlineVariant.copy(alpha = 0.5f), thickness = 0.6.dp)
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Text(
-                    text = "OPERATING PRINCIPLE",
-                    color = colors.primary,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "“Clarity. Deliberate Action. Quiet Strength.”",
-                    color = colors.onSurface,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "Executing daily imperatives with single-pointed focus, intentional recovery, and zero friction.",
-                    color = colors.onSurfaceVariant,
-                    fontSize = 12.5.sp,
-                    lineHeight = 17.sp
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // ==========================================
-        // 3. AI COACHING PERSONA
-        // ==========================================
-        Text(
-            text = "COACHING PERSONA",
-            color = colors.onSurfaceVariant,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.2.sp
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-
-        val personas = listOf(
-            "High Performance" to "Direct, metrics-driven execution focus with minimal commentary.",
-            "Stoic & Vedic" to "Combines philosophical clarity and Vedic presence for steady accountability.",
-            "Gentle Mentor" to "Compassionate, friction-reducing support designed for habit recovery."
-        )
-
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            personas.forEach { (name, desc) ->
-                val isSelected = selectedPersona == name
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(colors.surface)
-                        .border(
-                            width = 1.dp,
-                            color = if (isSelected) colors.primary.copy(alpha = 0.6f) else colors.outlineVariant.copy(alpha = 0.7f),
-                            shape = RoundedCornerShape(18.dp)
-                        )
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) { selectedPersona = name }
-                        .padding(16.dp)
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
+                    // Solid "Change Template" Button
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(colors.primary)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { /* Change Template action */ },
+                        contentAlignment = Alignment.Center
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    text = name,
-                                    color = if (isSelected) colors.primary else colors.onSurface,
-                                    fontSize = 14.5.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                                if (isSelected) {
-                                    Box(
-                                        modifier = Modifier
-                                            .clip(RoundedCornerShape(6.dp))
-                                            .background(colors.primaryContainer)
-                                            .padding(horizontal = 6.dp, vertical = 1.dp)
-                                    ) {
-                                        Text(
-                                            text = "ACTIVE",
-                                            color = colors.primary,
-                                            fontSize = 9.5.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(3.dp))
-                            Text(
-                                text = desc,
-                                color = colors.onSurfaceVariant,
-                                fontSize = 12.sp,
-                                lineHeight = 16.sp
-                            )
-                        }
-
-                        RadioButton(
-                            selected = isSelected,
-                            onClick = { selectedPersona = name },
-                            colors = RadioButtonDefaults.colors(
-                                selectedColor = colors.primary,
-                                unselectedColor = colors.outlineVariant
-                            )
+                        Text(
+                            text = "Change Template",
+                            color = Color.White,
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(28.dp))
 
         // ==========================================
-        // 4. PREFERENCES GROUP
+        // 4. MY TEMPLATES SECTION
         // ==========================================
         Text(
-            text = "PREFERENCES",
-            color = colors.onSurfaceVariant,
-            fontSize = 11.sp,
+            text = "MY TEMPLATES",
+            color = Color(0xFF8B95A5),
+            fontSize = 12.sp,
             fontWeight = FontWeight.Bold,
-            letterSpacing = 1.2.sp
+            letterSpacing = 0.8.sp
         )
         Spacer(modifier = Modifier.height(12.dp))
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
+                .clip(RoundedCornerShape(22.dp))
                 .background(colors.surface)
-                .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
+                .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(22.dp))
         ) {
             Column {
-                SettingToggleRow(
-                    title = "Daily Practice Reminders",
-                    subtitle = "Notify before scheduled commitment windows",
-                    checked = notificationsEnabled,
-                    onCheckedChange = { notificationsEnabled = it }
+                ProfileChevronRow(
+                    title = "Custom Evening Routine",
+                    onClick = {}
                 )
-
                 HorizontalDivider(color = colors.outlineVariant.copy(alpha = 0.5f), thickness = 0.5.dp)
 
-                SettingToggleRow(
-                    title = "Tactile Haptics",
-                    subtitle = "Haptic feedback on practice completion",
-                    checked = hapticsEnabled,
-                    onCheckedChange = { hapticsEnabled = it }
+                ProfileChevronRow(
+                    title = "Weekend Reset",
+                    onClick = {}
                 )
-
                 HorizontalDivider(color = colors.outlineVariant.copy(alpha = 0.5f), thickness = 0.5.dp)
 
-                SettingToggleRow(
-                    title = "Evening Reflection Prompts",
-                    subtitle = "Summary prompt at 09:00 PM",
-                    checked = eveningReviewEnabled,
-                    onCheckedChange = { eveningReviewEnabled = it }
-                )
+                // "+ Create New Template" Row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { /* Create new template */ }
+                        .padding(horizontal = 18.dp, vertical = 16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "+",
+                        color = colors.primary,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = "Create New Template",
+                        color = colors.primary,
+                        fontSize = 14.5.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
 
+        Spacer(modifier = Modifier.height(28.dp))
+
+        // ==========================================
+        // 5. PREFERENCES SECTION
+        // ==========================================
+        Text(
+            text = "PREFERENCES",
+            color = Color(0xFF8B95A5),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.8.sp
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp))
+                .background(colors.surface)
+                .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(22.dp))
+        ) {
+            Column {
+                ProfileChevronRow(
+                    title = "Notifications",
+                    onClick = {}
+                )
                 HorizontalDivider(color = colors.outlineVariant.copy(alpha = 0.5f), thickness = 0.5.dp)
 
-                // Theme Mode Row
+                // Theme Mode Switch Row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable {
                             themeController.value = if (colors.isDark) ThemeMode.LIGHT else ThemeMode.DARK
                         }
-                        .padding(horizontal = 18.dp, vertical = 14.dp),
+                        .padding(horizontal = 18.dp, vertical = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Text(
-                            text = "Appearance Theme",
-                            color = colors.onSurface,
-                            fontSize = 14.5.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = if (colors.isDark) "Dark Slate active" else "Light Editorial active",
-                            color = colors.onSurfaceVariant,
-                            fontSize = 12.sp
-                        )
-                    }
+                    Text(
+                        text = "Appearance",
+                        color = colors.onSurface,
+                        fontSize = 14.5.sp,
+                        fontWeight = FontWeight.Medium
+                    )
 
                     Box(
                         modifier = Modifier
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(colors.surfaceContainerLow)
-                            .border(1.dp, colors.outlineVariant.copy(alpha = 0.6f), RoundedCornerShape(12.dp))
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color(0xFFEEF2FF))
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = if (colors.isDark) "Dark Slate" else "Light Editorial",
+                            text = if (colors.isDark) "Dark" else "Light",
                             color = colors.primary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold
                         )
                     }
                 }
+                HorizontalDivider(color = colors.outlineVariant.copy(alpha = 0.5f), thickness = 0.5.dp)
+
+                ProfileChevronRow(
+                    title = "Account Settings",
+                    onClick = {}
+                )
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // ==========================================
-        // 5. SYSTEM & DATA
-        // ==========================================
-        Text(
-            text = "SYSTEM & ARCHITECTURE",
-            color = colors.onSurfaceVariant,
-            fontSize = 11.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.2.sp
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(20.dp))
-                .background(colors.surface)
-                .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(20.dp))
-                .padding(18.dp)
-        ) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Local Database", color = colors.onSurfaceVariant, fontSize = 12.5.sp)
-                    Text("SQLite (Room / SQLDelight)", color = colors.onSurface, fontSize = 12.5.sp, fontWeight = FontWeight.Medium)
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Cloud Sync Engine", color = colors.onSurfaceVariant, fontSize = 12.5.sp)
-                    Text("Supabase Realtime (Connected)", color = Color(0xFF16A34A), fontSize = 12.5.sp, fontWeight = FontWeight.Medium)
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Architecture", color = colors.onSurfaceVariant, fontSize = 12.5.sp)
-                    Text("Kotlin Multiplatform MVI", color = colors.onSurface, fontSize = 12.5.sp, fontWeight = FontWeight.Medium)
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text("Build Version", color = colors.onSurfaceVariant, fontSize = 12.5.sp)
-                    Text("2.4.0 Production (Build 48)", color = colors.onSurfaceVariant, fontSize = 12.5.sp)
-                }
-            }
-        }
-
-        // Safe clearance for bottom navigation bar
+        // Safe clearance for bottom navigation dock
         Spacer(modifier = Modifier.navigationBarsPadding().height(96.dp))
     }
 }
 
 @Composable
-private fun SettingToggleRow(
+private fun ProfileChevronRow(
     title: String,
-    subtitle: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    onClick: () -> Unit
 ) {
     val colors = LuminaTheme.colors
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 18.dp, vertical = 14.dp),
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            )
+            .padding(horizontal = 18.dp, vertical = 16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                color = colors.onSurface,
-                fontSize = 14.5.sp,
-                fontWeight = FontWeight.Medium
+        Text(
+            text = title,
+            color = colors.onSurface,
+            fontSize = 14.5.sp,
+            fontWeight = FontWeight.Medium
+        )
+
+        // Chevron Right Icon
+        androidx.compose.foundation.Canvas(modifier = Modifier.size(14.dp)) {
+            val stroke = 1.6.dp.toPx()
+            drawLine(
+                color = Color(0xFF94A3B8),
+                start = androidx.compose.ui.geometry.Offset(size.width * 0.35f, size.height * 0.15f),
+                end = androidx.compose.ui.geometry.Offset(size.width * 0.75f, size.height * 0.5f),
+                strokeWidth = stroke,
+                cap = androidx.compose.ui.graphics.StrokeCap.Round
             )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = subtitle,
-                color = colors.onSurfaceVariant,
-                fontSize = 12.sp
+            drawLine(
+                color = Color(0xFF94A3B8),
+                start = androidx.compose.ui.geometry.Offset(size.width * 0.75f, size.height * 0.5f),
+                end = androidx.compose.ui.geometry.Offset(size.width * 0.35f, size.height * 0.85f),
+                strokeWidth = stroke,
+                cap = androidx.compose.ui.graphics.StrokeCap.Round
             )
         }
-
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = colors.primary,
-                uncheckedThumbColor = colors.outline,
-                uncheckedTrackColor = colors.surfaceContainerHigh
-            )
-        )
     }
 }
+
 
 

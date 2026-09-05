@@ -133,12 +133,25 @@ fun NavTabIcon(
             }
 
             NavTabType.DISCOVER -> {
-                // Focus / Target / Circular Ring
+                // Compass Circle
                 drawCircle(
                     color = tint,
-                    radius = 7.5f * sx,
+                    radius = 8f * sx,
                     center = Offset(12f * sx, 12f * sy),
                     style = Stroke(width = strokeWidth)
+                )
+                // Compass Needle
+                val needlePath = Path().apply {
+                    moveTo(15.2f * sx, 8.8f * sy)
+                    lineTo(12.8f * sx, 12.8f * sy)
+                    lineTo(8.8f * sx, 15.2f * sy)
+                    lineTo(11.2f * sx, 11.2f * sy)
+                    close()
+                }
+                drawPath(
+                    path = needlePath,
+                    color = tint,
+                    style = Stroke(width = strokeWidth * 0.9f, join = StrokeJoin.Round)
                 )
             }
 
