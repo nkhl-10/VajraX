@@ -19,7 +19,7 @@ class LifePathTemplateEngine(
     val availableTemplates: List<PathTemplate> = listOf(
         // 1. High Performance
         PathTemplate(
-            path = LifePath("high_performance", "⚡ High Performance", "Deep focus, physical vigor, competence, and relentless execution.", isActive = true),
+            path = LifePath("high_performance", "High Performance", "Deep focus, physical vigor, competence, and relentless execution.", isActive = true),
             primaryLifeArea = "Execution & Health",
             recommendedWakeTime = "06:00",
             recommendedSleepTime = "22:30",
@@ -39,7 +39,7 @@ class LifePathTemplateEngine(
 
         // 2. Self-Mastery
         PathTemplate(
-            path = LifePath("self_mastery", "🗿 Self-Mastery", "Self-respect, emotional discipline, strong boundaries, and autonomy.", isActive = false),
+            path = LifePath("self_mastery", "Self-Mastery", "Self-respect, emotional discipline, strong boundaries, and autonomy.", isActive = false),
             primaryLifeArea = "Mind & Character",
             recommendedWakeTime = "06:30",
             recommendedSleepTime = "23:00",
@@ -57,7 +57,7 @@ class LifePathTemplateEngine(
 
         // 3. Scholar
         PathTemplate(
-            path = LifePath("scholar", "🧠 Scholar", "Reading, rigorous learning, intellectual depth, and critical thinking.", isActive = false),
+            path = LifePath("scholar", "Scholar", "Reading, rigorous learning, intellectual depth, and critical thinking.", isActive = false),
             primaryLifeArea = "Learning & Intellect",
             recommendedWakeTime = "07:00",
             recommendedSleepTime = "23:30",
@@ -75,7 +75,7 @@ class LifePathTemplateEngine(
 
         // 4. Wealth Builder
         PathTemplate(
-            path = LifePath("wealth_builder", "💰 Wealth Builder", "High-value skills, career growth, financial discipline, and long-term leverage.", isActive = false),
+            path = LifePath("wealth_builder", "Wealth Builder", "High-value skills, career growth, financial discipline, and long-term leverage.", isActive = false),
             primaryLifeArea = "Career & Wealth",
             recommendedWakeTime = "06:30",
             recommendedSleepTime = "23:00",
@@ -92,7 +92,7 @@ class LifePathTemplateEngine(
 
         // 5. Balanced Life
         PathTemplate(
-            path = LifePath("balanced_life", "🌿 Balanced Life", "Holistic health, deep relationships, work-life equilibrium, and calmness.", isActive = false),
+            path = LifePath("balanced_life", "Balanced Life", "Holistic health, deep relationships, work-life equilibrium, and calmness.", isActive = false),
             primaryLifeArea = "Holistic Wellbeing",
             recommendedWakeTime = "07:00",
             recommendedSleepTime = "22:30",
@@ -110,7 +110,7 @@ class LifePathTemplateEngine(
 
         // 6. Creator
         PathTemplate(
-            path = LifePath("creator", "🎨 Creator", "Deep craft, consistent creative output, focus blocks, and experimentation.", isActive = false),
+            path = LifePath("creator", "Creator", "Deep craft, consistent creative output, focus blocks, and experimentation.", isActive = false),
             primaryLifeArea = "Creativity & Craft",
             recommendedWakeTime = "07:30",
             recommendedSleepTime = "23:30",
@@ -127,7 +127,7 @@ class LifePathTemplateEngine(
 
         // 7. Mindful Life
         PathTemplate(
-            path = LifePath("mindful_life", "🧘 Mindful Life", "Awareness, emotional regulation, presence, and intentional reflection.", isActive = false),
+            path = LifePath("mindful_life", "Mindful Life", "Awareness, emotional regulation, presence, and intentional reflection.", isActive = false),
             primaryLifeArea = "Inner Peace & Awareness",
             recommendedWakeTime = "06:00",
             recommendedSleepTime = "22:00",
@@ -144,7 +144,7 @@ class LifePathTemplateEngine(
 
         // 8. Purpose-Driven
         PathTemplate(
-            path = LifePath("purpose_driven", "🕉 Purpose-Driven", "Core values, duty, community contribution, and meaningful impact.", isActive = false),
+            path = LifePath("purpose_driven", "Purpose-Driven", "Core values, duty, community contribution, and meaningful impact.", isActive = false),
             primaryLifeArea = "Meaning & Contribution",
             recommendedWakeTime = "06:00",
             recommendedSleepTime = "22:30",
@@ -161,7 +161,7 @@ class LifePathTemplateEngine(
 
         // 9. Custom Life
         PathTemplate(
-            path = LifePath("custom_life", "🛠 Custom Life", "Fully personalized path designed by you.", isActive = false),
+            path = LifePath("custom_life", "Custom Architecture", "Fully personalized path designed by you.", isActive = false),
             primaryLifeArea = "Personalized",
             recommendedWakeTime = "07:00",
             recommendedSleepTime = "23:00",

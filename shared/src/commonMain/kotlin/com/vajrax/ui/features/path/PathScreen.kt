@@ -3,26 +3,27 @@ package com.vajrax.ui.features.path
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.vajrax.domain.model.LifePath
 import com.vajrax.ui.theme.LuminaTheme
 
 /**
- * Clean Life Systems Directory Screen for Lumina Life OS.
- * Designed around "Which system is active and what are the habits?"
- * Solid surfaces, clear hierarchy, editorial typography, and standard toggle controls.
+ * Figma-Faithful Discover Screen for Lumina Life OS.
+ * Features clean framework cards, category pills, active system highlights, and practice switches.
  */
 @Composable
 fun PathScreen(
@@ -30,6 +31,9 @@ fun PathScreen(
     onIntent: (PathIntent) -> Unit
 ) {
     val colors = LuminaTheme.colors
+    var selectedCategory by remember { mutableStateOf("All") }
+
+    val categories = listOf("All", "Performance", "Philosophy", "Health", "Mindfulness")
 
     Column(
         modifier = Modifier
@@ -42,10 +46,10 @@ fun PathScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // ==========================================
-        // 1. PAGE HEADER (Breathes directly on page)
+        // 1. PAGE HEADER
         // ==========================================
         Text(
-            text = "Life Systems",
+            text = "Discover",
             color = colors.onSurface,
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
@@ -53,15 +57,51 @@ fun PathScreen(
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(
-            text = "Select or customize your operating framework",
+            text = "Operating frameworks & daily life protocols",
             color = colors.onSurfaceVariant,
             fontSize = 13.sp
         )
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Filter Categories Row (Horizontally Scrollable)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            categories.forEach { cat ->
+                val isSelected = cat == selectedCategory
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(if (isSelected) colors.primary else colors.surface)
+                        .border(
+                            width = 1.dp,
+                            color = if (isSelected) colors.primary else colors.outlineVariant,
+                            shape = RoundedCornerShape(16.dp)
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { selectedCategory = cat }
+                        .padding(horizontal = 14.dp, vertical = 7.dp)
+                ) {
+                    Text(
+                        text = cat,
+                        color = if (isSelected) Color.White else colors.onSurfaceVariant,
+                        fontSize = 12.sp,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                    )
+                }
+            }
+        }
+
         Spacer(modifier = Modifier.height(20.dp))
 
         // ==========================================
-        // 2. ACTIVE SYSTEM HIGHLIGHT CARD
+        // 2. ACTIVE SYSTEM ELEVATED CARD
         // ==========================================
         val activePath = state.activePath ?: state.availablePaths.firstOrNull()
 
@@ -69,12 +109,12 @@ fun PathScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
+                    .clip(RoundedCornerShape(26.dp))
                     .background(colors.surface)
-                    .border(1.dp, colors.outlineVariant, RoundedCornerShape(12.dp))
-                    .padding(18.dp)
+                    .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(26.dp))
+                    .padding(20.dp)
             ) {
-                Column {
+                Column(modifier = Modifier.fillMaxWidth()) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -82,27 +122,28 @@ fun PathScreen(
                     ) {
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(6.dp))
+                                .clip(RoundedCornerShape(14.dp))
                                 .background(colors.primaryContainer)
-                                .padding(horizontal = 8.dp, vertical = 3.dp)
+                                .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
                             Text(
-                                text = "ACTIVE SYSTEM",
+                                text = "ACTIVE FRAMEWORK",
                                 color = colors.primary,
-                                fontSize = 10.sp,
+                                fontSize = 10.5.sp,
                                 fontWeight = FontWeight.Bold,
-                                letterSpacing = 0.8.sp
+                                letterSpacing = 0.6.sp
                             )
                         }
 
                         Text(
-                            text = "${state.practices.size} active practices",
+                            text = "${state.practices.size} practices active",
                             color = colors.onSurfaceVariant,
-                            fontSize = 12.sp
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Medium
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
 
                     Text(
                         text = activePath.name,
@@ -121,6 +162,54 @@ fun PathScreen(
                             lineHeight = 18.sp
                         )
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 3 Mini Stat Highlights
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(colors.surfaceContainerLow)
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("4.5h", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = colors.onSurface)
+                                Text("Deep Work", fontSize = 10.5.sp, color = colors.onSurfaceVariant)
+                            }
+                        }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(colors.surfaceContainerLow)
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("100%", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = colors.onSurface)
+                                Text("Adherence", fontSize = 10.5.sp, color = colors.onSurfaceVariant)
+                            }
+                        }
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(colors.surfaceContainerLow)
+                                .padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("14 Days", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = colors.onSurface)
+                                Text("Streak", fontSize = 10.5.sp, color = colors.onSurfaceVariant)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -131,32 +220,51 @@ fun PathScreen(
         // 3. AVAILABLE SYSTEMS DIRECTORY
         // ==========================================
         Text(
-            text = "AVAILABLE SYSTEMS",
+            text = "AVAILABLE FRAMEWORKS",
             color = colors.onSurfaceVariant,
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.2.sp
         )
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(12.dp))
+
+        val filteredPaths = remember(state.availablePaths, selectedCategory) {
+            if (selectedCategory == "All") {
+                state.availablePaths
+            } else {
+                state.availablePaths.filter { path ->
+                    when (selectedCategory) {
+                        "Performance" -> path.id in listOf("high_performance", "wealth_builder", "creator")
+                        "Philosophy" -> path.id in listOf("self_mastery", "scholar", "purpose_driven")
+                        "Health" -> path.id in listOf("high_performance", "balanced_life")
+                        "Mindfulness" -> path.id in listOf("mindful_life", "balanced_life", "self_mastery")
+                        else -> true
+                    }
+                }
+            }
+        }
 
         Column(
-            verticalArrangement = Arrangement.spacedBy(10.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            state.availablePaths.forEach { path ->
+            filteredPaths.forEach { path ->
                 val isActive = path.id == activePath?.id
 
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(if (isActive) colors.surfaceContainerLow else colors.surface)
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(colors.surface)
                         .border(
                             width = 1.dp,
-                            color = if (isActive) colors.primary.copy(alpha = 0.5f) else colors.outlineVariant,
-                            shape = RoundedCornerShape(10.dp)
+                            color = if (isActive) colors.primary.copy(alpha = 0.5f) else colors.outlineVariant.copy(alpha = 0.7f),
+                            shape = RoundedCornerShape(20.dp)
                         )
-                        .clickable { onIntent(PathIntent.SelectPath(path.id)) }
-                        .padding(16.dp)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { onIntent(PathIntent.SelectPath(path.id)) }
+                        .padding(18.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -167,48 +275,50 @@ fun PathScreen(
                             Text(
                                 text = path.name,
                                 color = if (isActive) colors.primary else colors.onSurface,
-                                fontSize = 15.sp,
+                                fontSize = 16.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             if (!path.description.isNullOrBlank()) {
-                                Spacer(modifier = Modifier.height(2.dp))
+                                Spacer(modifier = Modifier.height(3.dp))
                                 Text(
                                     text = path.description,
                                     color = colors.onSurfaceVariant,
-                                    fontSize = 12.sp,
+                                    fontSize = 12.5.sp,
                                     lineHeight = 16.sp,
                                     maxLines = 2
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(14.dp))
 
                         if (isActive) {
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
+                                    .clip(RoundedCornerShape(12.dp))
                                     .background(colors.primary)
-                                    .padding(horizontal = 10.dp, vertical = 5.dp)
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
                                 Text(
                                     text = "Active",
-                                    color = colors.onPrimary,
-                                    fontSize = 11.sp,
+                                    color = Color.White,
+                                    fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
                                 )
                             }
                         } else {
-                            OutlinedButton(
-                                onClick = { onIntent(PathIntent.SelectPath(path.id)) },
-                                shape = RoundedCornerShape(6.dp),
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                                modifier = Modifier.height(32.dp)
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(colors.primaryContainer)
+                                    .clickable { onIntent(PathIntent.SelectPath(path.id)) }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
                                 Text(
                                     text = "Adopt",
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold
+                                    color = colors.primary,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
                             }
                         }
@@ -220,51 +330,7 @@ fun PathScreen(
         Spacer(modifier = Modifier.height(28.dp))
 
         // ==========================================
-        // 4. CORE PRINCIPLES (Breathes directly on page)
-        // ==========================================
-        if (state.principles.isNotEmpty()) {
-            Text(
-                text = "CORE PRINCIPLES",
-                color = colors.onSurfaceVariant,
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 1.2.sp
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                state.principles.forEach { principle ->
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(colors.surface)
-                            .border(1.dp, colors.outlineVariant, RoundedCornerShape(10.dp))
-                            .padding(14.dp)
-                    ) {
-                        Column {
-                            Text(
-                                text = principle.title,
-                                color = colors.onSurface,
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(3.dp))
-                            Text(
-                                text = principle.description,
-                                color = colors.onSurfaceVariant,
-                                fontSize = 12.5.sp,
-                                lineHeight = 17.sp
-                            )
-                        }
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(28.dp))
-        }
-
-        // ==========================================
-        // 5. ACTIVE PRACTICES & TOGGLES
+        // 4. SYSTEM PRACTICES & TOGGLES
         // ==========================================
         if (state.practices.isNotEmpty()) {
             Text(
@@ -274,17 +340,17 @@ fun PathScreen(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 1.2.sp
             )
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 state.practices.forEach { practice ->
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(10.dp))
+                            .clip(RoundedCornerShape(18.dp))
                             .background(colors.surface)
-                            .border(1.dp, colors.outlineVariant, RoundedCornerShape(10.dp))
-                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                            .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(18.dp))
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
                     ) {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -295,22 +361,23 @@ fun PathScreen(
                                 Text(
                                     text = practice.title,
                                     color = colors.onSurface,
-                                    fontSize = 14.sp,
-                                    fontWeight = FontWeight.SemiBold
+                                    fontSize = 14.5.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
+                                Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = "${practice.targetDurationMinutes}m target · ${practice.minimumDurationMinutes}m min",
                                     color = colors.onSurfaceVariant,
-                                    fontSize = 11.5.sp
+                                    fontSize = 12.sp
                                 )
                             }
                             Switch(
                                 checked = practice.isActive,
                                 onCheckedChange = { onIntent(PathIntent.TogglePractice(practice.id, it)) },
                                 colors = SwitchDefaults.colors(
-                                    checkedThumbColor = colors.onPrimary,
+                                    checkedThumbColor = Color.White,
                                     checkedTrackColor = colors.primary,
-                                    uncheckedThumbColor = colors.onSurfaceVariant,
+                                    uncheckedThumbColor = colors.outline,
                                     uncheckedTrackColor = colors.surfaceContainerHigh
                                 )
                             )
@@ -324,4 +391,5 @@ fun PathScreen(
         Spacer(modifier = Modifier.navigationBarsPadding().height(96.dp))
     }
 }
+
 

@@ -32,55 +32,55 @@ class DatabaseSeeder(
             // 2. Global Life Paths (9 Paths)
             queries.insertLifePath(
                 id = "high_performance",
-                name = "⚡ High Performance",
+                name = "High Performance",
                 description = "Deep focus, physical vigor, competence, and relentless execution.",
                 isActive = 1L
             )
             queries.insertLifePath(
                 id = "self_mastery",
-                name = "🗿 Self-Mastery",
+                name = "Self-Mastery",
                 description = "Self-respect, emotional discipline, strong boundaries, and autonomy.",
                 isActive = 0L
             )
             queries.insertLifePath(
                 id = "scholar",
-                name = "🧠 Scholar",
+                name = "Scholar",
                 description = "Reading, rigorous learning, intellectual depth, and critical thinking.",
                 isActive = 0L
             )
             queries.insertLifePath(
                 id = "wealth_builder",
-                name = "💰 Wealth Builder",
+                name = "Wealth Builder",
                 description = "High-value skills, career growth, financial discipline, and long-term leverage.",
                 isActive = 0L
             )
             queries.insertLifePath(
                 id = "balanced_life",
-                name = "🌿 Balanced Life",
+                name = "Balanced Life",
                 description = "Holistic health, deep relationships, work-life equilibrium, and calmness.",
                 isActive = 0L
             )
             queries.insertLifePath(
                 id = "creator",
-                name = "🎨 Creator",
+                name = "Creator",
                 description = "Deep craft, consistent creative output, focus blocks, and experimentation.",
                 isActive = 0L
             )
             queries.insertLifePath(
                 id = "mindful_life",
-                name = "🧘 Mindful Life",
+                name = "Mindful Life",
                 description = "Awareness, emotional regulation, presence, and intentional reflection.",
                 isActive = 0L
             )
             queries.insertLifePath(
                 id = "purpose_driven",
-                name = "🕉 Purpose-Driven",
+                name = "Purpose-Driven",
                 description = "Core values, duty, community contribution, and meaningful impact.",
                 isActive = 0L
             )
             queries.insertLifePath(
                 id = "custom_life",
-                name = "🛠 Custom Life",
+                name = "Custom Architecture",
                 description = "Fully personalized path designed by you.",
                 isActive = 0L
             )
