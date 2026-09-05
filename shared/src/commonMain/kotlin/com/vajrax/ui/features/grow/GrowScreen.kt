@@ -216,7 +216,7 @@ fun GrowScreen(
         }
 
         // Safe clearance for bottom navigation bar
-        Spacer(modifier = Modifier.navigationBarsPadding().height(80.dp))
+        Spacer(modifier = Modifier.navigationBarsPadding().height(96.dp))
     }
 }
 
