@@ -56,6 +56,7 @@ fun MainNavigation() {
     val calendarViewModel = koinInject<CalendarViewModel>()
     val pathViewModel = koinInject<PathViewModel>()
     val growViewModel = koinInject<GrowViewModel>()
+    val profileViewModel = koinInject<com.vajrax.ui.features.profile.ProfileViewModel>()
 
     val navTabs = listOf(
         NavTabItem("home", "Home", NavTabType.HOME),
@@ -105,7 +106,11 @@ fun MainNavigation() {
                 )
             }
             composable("profile") {
-                ProfileScreen()
+                val state by profileViewModel.uiState.collectAsState()
+                ProfileScreen(
+                    state = state,
+                    onSync = profileViewModel::triggerCloudSync
+                )
             }
         }
 

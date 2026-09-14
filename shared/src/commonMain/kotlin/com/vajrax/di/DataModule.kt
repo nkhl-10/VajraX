@@ -92,5 +92,6 @@ fun dataModule() = module {
     single { LearnViewModel(get()) }
     single { GrowViewModel(get()) }
     single { ReviewViewModel(get()) }
+    single { com.vajrax.ui.features.profile.ProfileViewModel(get(), get(), get()) }
 }
 

@@ -1,4 +1,4 @@
-package com.vajrax.ui.features.profile
+﻿package com.vajrax.ui.features.profile
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,10 +28,13 @@ import com.vajrax.ui.theme.ThemeMode
  * 1:1 Figma-Faithful Profile Screen for Lumina Life OS.
  * Features centered user identity (John Doe, JD avatar, Edit Profile),
  * Current Template progress card (Morning Discipline, Day 12 of 30, 40%),
- * My Templates list, and Preferences.
+ * My Templates list, Cloud Sync, and Preferences.
  */
 @Composable
-fun ProfileScreen() {
+fun ProfileScreen(
+    state: ProfileUiState = ProfileUiState(),
+    onSync: () -> Unit = {}
+) {
     val colors = LuminaTheme.colors
     val themeController = LocalThemeModeController.current
 
@@ -48,15 +51,50 @@ fun ProfileScreen() {
         // ==========================================
         // 1. HEADER
         // ==========================================
-        Text(
-            text = "Profile",
-            color = colors.onSurface,
-            fontSize = 32.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = (-0.6).sp
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "Profile",
+                color = colors.onSurface,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = (-0.6).sp
+            )
 
-        Spacer(modifier = Modifier.height(24.dp))
+            // Cloud Sync Indicator / Button
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(colors.primaryContainer)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                        onClick = onSync
+                    )
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = if (state.isSyncing) "Syncing..." else "☁ Sync",
+                    color = colors.primary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        if (state.syncStatusMessage != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = state.syncStatusMessage,
+                color = colors.primary,
+                fontSize = 12.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(20.dp))
 
         // ==========================================
         // 2. USER PROFILE HERO (Centered)
@@ -74,7 +112,7 @@ fun ProfileScreen() {
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "JD",
+                    text = state.avatarInitials,
                     color = Color.White,
                     fontSize = 24.sp,
                     fontWeight = FontWeight.Bold
@@ -84,7 +122,7 @@ fun ProfileScreen() {
             Spacer(modifier = Modifier.height(14.dp))
 
             Text(
-                text = "John Doe",
+                text = state.displayName,
                 color = colors.onSurface,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
@@ -94,7 +132,7 @@ fun ProfileScreen() {
             Spacer(modifier = Modifier.height(3.dp))
 
             Text(
-                text = "john@example.com",
+                text = state.email,
                 color = Color(0xFF64748B),
                 fontSize = 13.5.sp
             )
@@ -138,7 +176,7 @@ fun ProfileScreen() {
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "Morning Discipline",
+                    text = state.activeTemplateTitle,
                     color = colors.onSurface,
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
@@ -146,7 +184,7 @@ fun ProfileScreen() {
                 )
                 Spacer(modifier = Modifier.height(3.dp))
                 Text(
-                    text = "Build a structured morning routine",
+                    text = state.activeTemplateDescription,
                     color = colors.onSurfaceVariant,
                     fontSize = 13.5.sp
                 )
@@ -160,13 +198,13 @@ fun ProfileScreen() {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Day 12 of 30",
+                        text = "Day ${state.currentDay} of ${state.totalDays}",
                         color = colors.primary,
                         fontSize = 13.5.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Text(
-                        text = "40% Complete",
+                        text = "${state.progressPercent}% Complete",
                         color = Color(0xFF64748B),
                         fontSize = 13.sp,
                         fontWeight = FontWeight.Medium
@@ -175,7 +213,8 @@ fun ProfileScreen() {
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Progress Bar (40%)
+                // Progress Bar
+                val progressFrac = (state.progressPercent / 100f).coerceIn(0f, 1f)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -185,7 +224,7 @@ fun ProfileScreen() {
                 ) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(0.40f)
+                            .fillMaxWidth(progressFrac)
                             .fillMaxHeight()
                             .clip(RoundedCornerShape(3.dp))
                             .background(colors.primary)
@@ -427,6 +466,3 @@ private fun ProfileChevronRow(
         }
     }
 }
-
-
-

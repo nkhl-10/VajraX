@@ -1,5 +1,5 @@
--- Phase 9: Production-Grade SQLDelight Schema for VAJRAX
--- Full Relational Integrity, Performance Indexes, and Multi-system Queries
+﻿-- Phase 9 & Phase 17: Production-Grade SQLDelight Schema for VAJRAX / Lumina Life OS
+-- Full Relational Integrity, Performance Indexes, Templates & Multi-system Queries
 
 -- 1. USER & AUTH (Offline / Test Account Support)
 CREATE TABLE UserSessionEntity (
@@ -27,7 +27,31 @@ CREATE TABLE PrincipleEntity (
     FOREIGN KEY (lifePathId) REFERENCES LifePathEntity(id) ON DELETE CASCADE
 );
 
--- 3. PRACTICES (The Daily System)
+-- 3. TEMPLATES (Provided & Community Discovery System)
+CREATE TABLE TemplateEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    taskCount INTEGER NOT NULL DEFAULT 5,
+    frequency TEXT NOT NULL DEFAULT 'Daily',
+    author TEXT,
+    isCommunity INTEGER NOT NULL DEFAULT 0,
+    isBookmarked INTEGER NOT NULL DEFAULT 0
+);
+
+-- 4. USER TEMPLATE PROGRESS
+CREATE TABLE UserTemplateEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    userId TEXT NOT NULL,
+    templateId TEXT NOT NULL,
+    currentDay INTEGER NOT NULL DEFAULT 1,
+    totalDays INTEGER NOT NULL DEFAULT 30,
+    progressPercent INTEGER NOT NULL DEFAULT 0,
+    isActive INTEGER NOT NULL DEFAULT 1,
+    FOREIGN KEY (templateId) REFERENCES TemplateEntity(id) ON DELETE CASCADE
+);
+
+-- 5. PRACTICES (The Daily System)
 CREATE TABLE PracticeEntity (
     id TEXT NOT NULL PRIMARY KEY,
     principleId TEXT,
@@ -40,7 +64,7 @@ CREATE TABLE PracticeEntity (
     FOREIGN KEY (principleId) REFERENCES PrincipleEntity(id) ON DELETE SET NULL
 );
 
--- 4. ACTION RECORDS (Timeline Execution)
+-- 6. ACTION RECORDS (Timeline Execution)
 CREATE TABLE ActionRecordEntity (
     id TEXT NOT NULL PRIMARY KEY,
     practiceId TEXT NOT NULL,
@@ -52,7 +76,7 @@ CREATE TABLE ActionRecordEntity (
     FOREIGN KEY (practiceId) REFERENCES PracticeEntity(id) ON DELETE CASCADE
 );
 
--- 5. EVIDENCE & REFLECTION (Real Growth Logging)
+-- 7. EVIDENCE & REFLECTION (Real Growth Logging)
 CREATE TABLE EvidenceEntity (
     id TEXT NOT NULL PRIMARY KEY,
     actionRecordId TEXT NOT NULL,
@@ -63,7 +87,7 @@ CREATE TABLE EvidenceEntity (
     FOREIGN KEY (actionRecordId) REFERENCES ActionRecordEntity(id) ON DELETE CASCADE
 );
 
--- 6. BOOK → LIFE (Knowledge to 7-Day Experiments)
+-- 8. BOOK → LIFE (Knowledge to 7-Day Experiments)
 CREATE TABLE BookIdeaEntity (
     id TEXT NOT NULL PRIMARY KEY,
     bookTitle TEXT NOT NULL,
@@ -75,7 +99,7 @@ CREATE TABLE BookIdeaEntity (
     createdAt TEXT NOT NULL
 );
 
--- 7. BEHAVIORAL PATTERNS & RECOMMENDATIONS (Daṇḍa & Bheda)
+-- 9. BEHAVIORAL PATTERNS & RECOMMENDATIONS (Danda & Bheda)
 CREATE TABLE PatternInsightEntity (
     id TEXT NOT NULL PRIMARY KEY,
     title TEXT NOT NULL,
@@ -93,6 +117,8 @@ CREATE INDEX idx_action_practice ON ActionRecordEntity(practiceId);
 CREATE INDEX idx_practice_active ON PracticeEntity(isActive);
 CREATE INDEX idx_principle_path ON PrincipleEntity(lifePathId);
 CREATE INDEX idx_evidence_record ON EvidenceEntity(actionRecordId);
+CREATE INDEX idx_template_community ON TemplateEntity(isCommunity);
+CREATE INDEX idx_user_template_user ON UserTemplateEntity(userId);
 
 -- ==========================================
 -- QUERIES
@@ -130,6 +156,62 @@ VALUES (?, ?, ?, ?);
 
 getPrinciplesForPath:
 SELECT * FROM PrincipleEntity WHERE lifePathId = ?;
+
+-- Templates (Provided & Community)
+insertTemplate:
+INSERT OR REPLACE INTO TemplateEntity(id, title, description, taskCount, frequency, author, isCommunity, isBookmarked)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+getAllTemplates:
+SELECT * FROM TemplateEntity;
+
+getProvidedTemplates:
+SELECT * FROM TemplateEntity WHERE isCommunity = 0;
+
+getCommunityTemplates:
+SELECT * FROM TemplateEntity WHERE isCommunity = 1;
+
+getTemplateById:
+SELECT * FROM TemplateEntity WHERE id = ? LIMIT 1;
+
+toggleTemplateBookmark:
+UPDATE TemplateEntity SET isBookmarked = ? WHERE id = ?;
+
+-- User Templates Progress
+insertOrUpdateUserTemplate:
+INSERT OR REPLACE INTO UserTemplateEntity(id, userId, templateId, currentDay, totalDays, progressPercent, isActive)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+getActiveUserTemplate:
+SELECT 
+    UserTemplateEntity.id,
+    UserTemplateEntity.userId,
+    UserTemplateEntity.templateId,
+    UserTemplateEntity.currentDay,
+    UserTemplateEntity.totalDays,
+    UserTemplateEntity.progressPercent,
+    UserTemplateEntity.isActive,
+    TemplateEntity.title,
+    TemplateEntity.description
+FROM UserTemplateEntity
+JOIN TemplateEntity ON UserTemplateEntity.templateId = TemplateEntity.id
+WHERE UserTemplateEntity.isActive = 1
+LIMIT 1;
+
+getAllUserTemplates:
+SELECT 
+    UserTemplateEntity.id,
+    UserTemplateEntity.userId,
+    UserTemplateEntity.templateId,
+    UserTemplateEntity.currentDay,
+    UserTemplateEntity.totalDays,
+    UserTemplateEntity.progressPercent,
+    UserTemplateEntity.isActive,
+    TemplateEntity.title,
+    TemplateEntity.description
+FROM UserTemplateEntity
+JOIN TemplateEntity ON UserTemplateEntity.templateId = TemplateEntity.id
+ORDER BY UserTemplateEntity.isActive DESC;
 
 -- Practices
 insertPractice:
