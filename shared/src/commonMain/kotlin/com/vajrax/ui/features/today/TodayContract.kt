@@ -34,6 +34,9 @@ data class TodayUiState(
     val completedItems: List<ActionTimelineItem> = emptyList(),
     val currentFocus: ActionTimelineItem? = null,
     val nextItems: List<ActionTimelineItem> = emptyList(),
+    val laterItems: List<ActionTimelineItem> = emptyList(),
+    val lastCompletedActionId: String? = null,
+    val lastCompletedActionTitle: String? = null,
     val isLoading: Boolean = false,
     val showEvidenceSheet: Boolean = false,
     val selectedActionIdForEvidence: String? = null,
@@ -44,6 +47,7 @@ data class TodayUiState(
 sealed interface TodayIntent {
     data object LoadTodayTimeline : TodayIntent
     data class StartPractice(val actionId: String) : TodayIntent
+    data class QuickCompletePractice(val actionId: String) : TodayIntent
     data class CompletePractice(val actionId: String) : TodayIntent
     data class MinimumPractice(val actionId: String) : TodayIntent
     data class SelectPracticeAsFocus(val actionId: String) : TodayIntent
@@ -53,6 +57,8 @@ sealed interface TodayIntent {
     data object DismissSamaDialog : TodayIntent
     data class FinishTimerSession(val actionId: String, val elapsedMinutes: Int) : TodayIntent
     data object CancelTimer : TodayIntent
+    data class OpenEvidenceForAction(val actionId: String) : TodayIntent
+    data object DismissOptionalEvidencePrompt : TodayIntent
     data class SubmitEvidence(
         val actionId: String,
         val note: String,
@@ -64,4 +70,5 @@ sealed interface TodayIntent {
 sealed interface TodayEffect {
     data class ShowToast(val message: String) : TodayEffect
 }
+
 

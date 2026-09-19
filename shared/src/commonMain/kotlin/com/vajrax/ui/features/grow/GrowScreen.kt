@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.vajrax.ui.theme.LuminaTheme
 
 /**
@@ -442,16 +443,28 @@ fun GrowScreen(
         Spacer(modifier = Modifier.height(28.dp))
 
         // ==========================================
-        // 5. MOST CONSISTENT SECTION
+        // 5. YOUR PRINCIPLES SECTION
         // ==========================================
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "YOUR PRINCIPLES",
+                color = Color(0xFF8B95A5),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.8.sp
+            )
+        }
+        Spacer(modifier = Modifier.height(4.dp))
         Text(
-            text = "MOST CONSISTENT",
-            color = Color(0xFF8B95A5),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 0.8.sp
+            text = "Which part of your life system is becoming stronger?",
+            color = colors.onSurfaceVariant,
+            fontSize = 13.sp
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
         Box(
             modifier = Modifier
@@ -459,31 +472,170 @@ fun GrowScreen(
                 .clip(RoundedCornerShape(22.dp))
                 .background(colors.surface)
                 .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(22.dp))
-                .padding(horizontal = 18.dp, vertical = 14.dp)
+                .padding(horizontal = 18.dp, vertical = 16.dp)
         ) {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                state.principles.forEachIndexed { index, principle ->
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = principle.name,
+                                    color = colors.onSurface,
+                                    fontSize = 14.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                if (principle.isStrongest) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color(0xFFDCFCE7))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "Strongest",
+                                            color = Color(0xFF16A34A),
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                } else if (principle.isNeedsAttention) {
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .background(Color(0xFFFEF3C7))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = "Needs attention",
+                                            color = Color(0xFFD97706),
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+
+                            Text(
+                                text = "${principle.percentage}%",
+                                color = if (principle.isStrongest) colors.primary else colors.onSurface,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(6.dp))
+
+                        // Progress Bar
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(3.dp))
+                                .background(Color(0xFFEEF2FF))
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(principle.percentage / 100f)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(if (principle.isNeedsAttention) Color(0xFFF59E0B) else colors.primary)
+                            )
+                        }
+                    }
+
+                    if (index < state.principles.size - 1) {
+                        HorizontalDivider(
+                            color = colors.outlineVariant.copy(alpha = 0.4f),
+                            thickness = 0.5.dp
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(26.dp))
+
+        // ==========================================
+        // 6. PATTERN DISCOVERY LAYER
+        // ==========================================
+        Text(
+            text = "PATTERN DISCOVERY",
+            color = Color(0xFF8B95A5),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.8.sp
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        val insight = state.activeInsight
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp))
+                .background(colors.surface)
+                .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(22.dp))
+                .padding(18.dp)
+        ) {
+            Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Daily Review",
+                        text = insight.title,
                         color = colors.onSurface,
-                        fontSize = 15.sp,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
-                    Text(
-                        text = "98%",
-                        color = colors.primary,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+
+                    // Interactive "Why?" Pill Button
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(colors.primaryContainer)
+                            .clickable { onIntent(GrowIntent.OpenPatternWhyDialog) }
+                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "Why?",
+                                color = colors.primary,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "→",
+                                color = colors.primary,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-                HorizontalDivider(color = colors.outlineVariant.copy(alpha = 0.5f), thickness = 0.5.dp)
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
+
+                Text(
+                    text = insight.interpretation,
+                    color = colors.primary,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    lineHeight = 20.sp
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -491,16 +643,15 @@ fun GrowScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Deep Work",
-                        color = colors.onSurface,
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold
+                        text = insight.rawDataSummary,
+                        color = colors.onSurfaceVariant,
+                        fontSize = 12.sp
                     )
                     Text(
-                        text = "89%",
-                        color = colors.primary,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
+                        text = insight.confidenceScore,
+                        color = Color(0xFF16A34A),
+                        fontSize = 11.5.sp,
+                        fontWeight = FontWeight.Medium
                     )
                 }
             }
@@ -509,4 +660,166 @@ fun GrowScreen(
         // Safe clearance for bottom navigation dock
         Spacer(modifier = Modifier.navigationBarsPadding().height(96.dp))
     }
+
+    // ==========================================
+    // TRANSPARENT "WHY?" BREAKDOWN DIALOG
+    // ==========================================
+    // ==========================================
+    // TRANSPARENT "WHY?" BREAKDOWN DIALOG
+    // ==========================================
+    if (state.showWhyDialog) {
+        val insight = state.activeInsight
+        Dialog(
+            onDismissRequest = { onIntent(GrowIntent.DismissPatternWhyDialog) }
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(24.dp))
+                    .background(colors.surface)
+                    .border(1.dp, colors.outlineVariant.copy(alpha = 0.8f), RoundedCornerShape(24.dp))
+                    .padding(22.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    // Header
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Why this pattern occurs",
+                                color = colors.onSurface,
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                letterSpacing = (-0.3).sp
+                            )
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                text = "Deterministic Behavioral Breakdown",
+                                color = colors.onSurfaceVariant,
+                                fontSize = 12.sp
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(colors.surfaceContainerLow)
+                                .clickable { onIntent(GrowIntent.DismissPatternWhyDialog) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "✕",
+                                color = colors.onSurfaceVariant,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "Hourly Completion Breakdown:",
+                        color = colors.onSurface,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+
+                    insight.whyBreakdown.forEach { point ->
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(colors.surfaceContainerLow)
+                                .padding(10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text(
+                                        text = point.timeWindow,
+                                        color = colors.onSurface,
+                                        fontSize = 12.5.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Text(
+                                        text = point.sampleSize,
+                                        color = colors.onSurfaceVariant,
+                                        fontSize = 11.sp
+                                    )
+                                }
+                                Text(
+                                    text = point.completionRate,
+                                    color = if (point.completionRate.startsWith("9")) Color(0xFF16A34A) else colors.onSurface,
+                                    fontSize = 12.5.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    }
+
+                    Column {
+                        Text(
+                            text = "Root Cause:",
+                            color = colors.onSurface,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = insight.rootCause,
+                            color = colors.onSurfaceVariant,
+                            fontSize = 12.sp,
+                            lineHeight = 17.sp
+                        )
+                    }
+
+                    Column {
+                        Text(
+                            text = "Recommendation:",
+                            color = colors.primary,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = insight.recommendation,
+                            color = colors.onSurface,
+                            fontSize = 12.sp,
+                            lineHeight = 17.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    // Bottom Action Button
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .background(colors.primary)
+                            .clickable { onIntent(GrowIntent.DismissPatternWhyDialog) },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Got it",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
+        }
+    }
 }
+

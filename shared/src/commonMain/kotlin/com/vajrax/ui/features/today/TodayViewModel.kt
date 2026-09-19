@@ -25,6 +25,7 @@ class TodayViewModel(
         when (intent) {
             is TodayIntent.LoadTodayTimeline -> loadTimeline()
             is TodayIntent.StartPractice -> startPractice(intent.actionId)
+            is TodayIntent.QuickCompletePractice -> quickCompletePractice(intent.actionId)
             is TodayIntent.SelectPracticeAsFocus -> selectFocusPractice(intent.actionId)
             is TodayIntent.CompletePractice -> openEvidenceSheet(intent.actionId, isMinimum = false)
             is TodayIntent.MinimumPractice -> openEvidenceSheet(intent.actionId, isMinimum = true)
@@ -34,6 +35,8 @@ class TodayViewModel(
             is TodayIntent.DismissSamaDialog -> updateState { copy(samaInterventionItem = null) }
             is TodayIntent.FinishTimerSession -> finishTimer(intent.actionId, intent.elapsedMinutes)
             is TodayIntent.CancelTimer -> updateState { copy(activeTimerItem = null) }
+            is TodayIntent.OpenEvidenceForAction -> updateState { copy(showEvidenceSheet = true, selectedActionIdForEvidence = intent.actionId) }
+            is TodayIntent.DismissOptionalEvidencePrompt -> updateState { copy(lastCompletedActionId = null, lastCompletedActionTitle = null) }
             is TodayIntent.SubmitEvidence -> submitEvidence(intent.actionId, intent.note, intent.rating)
             is TodayIntent.DismissEvidenceSheet -> updateState { copy(showEvidenceSheet = false, selectedActionIdForEvidence = null) }
         }
@@ -75,7 +78,21 @@ class TodayViewModel(
                 )
             }
 
-            val nextItems = if (ongoingOrPending.isNotEmpty()) ongoingOrPending.drop(1).map {
+            val nextItems = if (ongoingOrPending.size > 1) ongoingOrPending.drop(1).take(2).map {
+                ActionTimelineItem(
+                    id = it.id,
+                    practiceId = it.practiceId,
+                    title = it.title,
+                    scheduledTime = it.scheduledTime,
+                    targetDurationMinutes = it.targetDurationMinutes,
+                    minimumDurationMinutes = it.minimumDurationMinutes,
+                    status = it.status,
+                    trackingMode = it.trackingMode,
+                    durationMinutes = it.durationMinutes
+                )
+            } else emptyList()
+
+            val laterItems = if (ongoingOrPending.size > 3) ongoingOrPending.drop(3).map {
                 ActionTimelineItem(
                     id = it.id,
                     practiceId = it.practiceId,
@@ -110,7 +127,6 @@ class TodayViewModel(
             val expectedCount = (totalCount * dayFraction).coerceAtLeast(0.5f)
             val pace = ((completedCount.toFloat() / expectedCount).coerceIn(0.5f, 1.4f) * 100).toInt()
 
-
             updateState {
                 copy(
                     isLoading = false,
@@ -122,6 +138,7 @@ class TodayViewModel(
                     completedItems = completed,
                     currentFocus = nowItem,
                     nextItems = nextItems,
+                    laterItems = laterItems,
                     todayCompletedCount = completedCount,
                     todayTotalCount = if (totalCount > 0) totalCount else 5
                 )
@@ -144,13 +161,31 @@ class TodayViewModel(
         }
     }
 
+    private fun quickCompletePractice(actionId: String) {
+        val currentFocusTitle = uiState.value.currentFocus?.takeIf { it.id == actionId }?.title
+            ?: uiState.value.nextItems.firstOrNull { it.id == actionId }?.title
+            ?: uiState.value.laterItems.firstOrNull { it.id == actionId }?.title
+            ?: "Practice"
+
+        viewModelScope.launch(Dispatchers.IO) {
+            practiceRepository.updateActionStatus(actionId, ActionStatus.COMPLETE, 60)
+            updateState {
+                copy(
+                    lastCompletedActionId = actionId,
+                    lastCompletedActionTitle = currentFocusTitle
+                )
+            }
+            sendEffect(TodayEffect.ShowToast("✓ Completed. Optional evidence available."))
+            loadTimeline()
+        }
+    }
+
     private fun selectFocusPractice(actionId: String) {
         viewModelScope.launch(Dispatchers.IO) {
             practiceRepository.updateActionStatus(actionId, ActionStatus.ONGOING, null)
             loadTimeline()
         }
     }
-
 
     private fun startPractice(actionId: String) {
         val current = uiState.value.currentFocus
@@ -168,12 +203,17 @@ class TodayViewModel(
     }
 
     private fun finishTimer(actionId: String, elapsedMinutes: Int) {
-        updateState {
-            copy(
-                activeTimerItem = null,
-                showEvidenceSheet = true,
-                selectedActionIdForEvidence = actionId
-            )
+        viewModelScope.launch(Dispatchers.IO) {
+            practiceRepository.updateActionStatus(actionId, ActionStatus.COMPLETE, elapsedMinutes)
+            updateState {
+                copy(
+                    activeTimerItem = null,
+                    lastCompletedActionId = actionId,
+                    lastCompletedActionTitle = "Practice"
+                )
+            }
+            sendEffect(TodayEffect.ShowToast("Timer session complete. Momentum preserved."))
+            loadTimeline()
         }
     }
 
@@ -222,7 +262,12 @@ class TodayViewModel(
             practiceRepository.submitEvidence(actionId, note.ifBlank { null }, rating, null)
             
             updateState {
-                copy(showEvidenceSheet = false, selectedActionIdForEvidence = null)
+                copy(
+                    showEvidenceSheet = false,
+                    selectedActionIdForEvidence = null,
+                    lastCompletedActionId = null,
+                    lastCompletedActionTitle = null
+                )
             }
             sendEffect(TodayEffect.ShowToast("Evidence saved. Momentum preserved."))
             loadTimeline()

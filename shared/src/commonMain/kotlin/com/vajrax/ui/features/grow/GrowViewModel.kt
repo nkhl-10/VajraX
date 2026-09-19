@@ -17,6 +17,8 @@ class GrowViewModel(
     override fun sendIntent(intent: GrowIntent) {
         when (intent) {
             is GrowIntent.LoadGrowthData -> loadGrowthData()
+            is GrowIntent.OpenPatternWhyDialog -> updateState { copy(showWhyDialog = true) }
+            is GrowIntent.DismissPatternWhyDialog -> updateState { copy(showWhyDialog = false) }
         }
     }
 

@@ -27,8 +27,8 @@ import com.vajrax.ui.theme.LuminaTheme
 
 /**
  * Human-Crafted Home Screen for Lumina Life OS.
- * Faithfully matches the reference design with Good Morning greeting, Task Completion 40% card,
- * circular progress indicator, 3 stat pods, and clear task list.
+ * Faithfully matches the reference design with Good Morning greeting, Task Completion card,
+ * circular progress indicator, 3 stat pods, and clear Single-Core NOW / NEXT / LATER task flow.
  */
 @Composable
 fun TodayScreen(
@@ -128,7 +128,7 @@ fun TodayScreen(
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                text = "75%",
+                                text = "${state.targetPercentage}%",
                                 color = colors.primary,
                                 fontSize = 12.5.sp,
                                 fontWeight = FontWeight.Bold
@@ -140,6 +140,11 @@ fun TodayScreen(
                 Spacer(modifier = Modifier.height(22.dp))
 
                 // Circular Progress Ring (20%)
+                val completedFraction = if (state.todayTotalCount > 0) {
+                    (state.todayCompletedCount.toFloat() / state.todayTotalCount.toFloat()).coerceIn(0f, 1f)
+                } else 0.20f
+                val ringPercentText = "${(completedFraction * 100).toInt()}%"
+
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -166,11 +171,11 @@ fun TodayScreen(
                             style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
                         )
 
-                        // Foreground progress arc (20% -> 72 deg)
+                        // Foreground progress arc
                         drawArc(
                             color = progressColor,
                             startAngle = -90f,
-                            sweepAngle = 72f,
+                            sweepAngle = 360f * (if (completedFraction > 0f) completedFraction else 0.20f),
                             useCenter = false,
                             topLeft = topLeft,
                             size = arcSize,
@@ -179,7 +184,7 @@ fun TodayScreen(
                     }
 
                     Text(
-                        text = "20%",
+                        text = if (state.todayCompletedCount > 0) ringPercentText else "20%",
                         color = colors.onSurface,
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Bold
@@ -195,51 +200,136 @@ fun TodayScreen(
                 ) {
                     HomeStatPod(
                         label = "Today",
-                        value = "8/10",
+                        value = "${state.todayCompletedCount}/${state.todayTotalCount}",
                         modifier = Modifier.weight(1f)
                     )
                     HomeStatPod(
                         label = "Week",
-                        value = "85%",
+                        value = "${state.consistencyPercentage}%",
                         modifier = Modifier.weight(1f)
                     )
                     HomeStatPod(
                         label = "Consistency",
-                        value = "92%",
+                        value = "${state.pacePercentage}%",
                         modifier = Modifier.weight(1f)
                     )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(28.dp))
+        // ==========================================
+        // OPTIONAL EVIDENCE PROMPT BANNER
+        // ==========================================
+        if (state.lastCompletedActionId != null) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(colors.surfaceContainerLow)
+                    .border(1.dp, colors.outlineVariant.copy(alpha = 0.6f), RoundedCornerShape(16.dp))
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "✓",
+                            color = Color(0xFF16A34A),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "${state.lastCompletedActionTitle ?: "Practice"} completed",
+                            color = colors.onSurface,
+                            fontSize = 13.5.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(colors.primaryContainer)
+                                .clickable {
+                                    onIntent(TodayIntent.OpenEvidenceForAction(state.lastCompletedActionId))
+                                }
+                                .padding(horizontal = 10.dp, vertical = 5.dp)
+                        ) {
+                            Text(
+                                text = "+ Add evidence",
+                                color = colors.primary,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+
+                        Text(
+                            text = "✕",
+                            color = colors.outline,
+                            fontSize = 12.sp,
+                            modifier = Modifier
+                                .clickable { onIntent(TodayIntent.DismissOptionalEvidencePrompt) }
+                                .padding(4.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(26.dp))
 
         // ==========================================
-        // 2. TASK LIST
+        // 2. SINGLE-CORE TASK SECTIONS (NOW / NEXT / LATER / COMPLETED)
         // ==========================================
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Item 1: Checked planning (Tomorrow)
-            CompletedTaskItem(
-                title = "planning",
-                timeTag = "Tomorrow",
-                onClick = { }
-            )
+            // Section A: COMPLETED ITEMS
+            if (state.completedItems.isNotEmpty()) {
+                state.completedItems.forEach { item ->
+                    CompletedTaskItem(
+                        title = item.title,
+                        timeTag = item.scheduledTime ?: "Done",
+                        onClick = { onIntent(TodayIntent.OpenEvidenceForAction(item.id)) }
+                    )
+                }
+            } else {
+                // Default reference mockup completed items
+                CompletedTaskItem(
+                    title = "planning",
+                    timeTag = "Tomorrow",
+                    onClick = { }
+                )
+                CompletedTaskItem(
+                    title = "Weekly planning",
+                    timeTag = "Tomorrow",
+                    onClick = { }
+                )
+            }
 
-            // Item 2: Checked Weekly planning (Tomorrow)
-            CompletedTaskItem(
-                title = "Weekly planning",
-                timeTag = "Tomorrow",
-                onClick = { }
-            )
-
-            // Item 3: Active Highlighted Card: Daily review (Today)
+            // Section B: NOW (Current Focus)
             val current = state.currentFocus
             ActiveFocusCard(
                 title = current?.title ?: "Daily review",
-                timeTag = "Today",
+                timeTag = current?.scheduledTime ?: "Today",
+                onComplete = {
+                    if (current != null) {
+                        onIntent(TodayIntent.QuickCompletePractice(current.id))
+                    }
+                },
                 onClick = {
                     if (current != null) {
                         onIntent(TodayIntent.StartPractice(current.id))
@@ -247,17 +337,36 @@ fun TodayScreen(
                 }
             )
 
-            // Item 4: Notes (2 days ago)
-            NoteHistoryItem(
-                title = "Notes",
-                timeTag = "2 days ago"
-            )
+            // Section C: NEXT ITEMS
+            if (state.nextItems.isNotEmpty()) {
+                state.nextItems.forEach { item ->
+                    UpcomingTaskItem(
+                        title = item.title,
+                        timeTag = item.scheduledTime ?: "Next",
+                        onClick = { onIntent(TodayIntent.StartPractice(item.id)) }
+                    )
+                }
+            }
 
-            // Item 5: Notes (2 days ago)
-            NoteHistoryItem(
-                title = "Notes",
-                timeTag = "2 days ago"
-            )
+            // Section D: LATER / NOTE HISTORY ITEMS
+            if (state.laterItems.isNotEmpty()) {
+                state.laterItems.forEach { item ->
+                    NoteHistoryItem(
+                        title = item.title,
+                        timeTag = item.scheduledTime ?: "Later"
+                    )
+                }
+            } else {
+                // Default reference notes items
+                NoteHistoryItem(
+                    title = "Notes",
+                    timeTag = "2 days ago"
+                )
+                NoteHistoryItem(
+                    title = "Notes",
+                    timeTag = "2 days ago"
+                )
+            }
         }
 
         // Safe clearance for bottom navigation bar
@@ -381,6 +490,7 @@ private fun CompletedTaskItem(
 private fun ActiveFocusCard(
     title: String,
     timeTag: String,
+    onComplete: () -> Unit,
     onClick: () -> Unit
 ) {
     val colors = LuminaTheme.colors
@@ -408,12 +518,17 @@ private fun ActiveFocusCard(
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 modifier = Modifier.weight(1f)
             ) {
-                // Indigo Circle with inner dash/dot
+                // Indigo Circle with inner dash/dot (Clickable to quick-complete)
                 Box(
                     modifier = Modifier
                         .size(24.dp)
                         .clip(CircleShape)
-                        .border(2.dp, colors.primary, CircleShape),
+                        .border(2.dp, colors.primary, CircleShape)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onComplete
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
@@ -431,13 +546,68 @@ private fun ActiveFocusCard(
                 )
             }
 
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(
+                    text = timeTag,
+                    color = colors.primary,
+                    fontSize = 13.5.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun UpcomingTaskItem(
+    title: String,
+    timeTag: String,
+    onClick: () -> Unit
+) {
+    val colors = LuminaTheme.colors
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            )
+            .padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.weight(1f)
+        ) {
+            // Subtle open circle
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .border(1.5.dp, colors.outlineVariant, CircleShape)
+            )
+
             Text(
-                text = timeTag,
-                color = colors.primary,
-                fontSize = 13.5.sp,
+                text = title,
+                color = colors.onSurface,
+                fontSize = 15.sp,
                 fontWeight = FontWeight.Medium
             )
         }
+
+        Text(
+            text = timeTag,
+            color = colors.outline,
+            fontSize = 13.5.sp,
+            fontWeight = FontWeight.Normal
+        )
     }
 }
 
@@ -495,5 +665,6 @@ private fun NoteHistoryItem(
         )
     }
 }
+
 
 
