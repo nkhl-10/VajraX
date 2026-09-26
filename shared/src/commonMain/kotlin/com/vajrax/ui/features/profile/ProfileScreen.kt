@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.vajrax.ui.utils.gyroShadowCard
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -169,6 +170,7 @@ fun ProfileScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .gyroShadowCard()
                 .clip(RoundedCornerShape(26.dp))
                 .background(colors.surface)
                 .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(26.dp))
@@ -301,6 +303,7 @@ fun ProfileScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .gyroShadowCard()
                 .clip(RoundedCornerShape(22.dp))
                 .background(colors.surface)
                 .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(22.dp))
@@ -363,6 +366,7 @@ fun ProfileScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .gyroShadowCard()
                 .clip(RoundedCornerShape(22.dp))
                 .background(colors.surface)
                 .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(22.dp))

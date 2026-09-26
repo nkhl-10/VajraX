@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -13,11 +14,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.vajrax.app.AppViewModel
 import com.vajrax.ui.components.FloatingPillNavBar
 import com.vajrax.ui.features.calendar.CalendarScreen
 import com.vajrax.ui.features.calendar.CalendarViewModel
 import com.vajrax.ui.features.grow.GrowScreen
 import com.vajrax.ui.features.grow.GrowViewModel
+import com.vajrax.ui.features.onboarding.OnboardingScreen
+import com.vajrax.ui.features.onboarding.OnboardingViewModel
 import com.vajrax.ui.features.path.PathScreen
 import com.vajrax.ui.features.path.PathViewModel
 import com.vajrax.ui.features.profile.ProfileScreen
@@ -40,23 +44,30 @@ data class NavTabItem(
     val type: NavTabType
 )
 
-/**
- * Main Navigation with Tactile Floating Capsule Pill Bottom Navigation Bar.
- * Connects Home, Calendar Matrix, Discover, Report, and Profile.
- */
 @Composable
 fun MainNavigation() {
     val colors = LuminaTheme.colors
+    
+    val appViewModel = koinInject<AppViewModel>()
+    val startDest by appViewModel.startDestination.collectAsState()
+
+    if (startDest == null) {
+        Box(modifier = Modifier.fillMaxSize().background(colors.background), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator(color = colors.primary)
+        }
+        return
+    }
+
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentRoute = navBackStackEntry?.destination?.route ?: "home"
+    val currentRoute = navBackStackEntry?.destination?.route ?: startDest!!
 
-    // Inject ViewModels via Koin
     val todayViewModel = koinInject<TodayViewModel>()
     val calendarViewModel = koinInject<CalendarViewModel>()
     val pathViewModel = koinInject<PathViewModel>()
     val growViewModel = koinInject<GrowViewModel>()
     val profileViewModel = koinInject<com.vajrax.ui.features.profile.ProfileViewModel>()
+    val onboardingViewModel = koinInject<OnboardingViewModel>()
 
     val navTabs = listOf(
         NavTabItem("home", "Home", NavTabType.HOME),
@@ -71,12 +82,30 @@ fun MainNavigation() {
             .fillMaxSize()
             .background(colors.background)
     ) {
-        // Main Screen Content
         NavHost(
             navController = navController,
-            startDestination = "home",
+            startDestination = startDest!!,
             modifier = Modifier.fillMaxSize()
         ) {
+            composable("onboarding") {
+                val state by onboardingViewModel.uiState.collectAsState()
+                androidx.compose.runtime.LaunchedEffect(Unit) {
+                    onboardingViewModel.effect.collect { effect ->
+                        when (effect) {
+                            is com.vajrax.ui.features.onboarding.OnboardingEffect.NavigateToHome -> {
+                                navController.navigate("home") {
+                                    popUpTo("onboarding") { inclusive = true }
+                                }
+                            }
+                            is com.vajrax.ui.features.onboarding.OnboardingEffect.ShowMessage -> { /* Show Snackbar */ }
+                        }
+                    }
+                }
+                OnboardingScreen(
+                    state = state,
+                    onIntent = onboardingViewModel::sendIntent
+                )
+            }
             composable("home") {
                 val state by todayViewModel.uiState.collectAsState()
                 TodayScreen(
@@ -93,6 +122,14 @@ fun MainNavigation() {
             }
             composable("discover") {
                 val state by pathViewModel.uiState.collectAsState()
+                androidx.compose.runtime.LaunchedEffect(Unit) {
+                    pathViewModel.effect.collect { effect ->
+                        when (effect) {
+                            is com.vajrax.ui.features.path.PathEffect.NavigateToLearn -> navController.navigate("learn")
+                            is com.vajrax.ui.features.path.PathEffect.ShowMessage -> { }
+                        }
+                    }
+                }
                 PathScreen(
                     state = state,
                     onIntent = pathViewModel::sendIntent
@@ -100,6 +137,13 @@ fun MainNavigation() {
             }
             composable("report") {
                 val state by growViewModel.uiState.collectAsState()
+                androidx.compose.runtime.LaunchedEffect(Unit) {
+                    growViewModel.effect.collect { effect ->
+                        when (effect) {
+                            is com.vajrax.ui.features.grow.GrowEffect.NavigateToReview -> navController.navigate("review")
+                        }
+                    }
+                }
                 GrowScreen(
                     state = state,
                     onIntent = growViewModel::sendIntent
@@ -112,24 +156,39 @@ fun MainNavigation() {
                     onSync = profileViewModel::triggerCloudSync
                 )
             }
+            composable("learn") {
+                val learnViewModel = koinInject<com.vajrax.ui.features.learn.LearnViewModel>()
+                val state by learnViewModel.uiState.collectAsState()
+                com.vajrax.ui.features.learn.LearnScreen(
+                    state = state,
+                    onIntent = learnViewModel::sendIntent
+                )
+            }
+            composable("review") {
+                val reviewViewModel = koinInject<com.vajrax.ui.features.review.ReviewViewModel>()
+                val state by reviewViewModel.uiState.collectAsState()
+                com.vajrax.ui.features.review.ReviewScreen(
+                    state = state,
+                    onIntent = reviewViewModel::sendIntent
+                )
+            }
         }
 
-        // Floating Pill Navigation Bar (Aligned at BottomCenter with safe insets)
-        FloatingPillNavBar(
-            tabs = navTabs,
-            currentRoute = currentRoute,
-            onTabSelected = { route ->
-                navController.navigate(route) {
-                    popUpTo("home") { saveState = true }
-                    launchSingleTop = true
-                    restoreState = true
-                }
-            },
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-        )
+        if (currentRoute != "onboarding") {
+            FloatingPillNavBar(
+                tabs = navTabs,
+                currentRoute = currentRoute,
+                onTabSelected = { route ->
+                    navController.navigate(route) {
+                        popUpTo("home") { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .navigationBarsPadding()
+            )
+        }
     }
 }
-
-

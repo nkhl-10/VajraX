@@ -1,4 +1,4 @@
-﻿package com.vajrax.data.remote
+package com.vajrax.data.remote
 
 import com.vajrax.data.local.VajraDatabase
 import com.vajrax.domain.repository.AuthRepository
@@ -163,7 +163,8 @@ class SupabaseSyncManager(
                         frequency = t.frequency,
                         author = t.author,
                         isCommunity = if (t.is_community) 1L else 0L,
-                        isBookmarked = if (t.is_bookmarked) 1L else 0L
+                        isBookmarked = if (t.is_bookmarked) 1L else 0L,
+                        isCustom = 0L
                     )
                 }
             }

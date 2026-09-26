@@ -19,6 +19,7 @@ class GrowViewModel(
             is GrowIntent.LoadGrowthData -> loadGrowthData()
             is GrowIntent.OpenPatternWhyDialog -> updateState { copy(showWhyDialog = true) }
             is GrowIntent.DismissPatternWhyDialog -> updateState { copy(showWhyDialog = false) }
+            is GrowIntent.OpenReview -> viewModelScope.launch { sendEffect(GrowEffect.NavigateToReview) }
         }
     }
 

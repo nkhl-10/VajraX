@@ -81,7 +81,10 @@ sealed interface GrowIntent {
     data object LoadGrowthData : GrowIntent
     data object OpenPatternWhyDialog : GrowIntent
     data object DismissPatternWhyDialog : GrowIntent
+    data object OpenReview : GrowIntent
 }
 
-sealed interface GrowEffect
+sealed interface GrowEffect {
+    data object NavigateToReview : GrowEffect
+}
 

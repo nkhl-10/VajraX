@@ -35,7 +35,7 @@
             android:textStyle="bold" />
     </LinearLayout>
 
-    <Space
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="8dp" />
 
@@ -59,7 +59,7 @@
         android:textColor="#A7AAAE"
         android:textSize="12sp" />
 
-    <Space
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="12dp" />
 
@@ -81,7 +81,7 @@
             android:textSize="12sp"
             android:textStyle="bold" />
 
-        <Space
+        <FrameLayout
             android:layout_width="8dp"
             android:layout_height="match_parent" />
 

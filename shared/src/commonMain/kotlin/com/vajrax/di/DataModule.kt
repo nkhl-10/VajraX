@@ -56,6 +56,7 @@ fun dataModule() = module {
     single<AuthRepository> { AuthRepositoryImpl(get()) }
     single<LifePathRepository> { LifePathRepositoryImpl(get()) }
     single<PracticeRepository> { PracticeRepositoryImpl(get()) }
+    single<com.vajrax.domain.repository.TemplateRepository> { com.vajrax.data.repository.TemplateRepositoryImpl(get()) }
     single<LearnRepository> { LearnRepositoryImpl(get()) }
     single<GrowRepository> { GrowRepositoryImpl(get()) }
     single<ReviewRepository> { ReviewRepositoryImpl(get()) }
@@ -86,12 +87,14 @@ fun dataModule() = module {
 
 
     // 9. Presentation ViewModels (MVI / UDF)
+    single { com.vajrax.app.AppViewModel(get()) }
     single { TodayViewModel(get(), getOrNull()) }
     single { CalendarViewModel(get()) }
-    single { PathViewModel(get(), get()) }
+    single { PathViewModel(get(), get(), get()) }
     single { LearnViewModel(get()) }
     single { GrowViewModel(get()) }
     single { ReviewViewModel(get()) }
     single { com.vajrax.ui.features.profile.ProfileViewModel(get(), get(), get()) }
+    single { com.vajrax.ui.features.onboarding.OnboardingViewModel(get(), get(), get()) }
 }
 

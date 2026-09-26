@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.vajrax.ui.utils.gyroShadowCard
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -51,20 +52,40 @@ fun GrowScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // ==========================================
-        // 1. HEADER (Title + Segmented Pill Selector)
+        // 1. HEADER (Title + Review Button + Segmented Pill Selector)
         // ==========================================
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Report",
-                color = colors.onSurface,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = (-0.6).sp
-            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = "Report",
+                    color = colors.onSurface,
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.6).sp
+                )
+
+                // Review Button
+                Box(
+                    modifier = Modifier
+                        .height(32.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(colors.primaryContainer)
+                        .clickable { onIntent(GrowIntent.OpenReview) }
+                        .padding(horizontal = 12.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Weekly Review",
+                        color = colors.primary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
 
             // Segmented Pill: [This Week] [This Month]
             Box(
@@ -108,6 +129,7 @@ fun GrowScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .gyroShadowCard()
                 .clip(RoundedCornerShape(26.dp))
                 .background(colors.surface)
                 .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(26.dp))
@@ -248,6 +270,7 @@ fun GrowScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .gyroShadowCard()
                 .clip(RoundedCornerShape(26.dp))
                 .background(colors.surface)
                 .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(26.dp))
@@ -469,6 +492,7 @@ fun GrowScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .gyroShadowCard()
                 .clip(RoundedCornerShape(22.dp))
                 .background(colors.surface)
                 .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(22.dp))
@@ -579,6 +603,7 @@ fun GrowScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .gyroShadowCard()
                 .clip(RoundedCornerShape(22.dp))
                 .background(colors.surface)
                 .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(22.dp))
@@ -675,7 +700,8 @@ fun GrowScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(24.dp))
+                    .gyroShadowCard()
+                .clip(RoundedCornerShape(24.dp))
                     .background(colors.surface)
                     .border(1.dp, colors.outlineVariant.copy(alpha = 0.8f), RoundedCornerShape(24.dp))
                     .padding(22.dp)

@@ -19,6 +19,7 @@ data class CalendarMatrixRow(
 data class CalendarUiState(
     val selectedDateText: String = "Wed, 21 Jan",
     val selectedDayOfWeek: Int = 2, // 0: Mon, 1: Tue, 2: Wed, 3: Thu, 4: Fri
+    val currentDayOfWeek: Int = 2,
     val days: List<DayTab> = listOf(
         DayTab(19, "Mon", 0),
         DayTab(20, "Tue", 1),

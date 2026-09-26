@@ -95,14 +95,19 @@ fun CalendarScreen(
                 ) {
                     state.days.forEach { day ->
                         val isSelected = day.index == state.selectedDayOfWeek
+                        val isCurrent = day.index == state.currentDayOfWeek
 
                         Box(
                             modifier = Modifier
                                 .weight(1f)
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) { onIntent(CalendarIntent.SelectDay(day.index)) },
+                                .then(
+                                    if (isCurrent) {
+                                        Modifier.clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) { onIntent(CalendarIntent.SelectDay(day.index)) }
+                                    } else Modifier
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             Column(
@@ -234,6 +239,7 @@ fun CalendarScreen(
                 ) {
                     daysCompleted.forEachIndexed { dayIdx, isCompleted ->
                         val isActiveDay = dayIdx == state.selectedDayOfWeek
+                        val isCurrentDay = dayIdx == state.currentDayOfWeek
 
                         Box(
                             modifier = Modifier
@@ -244,7 +250,12 @@ fun CalendarScreen(
                             HabitCheckCircle(
                                 isCompleted = isCompleted,
                                 isActiveDay = isActiveDay,
-                                onClick = { onIntent(CalendarIntent.ToggleTaskDay(task.id, dayIdx)) }
+                                isEditable = isCurrentDay,
+                                onClick = { 
+                                    if (isCurrentDay) {
+                                        onIntent(CalendarIntent.ToggleTaskDay(task.id, dayIdx)) 
+                                    }
+                                }
                             )
                         }
                     }
@@ -261,6 +272,7 @@ fun CalendarScreen(
 private fun HabitCheckCircle(
     isCompleted: Boolean,
     isActiveDay: Boolean,
+    isEditable: Boolean,
     onClick: () -> Unit
 ) {
     val colors = LuminaTheme.colors
@@ -273,10 +285,12 @@ private fun HabitCheckCircle(
                     .size(22.dp)
                     .clip(CircleShape)
                     .background(colors.primary)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onClick
+                    .then(
+                        if (isEditable) Modifier.clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onClick
+                        ) else Modifier
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -296,10 +310,12 @@ private fun HabitCheckCircle(
                     .size(22.dp)
                     .clip(CircleShape)
                     .border(1.2.dp, colors.outline.copy(alpha = 0.6f), CircleShape)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onClick
+                    .then(
+                        if (isEditable) Modifier.clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onClick
+                        ) else Modifier
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -319,10 +335,12 @@ private fun HabitCheckCircle(
                     .size(22.dp)
                     .clip(CircleShape)
                     .border(1.2.dp, colors.outlineVariant, CircleShape)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onClick
+                    .then(
+                        if (isEditable) Modifier.clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = onClick
+                        ) else Modifier
                     )
             )
         }

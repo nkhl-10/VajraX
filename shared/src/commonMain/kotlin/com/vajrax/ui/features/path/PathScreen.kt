@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.vajrax.ui.utils.gyroShadowCard
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -44,18 +45,6 @@ fun PathScreen(
     var searchQuery by remember { mutableStateOf("") }
     var activeFilter by remember { mutableStateOf<String?>(null) }
 
-    val providedTemplates = listOf(
-        DiscoverTemplateItem("morning_discipline", "Morning Discipline", "Build a structured morning routine", 6, "Daily"),
-        DiscoverTemplateItem("deep_work_block", "Deep Work Block", "Lock in focus and maximize high-output hours", 4, "Daily"),
-        DiscoverTemplateItem("30_day_challenge", "30-Day Challenge", "A rigorous month-long discipline protocol", 8, "30 days"),
-        DiscoverTemplateItem("6am_routine", "6 AM Routine", "Wake up early and win the morning", 5, "Daily")
-    )
-
-    val communityTemplates = listOf(
-        DiscoverTemplateItem("evening_wind_down", "Evening Wind Down", "Slow down your mind for deep, restful recovery", 4, "Daily", author = "sarah", isBookmarked = true),
-        DiscoverTemplateItem("fitness_starter_pack", "Fitness Starter Pack", "Essential daily habits for athletic consistency", 5, "Daily", author = "mike", isBookmarked = true)
-    )
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -67,7 +56,7 @@ fun PathScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // ==========================================
-        // 1. HEADER (Title + Search Icon Button)
+        // 1. HEADER (Title + Search Icon + Learn Button)
         // ==========================================
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -82,35 +71,55 @@ fun PathScreen(
                 letterSpacing = (-0.6).sp
             )
 
-            // Search Icon Circle Button
-            Box(
-                modifier = Modifier
-                    .size(42.dp)
-                    .clip(CircleShape)
-                    .background(colors.surface)
-                    .border(1.dp, colors.outlineVariant.copy(alpha = 0.8f), CircleShape)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ) { /* Search action */ },
-                contentAlignment = Alignment.Center
-            ) {
-                // Search Magnifier Icon
-                androidx.compose.foundation.Canvas(modifier = Modifier.size(18.dp)) {
-                    val stroke = 1.8.dp.toPx()
-                    drawCircle(
-                        color = Color(0xFF64748B),
-                        radius = size.width * 0.35f,
-                        center = androidx.compose.ui.geometry.Offset(size.width * 0.42f, size.height * 0.42f),
-                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = stroke)
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Book/Learn Button
+                Box(
+                    modifier = Modifier
+                        .height(42.dp)
+                        .clip(RoundedCornerShape(21.dp))
+                        .background(colors.primaryContainer)
+                        .clickable { onIntent(PathIntent.OpenLearn) }
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Knowledge",
+                        color = colors.primary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
                     )
-                    drawLine(
-                        color = Color(0xFF64748B),
-                        start = androidx.compose.ui.geometry.Offset(size.width * 0.67f, size.height * 0.67f),
-                        end = androidx.compose.ui.geometry.Offset(size.width * 0.92f, size.height * 0.92f),
-                        strokeWidth = stroke,
-                        cap = androidx.compose.ui.graphics.StrokeCap.Round
-                    )
+                }
+
+                // Search Icon Circle Button
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(colors.surface)
+                        .border(1.dp, colors.outlineVariant.copy(alpha = 0.8f), CircleShape)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { /* Search action */ },
+                    contentAlignment = Alignment.Center
+                ) {
+                    // Search Magnifier Icon
+                    androidx.compose.foundation.Canvas(modifier = Modifier.size(18.dp)) {
+                        val stroke = 1.8.dp.toPx()
+                        drawCircle(
+                            color = Color(0xFF64748B),
+                            radius = size.width * 0.35f,
+                            center = androidx.compose.ui.geometry.Offset(size.width * 0.42f, size.height * 0.42f),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = stroke)
+                        )
+                        drawLine(
+                            color = Color(0xFF64748B),
+                            start = androidx.compose.ui.geometry.Offset(size.width * 0.67f, size.height * 0.67f),
+                            end = androidx.compose.ui.geometry.Offset(size.width * 0.92f, size.height * 0.92f),
+                            strokeWidth = stroke,
+                            cap = androidx.compose.ui.graphics.StrokeCap.Round
+                        )
+                    }
                 }
             }
         }
@@ -129,36 +138,92 @@ fun PathScreen(
         )
         Spacer(modifier = Modifier.height(12.dp))
 
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            providedTemplates.forEach { item ->
-                FigmaTemplateCard(
-                    item = item,
-                    onUse = { onIntent(PathIntent.SelectPath(item.id)) }
-                )
+        if (state.isLoading) {
+            Text("Loading templates...", color = colors.onSurfaceVariant)
+        } else if (state.providedTemplates.isEmpty()) {
+            Text("No provided templates available.", color = colors.onSurfaceVariant)
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                state.providedTemplates.forEach { template ->
+                    val item = DiscoverTemplateItem(
+                        id = template.id,
+                        title = template.name,
+                        subtitle = template.description,
+                        taskCount = template.habits.size,
+                        frequency = template.estimatedDuration
+                    )
+                    FigmaTemplateCard(
+                        item = item,
+                        onUse = { onIntent(PathIntent.SelectPath(item.id)) }
+                    )
+                }
             }
         }
 
         Spacer(modifier = Modifier.height(28.dp))
 
         // ==========================================
-        // 3. COMMUNITY TEMPLATES
+        // 3. CUSTOM TEMPLATES
         // ==========================================
-        Text(
-            text = "COMMUNITY TEMPLATES",
-            color = Color(0xFF8B95A5),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 0.8.sp
-        )
-        Spacer(modifier = Modifier.height(12.dp))
+        if (state.customTemplates.isNotEmpty()) {
+            Text(
+                text = "CUSTOM TEMPLATES",
+                color = Color(0xFF8B95A5),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.8.sp
+            )
+            Spacer(modifier = Modifier.height(12.dp))
 
-        Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            communityTemplates.forEach { item ->
-                FigmaTemplateCard(
-                    item = item,
-                    onUse = { onIntent(PathIntent.SelectPath(item.id)) }
-                )
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                state.customTemplates.forEach { template ->
+                    val item = DiscoverTemplateItem(
+                        id = template.id,
+                        title = template.name,
+                        subtitle = template.description,
+                        taskCount = template.habits.size,
+                        frequency = template.estimatedDuration,
+                        author = "User"
+                    )
+                    FigmaTemplateCard(
+                        item = item,
+                        onUse = { onIntent(PathIntent.SelectPath(item.id)) }
+                    )
+                }
             }
+            Spacer(modifier = Modifier.height(28.dp))
+        }
+
+        // ==========================================
+        // 4. COMMUNITY TEMPLATES
+        // ==========================================
+        if (state.communityTemplates.isNotEmpty()) {
+            Text(
+                text = "COMMUNITY TEMPLATES",
+                color = Color(0xFF8B95A5),
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Bold,
+                letterSpacing = 0.8.sp
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                state.communityTemplates.forEach { template ->
+                    val item = DiscoverTemplateItem(
+                        id = template.id,
+                        title = template.name,
+                        subtitle = template.description,
+                        taskCount = template.habits.size,
+                        frequency = template.estimatedDuration,
+                        author = "Community"
+                    )
+                    FigmaTemplateCard(
+                        item = item,
+                        onUse = { onIntent(PathIntent.SelectPath(item.id)) }
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(28.dp))
         }
 
         // Safe clearance for bottom navigation dock
@@ -176,6 +241,7 @@ private fun FigmaTemplateCard(
     Box(
         modifier = Modifier
             .fillMaxWidth()
+            .gyroShadowCard()
             .clip(RoundedCornerShape(22.dp))
             .background(colors.surface)
             .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(22.dp))

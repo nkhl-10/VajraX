@@ -30,6 +30,9 @@ class CalendarViewModel(
             }
             is CalendarIntent.ToggleTaskDay -> {
                 _uiState.update { state ->
+                    if (intent.dayIndex != state.currentDayOfWeek) {
+                        return@update state // Disallow editing past/future dates
+                    }
                     val updated = state.tasks.map { row ->
                         if (row.id == intent.taskId) {
                             when (intent.dayIndex) {

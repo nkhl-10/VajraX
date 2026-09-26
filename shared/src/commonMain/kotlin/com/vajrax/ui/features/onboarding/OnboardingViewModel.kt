@@ -1,4 +1,4 @@
-package com.vajrax.ui.features.path
+package com.vajrax.ui.features.onboarding
 
 import com.vajrax.domain.model.LifePath
 import com.vajrax.domain.model.Practice
@@ -12,38 +12,31 @@ import kotlinx.coroutines.launch
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
-class PathViewModel(
+class OnboardingViewModel(
     private val templateRepository: TemplateRepository,
     private val lifePathRepository: LifePathRepository,
     private val practiceRepository: PracticeRepository
-) : MviViewModel<PathUiState, PathIntent, PathEffect>(PathUiState()) {
+) : MviViewModel<OnboardingUiState, OnboardingIntent, OnboardingEffect>(OnboardingUiState()) {
 
-    init {
-        sendIntent(PathIntent.LoadPathData)
-    }
-
-    override fun sendIntent(intent: PathIntent) {
+    override fun sendIntent(intent: OnboardingIntent) {
         when (intent) {
-            is PathIntent.LoadPathData -> loadPathData()
-            is PathIntent.SelectPath -> selectTemplate(intent.templateId)
-            is PathIntent.OpenLearn -> viewModelScope.launch { sendEffect(PathEffect.NavigateToLearn) }
+            is OnboardingIntent.StartOnboarding -> loadTemplates()
+            is OnboardingIntent.SelectTemplate -> activateTemplate(intent.templateId)
+            is OnboardingIntent.StartBlank -> activateTemplate("blank_custom_template")
         }
     }
 
-    private fun loadPathData() {
+    private fun loadTemplates() {
         viewModelScope.launch(Dispatchers.IO) {
-            updateState { copy(isLoading = true, error = null) }
+            updateState { copy(step = OnboardingStep.CHOOSE_TEMPLATE, isLoading = true, error = null) }
             try {
                 val allTemplates = templateRepository.getAllTemplates()
                 val provided = allTemplates.filter { it.category != "Custom" && it.id != "blank_custom_template" }
-                val custom = templateRepository.getCustomTemplates() + allTemplates.filter { it.id == "blank_custom_template" }
                 
                 updateState {
                     copy(
                         isLoading = false,
-                        providedTemplates = provided,
-                        customTemplates = custom,
-                        communityTemplates = emptyList() // Will be loaded from Supabase eventually
+                        templates = provided
                     )
                 }
             } catch (e: Exception) {
@@ -53,8 +46,9 @@ class PathViewModel(
     }
 
     @OptIn(ExperimentalUuidApi::class)
-    private fun selectTemplate(templateId: String) {
+    private fun activateTemplate(templateId: String) {
         viewModelScope.launch(Dispatchers.IO) {
+            updateState { copy(isLoading = true) }
             try {
                 val template = templateRepository.getTemplateWithHabits(templateId)
                 if (template != null) {
@@ -62,23 +56,20 @@ class PathViewModel(
                     val newPathId = Uuid.random().toString()
                     val lifePath = LifePath(
                         id = newPathId,
-                        name = template.name,
+                        name = if (templateId == "blank_custom_template") "My Path" else template.name,
                         description = template.description,
                         isActive = true
                     )
-                    lifePathRepository.setActiveLifePath(newPathId) // Replaces current active
-                    
-                    // Note: In a real implementation, you'd insert the LifePath first via a specific insert method.
-                    // For now, setting it active usually handles insertion in the repository logic or we assume it's created.
+                    lifePathRepository.setActiveLifePath(newPathId) 
 
                     // Instantiate all habits as user Practices
                     template.habits.forEach { habit ->
                         val practice = Practice(
                             id = Uuid.random().toString(),
-                            principleId = null, // Or create a default principle
+                            principleId = null,
                             title = habit.name,
                             targetDurationMinutes = habit.duration,
-                            minimumDurationMinutes = habit.duration / 3, // Safe default
+                            minimumDurationMinutes = habit.duration / 3,
                             preferredTime = habit.startTime,
                             trackingMode = habit.trackingType,
                             isActive = true
@@ -86,10 +77,14 @@ class PathViewModel(
                         practiceRepository.insertPractice(practice)
                     }
 
-                    sendEffect(PathEffect.ShowMessage("Template '${template.name}' activated!"))
+                    updateState { copy(isLoading = false) }
+                    sendEffect(OnboardingEffect.NavigateToHome)
+                } else {
+                    updateState { copy(isLoading = false, error = "Template not found") }
                 }
             } catch (e: Exception) {
-                sendEffect(PathEffect.ShowMessage("Error activating template: ${e.message}"))
+                updateState { copy(isLoading = false, error = e.message) }
+                sendEffect(OnboardingEffect.ShowMessage("Error: ${e.message}"))
             }
         }
     }

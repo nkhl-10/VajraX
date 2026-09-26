@@ -1,4 +1,4 @@
-﻿package com.vajrax.data.local
+package com.vajrax.data.local
 
 import com.vajrax.domain.model.ActionStatus
 import com.vajrax.domain.model.ReflectionRating
@@ -38,7 +38,8 @@ class DatabaseSeeder(
                 frequency = "Daily",
                 author = null,
                 isCommunity = 0L,
-                isBookmarked = 0L
+                isBookmarked = 0L,
+                isCustom = 0L
             )
             queries.insertTemplate(
                 id = "deep_work_block",
@@ -48,7 +49,8 @@ class DatabaseSeeder(
                 frequency = "Daily",
                 author = null,
                 isCommunity = 0L,
-                isBookmarked = 0L
+                isBookmarked = 0L,
+                isCustom = 0L
             )
             queries.insertTemplate(
                 id = "30_day_challenge",
@@ -58,7 +60,8 @@ class DatabaseSeeder(
                 frequency = "30 days",
                 author = null,
                 isCommunity = 0L,
-                isBookmarked = 0L
+                isBookmarked = 0L,
+                isCustom = 0L
             )
             queries.insertTemplate(
                 id = "6am_routine",
@@ -68,7 +71,8 @@ class DatabaseSeeder(
                 frequency = "Daily",
                 author = null,
                 isCommunity = 0L,
-                isBookmarked = 0L
+                isBookmarked = 0L,
+                isCustom = 0L
             )
             queries.insertTemplate(
                 id = "evening_wind_down",
@@ -78,7 +82,8 @@ class DatabaseSeeder(
                 frequency = "Daily",
                 author = "sarah",
                 isCommunity = 1L,
-                isBookmarked = 1L
+                isBookmarked = 1L,
+                isCustom = 0L
             )
             queries.insertTemplate(
                 id = "fitness_starter_pack",
@@ -88,8 +93,38 @@ class DatabaseSeeder(
                 frequency = "Daily",
                 author = "mike",
                 isCommunity = 1L,
-                isBookmarked = 1L
+                isBookmarked = 1L,
+                isCustom = 0L
             )
+
+            // 2b. Seed 20 New Default Templates from TemplateLibrary
+            com.vajrax.domain.template.TemplateLibrary.defaultTemplates.forEach { template ->
+                queries.insertTemplate(
+                    id = template.id,
+                    title = template.name,
+                    description = template.description,
+                    taskCount = template.habits.size.toLong(),
+                    frequency = "Daily",
+                    author = "System",
+                    isCommunity = 0L,
+                    isBookmarked = 0L,
+                    isCustom = 0L
+                )
+                template.habits.forEachIndexed { index, habit ->
+                    queries.insertTemplateHabit(
+                        id = "${template.id}_habit_$index",
+                        templateId = template.id,
+                        name = habit.name,
+                        startTime = habit.startTime,
+                        durationMinutes = habit.duration.toLong(),
+                        trackingMode = habit.trackingType.name,
+                        target = habit.target,
+                        repeatDays = habit.repeatDays.joinToString(","),
+                        reminderEnabled = if (habit.reminderEnabled) 1L else 0L,
+                        sortOrder = habit.sortOrder.toLong()
+                    )
+                }
+            }
 
             // 3. User Enrolled Template Progress (Figma Profile: Morning Discipline, Day 12 of 30, 40%)
             queries.insertOrUpdateUserTemplate(
