@@ -1,6 +1,8 @@
 package com.vajrax.ui.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,8 +24,10 @@ import com.vajrax.ui.navigation.NavTabItem
 import com.vajrax.ui.theme.LuminaTheme
 
 /**
- * Floating Pill Bottom Navigation Bar for Lumina Life OS.
- * Matches the reference design with rounded capsule container, active royal indigo accents, and clean typography.
+ * Floating Pill Navigation Bar — Exact Figma match.
+ * tabs-row: fills rgba(0.749, 0.749, 0.749, 0.20), cornerRadius=50
+ * Active tab: indigo #4F46E5 icon + label
+ * Inactive tab: gray #9CA3AF
  */
 @Composable
 fun FloatingPillNavBar(
@@ -34,60 +38,69 @@ fun FloatingPillNavBar(
 ) {
     val colors = LuminaTheme.colors
 
+    // Solid pill — reference shows opaque light-gray bar so scrolled content
+    // (e.g. MOST CONSISTENT) never bleeds through from behind.
+    val navBgColor = if (colors.isDark) {
+        Color(0xFF1E232E) // solid dark frosted
+    } else {
+        Color(0xFFF1F2F6) // solid light gray, matches reference screenshots
+    }
+    val navBorderColor = if (colors.isDark) {
+        Color(0xFF2B3242)
+    } else {
+        Color(0xFFE5E7EB)
+    }
+
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 12.dp),
+            .padding(horizontal = 20.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center
     ) {
-        Box(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
-                .clip(RoundedCornerShape(32.dp))
-                .background(colors.floatingDock)
-                .border(1.dp, colors.floatingDockBorder, RoundedCornerShape(32.dp))
-                .padding(horizontal = 8.dp),
-            contentAlignment = Alignment.Center
+                .height(60.dp)
+                .clip(RoundedCornerShape(50.dp))                    // Figma cornerRadius=50
+                .background(navBgColor)
+                .border(1.dp, navBorderColor, RoundedCornerShape(50.dp))
+                .padding(horizontal = 4.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.SpaceAround,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                tabs.forEach { tab ->
-                    val isSelected = currentRoute == tab.route
-
-                    PillNavTabItemView(
-                        item = tab,
-                        isSelected = isSelected,
-                        onClick = { onTabSelected(tab.route) },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+            tabs.forEach { tab ->
+                val isSelected = currentRoute == tab.route
+                FigmaNavTabItem(
+                    item = tab,
+                    isSelected = isSelected,
+                    onClick = { onTabSelected(tab.route) },
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }
 }
 
 @Composable
-private fun PillNavTabItemView(
+private fun FigmaNavTabItem(
     item: NavTabItem,
     isSelected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val colors = LuminaTheme.colors
-    val unselectedColor = if (colors.isDark) Color(0xFF8B95A5) else Color(0xFF8B95A5)
 
+    // Figma: active = #4F46E5 (primary), inactive = #9CA3AF (secondary text)
     val contentColor by animateColorAsState(
-        targetValue = if (isSelected) colors.primary else unselectedColor
+        targetValue = if (isSelected) colors.primary else colors.onSurfaceVariant,
+        animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
+        label = "navTabColor"
     )
 
     Box(
         modifier = modifier
             .fillMaxHeight()
-            .clip(RoundedCornerShape(20.dp))
+            .clip(RoundedCornerShape(50.dp))
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -105,18 +118,14 @@ private fun PillNavTabItemView(
                 size = 22.dp,
                 isSelected = isSelected
             )
-
             Spacer(modifier = Modifier.height(3.dp))
-
             Text(
                 text = item.label,
-                fontSize = 11.sp,
+                fontSize = 10.sp,
                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                 color = contentColor,
-                letterSpacing = 0.1.sp
+                letterSpacing = 0.sp
             )
         }
     }
 }
-
-

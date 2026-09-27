@@ -31,7 +31,7 @@ class TemplateRepositoryImpl(
 
     override suspend fun getTemplateWithHabits(templateId: String): DefaultTemplate? {
         val entity = queries.getTemplateById(templateId).executeAsOneOrNull() ?: return null
-        
+
         val habits = queries.getHabitsForTemplate(templateId).executeAsList().map { habitEntity ->
             DefaultHabit(
                 name = habitEntity.name,
@@ -45,13 +45,24 @@ class TemplateRepositoryImpl(
             )
         }
 
+        // Derive category: check TemplateLibrary first, fall back to flags
+        val libraryTemplate = com.vajrax.domain.template.TemplateLibrary.defaultTemplates.find { it.id == templateId }
+        val category = when {
+            libraryTemplate != null -> libraryTemplate.category
+            entity.isCustom == 1L -> "Custom"
+            entity.isCommunity == 1L -> "Community"
+            else -> "General"
+        }
+        val difficulty = libraryTemplate?.difficulty ?: "Medium"
+        val duration = libraryTemplate?.estimatedDuration ?: "Variable"
+
         return DefaultTemplate(
             id = entity.id,
             name = entity.title,
-            category = "General",
+            category = category,
             description = entity.description,
-            difficulty = "Medium",
-            estimatedDuration = "Variable",
+            difficulty = difficulty,
+            estimatedDuration = duration,
             habits = habits
         )
     }

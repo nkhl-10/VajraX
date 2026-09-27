@@ -2365,6 +2365,352 @@ object TemplateLibrary {
                 ),
             )
         ),
+        // ==========================================
+        // 15-ARC DAILY ROUTINE TEMPLATES
+        // ==========================================
+
+        DefaultTemplate(
+            id = "arc_master_daily",
+            name = "15-Arc Master Daily Routine",
+            category = "Arc",
+            description = "Complete self-improvement system covering all 15 life arcs: Winter, Gym, Study, Career, Money, Monk, Spiritual, Health, Knowledge, Discipline, Glow-Up, Reset, Build, Peace, Transformation.",
+            difficulty = "Hard",
+            estimatedDuration = "Full Day",
+            habits = listOf(
+                DefaultHabit("Wake Up + Make Bed + Drink Water", "05:30", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 1),
+                DefaultHabit("Meditation / Prayer / Breathing", "05:40", 20, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 2),
+                DefaultHabit("Workout / Running / Mobility", "06:00", 45, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 3),
+                DefaultHabit("Shower + Grooming", "06:45", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 4),
+                DefaultHabit("Breakfast", "07:15", 20, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 5),
+                DefaultHabit("Daily Planning + Top 3 Priorities", "07:35", 15, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 6),
+                DefaultHabit("Deep Study / Technical Learning", "07:50", 60, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 7),
+                DefaultHabit("Prepare for Work", "08:50", 25, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 8),
+                DefaultHabit("Travel / Commute (Knowledge/No Scroll)", "09:15", 45, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), false, 9),
+                DefaultHabit("Deep Professional Work", "10:00", 180, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 10),
+                DefaultHabit("Lunch + Short Break", "13:00", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 11),
+                DefaultHabit("Focused Work", "13:30", 150, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), false, 12),
+                DefaultHabit("Break / Walk / Reset", "16:00", 15, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 13),
+                DefaultHabit("Work + Project Execution", "16:15", 165, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), false, 14),
+                DefaultHabit("Travel / Decompression", "19:00", 60, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), false, 15),
+                DefaultHabit("Dinner", "20:00", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 16),
+                DefaultHabit("Walk / Family / Personal Time", "20:30", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 17),
+                DefaultHabit("Side Project / Portfolio (Build Arc)", "21:00", 30, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 18),
+                DefaultHabit("Money Check / Expense Tracking", "21:30", 15, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 19),
+                DefaultHabit("Reading (Knowledge Arc)", "21:45", 15, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 20),
+                DefaultHabit("Daily Review + Tomorrow Plan", "22:00", 15, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 21),
+                DefaultHabit("No-Screen Wind-Down (Monk Arc)", "22:15", 15, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 22),
+                DefaultHabit("Sleep", "22:30", 420, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 23),
+            )
+        ),
+
+        DefaultTemplate(
+            id = "arc_winter",
+            name = "❄️ Winter Arc — Discipline & Consistency",
+            category = "Arc",
+            description = "Build iron discipline and consistency. 5:30 AM wake up, workout daily, complete Top 3 priorities, study, sleep by 10:30 PM. Never miss twice.",
+            difficulty = "Hard",
+            estimatedDuration = "Full Day",
+            habits = listOf(
+                DefaultHabit("Wake Up 5:30 AM", "05:30", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 1),
+                DefaultHabit("Make Bed Immediately", "05:32", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 2),
+                DefaultHabit("Drink Water", "05:37", 5, TrackingMode.PASSIVE, "1.0", listOf(1,2,3,4,5,6,7), true, 3),
+                DefaultHabit("Workout (Never Skip)", "06:00", 45, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 4),
+                DefaultHabit("Top 3 Priorities Planning", "07:35", 15, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 5),
+                DefaultHabit("Deep Learning Session", "07:50", 60, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 6),
+                DefaultHabit("Complete Top 3 Priorities", "10:00", 180, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 7),
+                DefaultHabit("Daily Review — What Did I Execute?", "22:00", 15, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 8),
+                DefaultHabit("Sleep by 10:30 PM", "22:30", 420, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 9),
+            )
+        ),
+
+        DefaultTemplate(
+            id = "arc_gym",
+            name = "💪 Gym Arc — Strength & Fitness",
+            category = "Arc",
+            description = "Build strength, fitness and physical consistency. Structured weekly split: upper/lower/cardio. 20–30 min movement even on rest days.",
+            difficulty = "Medium",
+            estimatedDuration = "Full Day",
+            habits = listOf(
+                DefaultHabit("Wake Up + Drink Water", "06:00", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 1),
+                DefaultHabit("Workout (Upper/Lower/Cardio per Day)", "06:00", 45, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 2),
+                DefaultHabit("Stretch / Mobility 5–10 Min", "06:45", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 3),
+                DefaultHabit("Shower + Grooming", "06:55", 20, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 4),
+                DefaultHabit("Protein / Healthy Breakfast", "07:15", 20, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 5),
+                DefaultHabit("Healthy Lunch", "13:00", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 6),
+                DefaultHabit("Break / Short Walk", "16:00", 15, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 7),
+                DefaultHabit("Protein / Healthy Dinner", "20:00", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 8),
+                DefaultHabit("Sleep (Recovery)", "22:30", 420, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 9),
+            )
+        ),
+
+        DefaultTemplate(
+            id = "arc_study",
+            name = "🧠 Study Arc — Focused Learning",
+            category = "Arc",
+            description = "Structured academic or technical learning. 45 min focused study + 10 min practice + 5 min review each session. Mon–Thu: new concepts. Fri: revision. Sat: practice. Sun: review.",
+            difficulty = "Medium",
+            estimatedDuration = "Full Day",
+            habits = listOf(
+                DefaultHabit("Wake Up + Morning Routine", "06:00", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 1),
+                DefaultHabit("Breakfast", "07:15", 20, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 2),
+                DefaultHabit("Review Yesterday's Topics (5 min)", "07:45", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 3),
+                DefaultHabit("Deep Study — 45 Min Focused", "07:50", 45, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 4),
+                DefaultHabit("Practice / Apply Concepts (10 min)", "08:35", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 5),
+                DefaultHabit("Notes & Review (5 min)", "08:45", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 6),
+                DefaultHabit("Study Session 2 (Afternoon)", "13:30", 60, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), false, 7),
+                DefaultHabit("Evening Study / Revision", "20:00", 45, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 8),
+                DefaultHabit("Write Key Learnings", "21:00", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 9),
+                DefaultHabit("Sleep", "22:30", 420, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 10),
+            )
+        ),
+
+        DefaultTemplate(
+            id = "arc_career",
+            name = "💻 Career Arc — Professional Growth",
+            category = "Arc",
+            description = "Accelerate professional capability. Deep work blocks, skill learning, architecture, performance, AI/ML, documentation. Choose one career skill as weekly focus.",
+            difficulty = "Medium",
+            estimatedDuration = "Full Day",
+            habits = listOf(
+                DefaultHabit("Wake Up + Morning Routine", "06:00", 75, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 1),
+                DefaultHabit("Career Skill Study (Technical)", "07:50", 60, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 2),
+                DefaultHabit("Deep Professional Work — Block 1", "09:00", 120, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 3),
+                DefaultHabit("Email / Communication (Batch)", "11:00", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 4),
+                DefaultHabit("Deep Professional Work — Block 2", "11:30", 90, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), false, 5),
+                DefaultHabit("Lunch Break", "13:00", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 6),
+                DefaultHabit("Important Tasks / Meetings", "14:00", 120, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), false, 7),
+                DefaultHabit("Break / Walk", "16:00", 15, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 8),
+                DefaultHabit("Work + Project", "16:15", 165, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), false, 9),
+                DefaultHabit("Review Progress + Plan Tomorrow", "17:30", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 10),
+                DefaultHabit("Sleep", "22:30", 420, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 11),
+            )
+        ),
+
+        DefaultTemplate(
+            id = "arc_money",
+            name = "💰 Money Arc — Finance & Wealth",
+            category = "Arc",
+            description = "Control personal finances daily. Record expenses, track spending, review savings. Weekly: spending review + savings rate. Monthly: net-worth update, budget review.",
+            difficulty = "Easy",
+            estimatedDuration = "Full Day",
+            habits = listOf(
+                DefaultHabit("Check Today's Budget (Morning)", "08:00", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 1),
+                DefaultHabit("Record Lunch Expenses", "13:30", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), false, 2),
+                DefaultHabit("Check Unnecessary Spending", "18:30", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 3),
+                DefaultHabit("Money Check / Record All Expenses", "21:30", 15, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 4),
+                DefaultHabit("Review Savings Goal", "21:45", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 5),
+                DefaultHabit("Review Upcoming Payments", "21:55", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 6),
+            )
+        ),
+
+        DefaultTemplate(
+            id = "arc_monk",
+            name = "📵 Monk Arc — Focus & No Distraction",
+            category = "Arc",
+            description = "Reduce distractions and reclaim attention. No social media at wake-up. No phone during deep work. Batch notifications. Digital shutdown after 10 PM.",
+            difficulty = "Medium",
+            estimatedDuration = "Full Day",
+            habits = listOf(
+                DefaultHabit("Wake Up — No Phone for 30 Min", "05:30", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 1),
+                DefaultHabit("Morning Routine (Phone Free)", "06:00", 75, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 2),
+                DefaultHabit("Deep Work Block — Phone Away", "07:50", 60, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 3),
+                DefaultHabit("Phone-Free Lunch", "13:00", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 4),
+                DefaultHabit("Screen Break — Eyes Rest", "15:30", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 5),
+                DefaultHabit("No Social Media After 7 PM", "19:00", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 6),
+                DefaultHabit("Digital Shutdown — No Screens", "22:00", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 7),
+                DefaultHabit("Sleep", "22:30", 420, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 8),
+            )
+        ),
+
+        DefaultTemplate(
+            id = "arc_spiritual",
+            name = "🧘 Spiritual Arc — Meditation & Reflection",
+            category = "Arc",
+            description = "Develop reflection, gratitude and inner discipline. Morning meditation/prayer/breathing. Evening quiet reflection. Choose your practice.",
+            difficulty = "Easy",
+            estimatedDuration = "Full Day",
+            habits = listOf(
+                DefaultHabit("Wake Up + Drink Water", "05:30", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 1),
+                DefaultHabit("Meditation / Prayer / Breathing", "05:40", 20, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 2),
+                DefaultHabit("Gratitude Journal (3 Things)", "06:00", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 3),
+                DefaultHabit("Morning Walk (Mindful)", "06:10", 20, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), false, 4),
+                DefaultHabit("Mindfulness Break (Mid-Day)", "13:00", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), false, 5),
+                DefaultHabit("Breathing Break (Afternoon)", "15:30", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 6),
+                DefaultHabit("Walk Without Phone", "20:30", 20, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 7),
+                DefaultHabit("Quiet Reflection / Prayer", "22:00", 15, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 8),
+                DefaultHabit("Sleep", "22:30", 420, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 9),
+            )
+        ),
+
+        DefaultTemplate(
+            id = "arc_health",
+            name = "🥗 Health Arc — Nutrition, Sleep & Recovery",
+            category = "Arc",
+            description = "Support energy, recovery and long-term health. Balanced meals, adequate protein, hydration, daily movement, consistent sleep, limit processed food.",
+            difficulty = "Easy",
+            estimatedDuration = "Full Day",
+            habits = listOf(
+                DefaultHabit("Wake Up + Drink Water (500ml)", "05:30", 5, TrackingMode.PASSIVE, "1.0", listOf(1,2,3,4,5,6,7), true, 1),
+                DefaultHabit("Morning Movement / Workout", "06:00", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 2),
+                DefaultHabit("Healthy Balanced Breakfast", "07:15", 20, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 3),
+                DefaultHabit("Hydration Check (Mid-Morning)", "10:00", 5, TrackingMode.PASSIVE, "1.0", listOf(1,2,3,4,5,6,7), false, 4),
+                DefaultHabit("Balanced Lunch", "13:00", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 5),
+                DefaultHabit("Walk / Movement Break", "16:00", 15, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 6),
+                DefaultHabit("Healthy Dinner", "20:00", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 7),
+                DefaultHabit("Walk After Dinner", "20:30", 20, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 8),
+                DefaultHabit("Recovery Stretch", "22:00", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 9),
+                DefaultHabit("Sleep 7–8 Hours", "22:30", 450, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 10),
+            )
+        ),
+
+        DefaultTemplate(
+            id = "arc_knowledge",
+            name = "📚 Knowledge Arc — Reading & Broad Learning",
+            category = "Arc",
+            description = "Become broadly knowledgeable. Read consistently in technology, science, business, history, philosophy. Focus on consistency over page counts.",
+            difficulty = "Easy",
+            estimatedDuration = "Full Day",
+            habits = listOf(
+                DefaultHabit("Morning Read (10 min)", "06:30", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 1),
+                DefaultHabit("Commute Learning (Podcast/Article)", "09:15", 45, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), false, 2),
+                DefaultHabit("Lunch Break Reading (10 min)", "13:15", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), false, 3),
+                DefaultHabit("Evening Learning Session", "20:30", 20, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 4),
+                DefaultHabit("Night Reading (Tech/Science/Business)", "21:45", 15, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 5),
+                DefaultHabit("Note Key Insight of the Day", "22:05", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 6),
+            )
+        ),
+
+        DefaultTemplate(
+            id = "arc_discipline",
+            name = "🎯 Discipline Arc — Execution & Time Management",
+            category = "Arc",
+            description = "Execute what you plan. Morning: write Top 3 priorities. Night: review what you completed, what you avoided, what caused distraction.",
+            difficulty = "Easy",
+            estimatedDuration = "Full Day",
+            habits = listOf(
+                DefaultHabit("Wake Up on Schedule", "05:30", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 1),
+                DefaultHabit("Write Top 3 Priorities", "07:35", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 2),
+                DefaultHabit("Time-Block Deep Work", "07:50", 60, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 3),
+                DefaultHabit("Execute Priority #1", "10:00", 90, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 4),
+                DefaultHabit("Execute Priority #2", "13:30", 90, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), false, 5),
+                DefaultHabit("Execute Priority #3", "15:30", 60, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), false, 6),
+                DefaultHabit("Daily Review (What Did I Complete?)", "22:00", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 7),
+                DefaultHabit("Plan Tomorrow", "22:10", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 8),
+                DefaultHabit("Sleep on Time", "22:30", 420, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 9),
+            )
+        ),
+
+        DefaultTemplate(
+            id = "arc_glowup",
+            name = "✨ Glow-Up Arc — Grooming & Confidence",
+            category = "Arc",
+            description = "Improve presentation, grooming and confidence. Morning: shower, skincare, hair, clean clothes. Weekly: hair/beard maintenance, nail care, clothing organization.",
+            difficulty = "Easy",
+            estimatedDuration = "Full Day",
+            habits = listOf(
+                DefaultHabit("Wake Up + Drink Water", "06:00", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 1),
+                DefaultHabit("Workout / Exercise", "06:05", 45, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 2),
+                DefaultHabit("Shower", "06:50", 15, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 3),
+                DefaultHabit("Skincare Routine", "07:05", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 4),
+                DefaultHabit("Hair + Grooming", "07:10", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 5),
+                DefaultHabit("Wear Clean / Planned Outfit", "07:15", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 6),
+                DefaultHabit("Healthy Breakfast", "07:20", 20, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 7),
+                DefaultHabit("Posture Check (Mid-Day)", "12:00", 2, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), false, 8),
+                DefaultHabit("Evening Walk (Confidence + Fitness)", "20:30", 20, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 9),
+                DefaultHabit("Night Skincare", "22:00", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 10),
+                DefaultHabit("Sleep (Beauty Recovery)", "22:30", 420, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 11),
+            )
+        ),
+
+        DefaultTemplate(
+            id = "arc_reset",
+            name = "🌱 Reset Arc — Remove Bad Habits",
+            category = "Arc",
+            description = "Remove what's holding you back and rebuild. Daily: identify one bad habit to reduce and one good habit to strengthen. Sunday: full weekly reset.",
+            difficulty = "Easy",
+            estimatedDuration = "Full Day",
+            habits = listOf(
+                DefaultHabit("Wake Up + No Phone", "06:00", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 1),
+                DefaultHabit("Morning Routine (Clean Start)", "06:10", 60, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 2),
+                DefaultHabit("Identify Today's Bad Habit to Reduce", "07:35", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 3),
+                DefaultHabit("Identify Good Habit to Strengthen", "07:40", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 4),
+                DefaultHabit("Avoid Identified Trigger (Track)", "09:00", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), false, 5),
+                DefaultHabit("Workspace / Room Tidy", "20:00", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 6),
+                DefaultHabit("Daily Reset Review", "22:00", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 7),
+                DefaultHabit("Plan One Fix for Tomorrow", "22:10", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 8),
+                DefaultHabit("Sleep", "22:30", 420, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 9),
+            )
+        ),
+
+        DefaultTemplate(
+            id = "arc_build",
+            name = "🚀 Build Arc — Projects & Portfolio",
+            category = "Arc",
+            description = "Build something tangible every week. Android apps, open-source, portfolio, AI tools, automation, side projects. Build > consume. Aim for visible output weekly.",
+            difficulty = "Hard",
+            estimatedDuration = "Full Day",
+            habits = listOf(
+                DefaultHabit("Wake Up + Morning Routine", "06:00", 90, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 1),
+                DefaultHabit("Technical Learning (Career/Build)", "07:50", 60, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 2),
+                DefaultHabit("Deep Work Block (Professional)", "09:00", 240, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 3),
+                DefaultHabit("Lunch Break", "13:00", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 4),
+                DefaultHabit("Build Block — Project / Code", "21:00", 30, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 5),
+                DefaultHabit("Commit / Document Progress", "21:30", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 6),
+                DefaultHabit("Review Build Output of the Week (Sun)", "21:45", 15, TrackingMode.MANUAL, "1.0", listOf(6,7), true, 7),
+                DefaultHabit("Sleep", "22:30", 420, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 8),
+            )
+        ),
+
+        DefaultTemplate(
+            id = "arc_peace",
+            name = "🧘‍♂️ Peace Arc — Mental Space & Calm",
+            category = "Arc",
+            description = "Protect mental space and reduce unnecessary stress. Quiet time daily, phone-free walks, meaningful time with family/friends, organized workspace.",
+            difficulty = "Easy",
+            estimatedDuration = "Full Day",
+            habits = listOf(
+                DefaultHabit("Wake Up — Slow Start (No Urgency)", "06:00", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 1),
+                DefaultHabit("Meditation / Breathing (5–10 min)", "06:05", 10, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 2),
+                DefaultHabit("Organized Workspace Check", "07:30", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 3),
+                DefaultHabit("Phone-Free Lunch", "13:00", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 4),
+                DefaultHabit("Break / Walk Without Phone", "16:00", 15, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 5),
+                DefaultHabit("Decompression After Work", "19:00", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), false, 6),
+                DefaultHabit("Walk / Family / Personal Time", "20:30", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 7),
+                DefaultHabit("Quiet Evening (Low Stimulation)", "22:00", 15, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 8),
+                DefaultHabit("Sleep (Protect Recovery)", "22:30", 420, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 9),
+            )
+        ),
+
+        DefaultTemplate(
+            id = "arc_transformation",
+            name = "🔥 Transformation Arc — Full Life System",
+            category = "Arc",
+            description = "Combine the strongest elements of all 15 arcs into a sustainable lifestyle. Transformation is not a separate routine — it is the result of executing the other arcs consistently.",
+            difficulty = "Hard",
+            estimatedDuration = "Full Day",
+            habits = listOf(
+                DefaultHabit("Wake Up on Schedule", "05:30", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 1),
+                DefaultHabit("No Phone — Make Bed + Water", "05:32", 8, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 2),
+                DefaultHabit("Meditation / Breathing", "05:40", 20, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 3),
+                DefaultHabit("Workout (Never Skip)", "06:00", 45, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 4),
+                DefaultHabit("Shower + Grooming", "06:45", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 5),
+                DefaultHabit("Healthy Breakfast", "07:15", 20, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 6),
+                DefaultHabit("Top 3 Priorities + Daily Plan", "07:35", 15, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 7),
+                DefaultHabit("Deep Learning Session", "07:50", 60, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 8),
+                DefaultHabit("Professional Deep Work", "09:00", 240, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 9),
+                DefaultHabit("Healthy Lunch", "13:00", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 10),
+                DefaultHabit("Deep Work / Career Priorities", "13:30", 150, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), false, 11),
+                DefaultHabit("Movement Break", "16:00", 15, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 12),
+                DefaultHabit("Eat Reasonably Well (Dinner)", "20:00", 30, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 13),
+                DefaultHabit("Build — Side Project / Portfolio", "21:00", 30, TrackingMode.TIMER, "1.0", listOf(1,2,3,4,5,6,7), true, 14),
+                DefaultHabit("Track Money", "21:30", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 15),
+                DefaultHabit("Read (Knowledge Arc)", "21:45", 15, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 16),
+                DefaultHabit("Limit Distractions Check", "22:00", 5, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 17),
+                DefaultHabit("Reflect + Tomorrow Plan", "22:05", 10, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 18),
+                DefaultHabit("Sleep on Time", "22:30", 420, TrackingMode.MANUAL, "1.0", listOf(1,2,3,4,5,6,7), true, 19),
+            )
+        ),
+
         DefaultTemplate(
             id = "blank_custom_template",
             name = "Blank Custom Template",

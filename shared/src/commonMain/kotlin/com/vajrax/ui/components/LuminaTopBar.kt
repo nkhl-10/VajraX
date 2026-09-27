@@ -75,7 +75,7 @@ fun LuminaTopBar(
                             text = currTitle,
                             color = colors.onSurface,
                             fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.ExtraBold,  // Figma: ExtraBold 800 for headers
                             letterSpacing = (-0.3).sp
                         )
                         Text(

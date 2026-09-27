@@ -23,6 +23,7 @@ import com.vajrax.ui.features.grow.GrowViewModel
 import com.vajrax.ui.features.onboarding.OnboardingScreen
 import com.vajrax.ui.features.onboarding.OnboardingViewModel
 import com.vajrax.ui.features.path.PathScreen
+import com.vajrax.ui.features.discover.DiscoverScreen
 import com.vajrax.ui.features.path.PathViewModel
 import com.vajrax.ui.features.profile.ProfileScreen
 import com.vajrax.ui.features.today.TodayScreen
@@ -121,19 +122,7 @@ fun MainNavigation() {
                 )
             }
             composable("discover") {
-                val state by pathViewModel.uiState.collectAsState()
-                androidx.compose.runtime.LaunchedEffect(Unit) {
-                    pathViewModel.effect.collect { effect ->
-                        when (effect) {
-                            is com.vajrax.ui.features.path.PathEffect.NavigateToLearn -> navController.navigate("learn")
-                            is com.vajrax.ui.features.path.PathEffect.ShowMessage -> { }
-                        }
-                    }
-                }
-                PathScreen(
-                    state = state,
-                    onIntent = pathViewModel::sendIntent
-                )
+                DiscoverScreen()
             }
             composable("report") {
                 val state by growViewModel.uiState.collectAsState()

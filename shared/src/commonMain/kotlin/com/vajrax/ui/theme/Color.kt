@@ -46,24 +46,24 @@ data class LuminaColors(
 )
 
 // ==========================================
-// 1. LIGHT PALETTE (Clean Editorial Canvas)
+// 1. LIGHT PALETTE — Exact Figma Tokens
 // ==========================================
 val LuminaLightColors = LuminaColors(
-    background = Color(0xFFF7F8FA),
-    onBackground = Color(0xFF111827),
-    surface = Color(0xFFFFFFFF),
+    background = Color(0xFFF9FAFB),         // Figma bg: r=0.976, g=0.980, b=0.984
+    onBackground = Color(0xFF111827),        // Figma text primary: r=0.067, g=0.094, b=0.153
+    surface = Color(0xFFFFFFFF),             // Figma card surface: white
     onSurface = Color(0xFF111827),
-    surfaceDim = Color(0xFFF3F4F6),
+    surfaceDim = Color(0xFFF3F4F6),         // Figma pill/toggle bg: r=0.953, g=0.957, b=0.965
     surfaceBright = Color(0xFFFFFFFF),
     surfaceContainerLowest = Color(0xFFFFFFFF),
-    surfaceContainerLow = Color(0xFFF8F9FB),
-    surfaceContainer = Color(0xFFF1F3F7),
+    surfaceContainerLow = Color(0xFFF3F4F6), // Figma section bg
+    surfaceContainer = Color(0xFFEEF2FF),    // Figma primary container / tint
     surfaceContainerHigh = Color(0xFFE5E7EB),
     surfaceContainerHighest = Color(0xFFD1D5DB),
-    onSurfaceVariant = Color(0xFF6B7280),
-    primary = Color(0xFF4F46E5),            // Royal Indigo Accent matching reference
+    onSurfaceVariant = Color(0xFF9CA3AF),    // Figma text secondary: r=0.612, g=0.639, b=0.686
+    primary = Color(0xFF4F46E5),             // Figma indigo: r=0.310, g=0.275, b=0.898
     onPrimary = Color(0xFFFFFFFF),
-    primaryContainer = Color(0xFFEEF2FF),   // Soft Indigo Tint
+    primaryContainer = Color(0xFFEEF2FF),    // Soft indigo tint
     onPrimaryContainer = Color(0xFF4338CA),
     secondary = Color(0xFF6366F1),
     onSecondary = Color(0xFFFFFFFF),
@@ -72,11 +72,11 @@ val LuminaLightColors = LuminaColors(
     tertiary = Color(0xFF374151),
     onTertiary = Color(0xFFFFFFFF),
     outline = Color(0xFF9CA3AF),
-    outlineVariant = Color(0xFFE5E7EB),     // Crisp hairline border
+    outlineVariant = Color(0xFFE5E7EB),
     glassSurface = Color(0xFFFFFFFF),
     glassBorder = Color(0xFFE5E7EB),
-    floatingDock = Color(0xFFECEFF3),       // Rounded pill dock background
-    floatingDockBorder = Color(0xFFE2E8F0),
+    floatingDock = Color(0x33BEBEBE),        // Figma nav: rgba(0.749,0.749,0.749,0.20)
+    floatingDockBorder = Color(0x1ABEBEBE),
     statusSuccess = Color(0xFF16A34A),
     statusWarning = Color(0xFFD97706),
     statusError = Color(0xFFDC2626),

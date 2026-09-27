@@ -16,7 +16,11 @@ class DatabaseSeeder(
 
     fun seedInitialDataIfEmpty(todayDate: String = "2026-08-30") {
         val existingUser = queries.getCurrentUser().executeAsOneOrNull()
-        if (existingUser != null) return
+        if (existingUser != null) {
+            // User already exists — only seed any missing templates (new Arc templates)
+            seedMissingTemplates()
+            return
+        }
 
         database.transaction {
             // 1. Initial User Session (matching Figma profile)
@@ -408,6 +412,46 @@ class DatabaseSeeder(
                 isApplied = 0L,
                 createdAt = "${todayDate}T00:00:00Z"
             )
+        }
+    }
+
+    /**
+     * Seeds any templates from TemplateLibrary that don't yet exist in the database.
+     * Called on app launch for existing installs so newly added Arc templates appear.
+     */
+    private fun seedMissingTemplates() {
+        database.transaction {
+            com.vajrax.domain.template.TemplateLibrary.defaultTemplates.forEach { template ->
+                // Only insert if template doesn't already exist
+                val existing = queries.getTemplateById(template.id).executeAsOneOrNull()
+                if (existing == null) {
+                    queries.insertTemplate(
+                        id = template.id,
+                        title = template.name,
+                        description = template.description,
+                        taskCount = template.habits.size.toLong(),
+                        frequency = "Daily",
+                        author = "System",
+                        isCommunity = 0L,
+                        isBookmarked = 0L,
+                        isCustom = 0L
+                    )
+                    template.habits.forEachIndexed { index, habit ->
+                        queries.insertTemplateHabit(
+                            id = "${template.id}_habit_$index",
+                            templateId = template.id,
+                            name = habit.name,
+                            startTime = habit.startTime,
+                            durationMinutes = habit.duration.toLong(),
+                            trackingMode = habit.trackingType.name,
+                            target = habit.target,
+                            repeatDays = habit.repeatDays.joinToString(","),
+                            reminderEnabled = if (habit.reminderEnabled) 1L else 0L,
+                            sortOrder = habit.sortOrder.toLong()
+                        )
+                    }
+                }
+            }
         }
     }
 }

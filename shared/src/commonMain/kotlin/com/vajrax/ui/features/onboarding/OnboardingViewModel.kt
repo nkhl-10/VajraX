@@ -18,9 +18,14 @@ class OnboardingViewModel(
     private val practiceRepository: PracticeRepository
 ) : MviViewModel<OnboardingUiState, OnboardingIntent, OnboardingEffect>(OnboardingUiState()) {
 
+    init {
+        // Load templates eagerly — no extra tap needed
+        loadTemplates()
+    }
+
     override fun sendIntent(intent: OnboardingIntent) {
         when (intent) {
-            is OnboardingIntent.StartOnboarding -> loadTemplates()
+            is OnboardingIntent.StartOnboarding -> { /* no-op, already loading */ }
             is OnboardingIntent.SelectTemplate -> activateTemplate(intent.templateId)
             is OnboardingIntent.StartBlank -> activateTemplate("blank_custom_template")
         }
@@ -28,17 +33,11 @@ class OnboardingViewModel(
 
     private fun loadTemplates() {
         viewModelScope.launch(Dispatchers.IO) {
-            updateState { copy(step = OnboardingStep.CHOOSE_TEMPLATE, isLoading = true, error = null) }
+            updateState { copy(isLoading = true, error = null) }
             try {
                 val allTemplates = templateRepository.getAllTemplates()
                 val provided = allTemplates.filter { it.category != "Custom" && it.id != "blank_custom_template" }
-                
-                updateState {
-                    copy(
-                        isLoading = false,
-                        templates = provided
-                    )
-                }
+                updateState { copy(isLoading = false, templates = provided) }
             } catch (e: Exception) {
                 updateState { copy(isLoading = false, error = e.message) }
             }

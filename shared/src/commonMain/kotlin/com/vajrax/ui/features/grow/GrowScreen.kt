@@ -52,40 +52,20 @@ fun GrowScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // ==========================================
-        // 1. HEADER (Title + Review Button + Segmented Pill Selector)
+        // 1. HEADER (Title + Segmented Pill Selector) — matches reference
         // ==========================================
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text(
-                    text = "Report",
-                    color = colors.onSurface,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-0.6).sp
-                )
-
-                // Review Button
-                Box(
-                    modifier = Modifier
-                        .height(32.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(colors.primaryContainer)
-                        .clickable { onIntent(GrowIntent.OpenReview) }
-                        .padding(horizontal = 12.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Weekly Review",
-                        color = colors.primary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
+            Text(
+                text = "Report",
+                color = colors.onSurface,
+                fontSize = 28.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = (-0.5).sp
+            )
 
             // Segmented Pill: [This Week] [This Month]
             Box(
@@ -231,10 +211,11 @@ fun GrowScreen(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Bottom note
+                // Bottom note — wraps on narrow screens instead of overflowing
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Box(
                         modifier = Modifier
@@ -243,20 +224,11 @@ fun GrowScreen(
                             .background(Color(0xFFEEF2FF))
                     )
                     Text(
-                        text = "You achieved ",
+                        text = "You achieved 6 more tasks compared to last week.",
                         color = Color(0xFF64748B),
-                        fontSize = 13.sp
-                    )
-                    Text(
-                        text = "6 more tasks",
-                        color = colors.primary,
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = " compared to last week.",
-                        color = Color(0xFF64748B),
-                        fontSize = 13.sp
+                        lineHeight = 18.sp,
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
@@ -466,7 +438,38 @@ fun GrowScreen(
         Spacer(modifier = Modifier.height(28.dp))
 
         // ==========================================
-        // 5. YOUR PRINCIPLES SECTION
+        // 5. MOST CONSISTENT — matches reference bottom card
+        // ==========================================
+        Text(
+            text = "MOST CONSISTENT",
+            color = Color(0xFF8B95A5),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold,
+            letterSpacing = 0.8.sp
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(22.dp))
+                .background(colors.surface)
+                .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(22.dp))
+                .padding(horizontal = 18.dp, vertical = 16.dp)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                MostConsistentRow(name = "Daily Review", percent = 95)
+                HorizontalDivider(color = colors.outlineVariant.copy(alpha = 0.4f), thickness = 0.5.dp)
+                MostConsistentRow(name = "Deep Work", percent = 89)
+                HorizontalDivider(color = colors.outlineVariant.copy(alpha = 0.4f), thickness = 0.5.dp)
+                MostConsistentRow(name = "Lunch Walk", percent = 82)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(28.dp))
+
+        // ==========================================
+        // 6. YOUR PRINCIPLES SECTION
         // ==========================================
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -682,8 +685,8 @@ fun GrowScreen(
             }
         }
 
-        // Safe clearance for bottom navigation dock
-        Spacer(modifier = Modifier.navigationBarsPadding().height(96.dp))
+        // Safe clearance for floating pill nav — 110dp so content never hides behind it
+        Spacer(modifier = Modifier.navigationBarsPadding().height(110.dp))
     }
 
     // ==========================================
@@ -845,6 +848,47 @@ fun GrowScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun MostConsistentRow(name: String, percent: Int) {
+    val colors = LuminaTheme.colors
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = name,
+                color = colors.onSurface,
+                fontSize = 14.5.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = "$percent%",
+                color = colors.onSurface,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp)
+                .clip(RoundedCornerShape(3.dp))
+                .background(Color(0xFFEEF2FF))
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(percent / 100f)
+                    .fillMaxHeight()
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(colors.primary)
+            )
         }
     }
 }

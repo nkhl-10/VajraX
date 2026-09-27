@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -26,16 +27,17 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vajrax.ui.theme.LuminaTheme
 
 /**
- * Human-Crafted Calendar / Task Matrix Screen for Lumina Life OS.
- * Faithfully matches the reference design with split view:
- * Left side: Tasks list with rounded icon containers & time ranges
- * Right side: Wed, 21 Jan header, 5 synchronized day columns, and aligned check circles.
+ * Calendar Screen — matches reference image 2.
+ * Header: "Calendar" + Week/Month segmented pill.
+ * Single white card: "30-Day Challenge" + day tabs (19-23, 21 selected)
+ * + task rows with icon box + 5 check circles each.
  */
 @Composable
 fun CalendarScreen(
@@ -43,228 +45,266 @@ fun CalendarScreen(
     onIntent: (CalendarIntent) -> Unit
 ) {
     val colors = LuminaTheme.colors
+    val scroll = rememberScrollState()
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(colors.background)
             .statusBarsPadding()
-            .padding(horizontal = 16.dp)
-            .verticalScroll(rememberScrollState())
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
-        // ==========================================
-        // TOP HEADER: "Tasks" on Left | "Wed, 21 Jan" + Days on Right
-        // ==========================================
+        // ── Header: Calendar + Week/Month pill ──
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left: "Tasks" Header
             Text(
-                text = "Tasks",
+                text = "Calendar",
                 color = colors.onSurface,
                 fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = (-0.5).sp,
-                modifier = Modifier
-                    .weight(1.1f)
-                    .padding(start = 4.dp, top = 4.dp)
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = (-0.5).sp
             )
-
-            // Right: Date & 5-Day Columns Header
-            Column(
-                modifier = Modifier.weight(1f)
+            // Segmented: Week (selected white) | Month (gray)
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(colors.surfaceContainerLow)
+                    .padding(4.dp)
             ) {
-                Text(
-                    text = state.selectedDateText,
-                    color = colors.onSurface,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 4.dp)
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(colors.surface)
+                            .padding(horizontal = 16.dp, vertical = 7.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Week",
+                            color = colors.onSurface,
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 16.dp, vertical = 7.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Month",
+                            color = colors.onSurfaceVariant,
+                            fontSize = 12.5.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
+        }
 
-                Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-                // 5 Days Header Row (19 Mon, 20 Tue, 21 Wed [Active], 22 Thu, 23 Fri)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    state.days.forEach { day ->
-                        val isSelected = day.index == state.selectedDayOfWeek
-                        val isCurrent = day.index == state.currentDayOfWeek
-
-                        Box(
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .verticalScroll(scroll)
+                .padding(horizontal = 16.dp)
+        ) {
+            // ── Main white card ──
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(22.dp))
+                    .background(colors.surface)
+                    .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(22.dp))
+                    .padding(vertical = 18.dp)
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    // Card header: 30-Day Challenge + day tabs
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 18.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
+                    ) {
+                        Text(
+                            text = "30-Day Challenge",
+                            color = colors.onSurface,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = (-0.2).sp,
                             modifier = Modifier
                                 .weight(1f)
-                                .then(
-                                    if (isCurrent) {
-                                        Modifier.clickable(
+                                .padding(top = 6.dp)
+                        )
+                        // Day tabs 19-23
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            state.days.forEach { day ->
+                                val isSelected = day.index == state.selectedDayOfWeek
+                                val isClickable = day.index == state.currentDayOfWeek
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier
+                                        .width(36.dp)
+                                        .clickable(
                                             interactionSource = remember { MutableInteractionSource() },
                                             indication = null
-                                        ) { onIntent(CalendarIntent.SelectDay(day.index)) }
-                                    } else Modifier
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                if (isSelected) {
-                                    // Highlighted Circle for Active Day (e.g. 21 Wed)
-                                    Box(
-                                        modifier = Modifier
-                                            .size(24.dp)
-                                            .clip(CircleShape)
-                                            .background(colors.primary),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "${day.dateNumber}",
-                                            color = Color.White,
-                                            fontSize = 11.5.sp,
-                                            fontWeight = FontWeight.Bold
-                                        )
+                                        ) {
+                                            if (isClickable) onIntent(CalendarIntent.SelectDay(day.index))
+                                        }
+                                ) {
+                                    if (isSelected) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(30.dp)
+                                                .clip(CircleShape)
+                                                .background(colors.primary),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "${day.dateNumber}",
+                                                color = Color.White,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    } else {
+                                        Box(
+                                            modifier = Modifier.size(30.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = "${day.dateNumber}",
+                                                color = colors.onSurfaceVariant,
+                                                fontSize = 13.sp,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        }
                                     }
                                     Spacer(modifier = Modifier.height(2.dp))
                                     Text(
                                         text = day.dayName,
-                                        color = colors.primary,
+                                        color = if (isSelected) colors.primary else colors.outline,
                                         fontSize = 10.5.sp,
-                                        fontWeight = FontWeight.Bold
-                                    )
-                                } else {
-                                    Text(
-                                        text = "${day.dateNumber}",
-                                        color = colors.onSurfaceVariant,
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = day.dayName,
-                                        color = colors.outline,
-                                        fontSize = 10.5.sp,
-                                        fontWeight = FontWeight.Normal
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                     )
                                 }
                             }
                         }
                     }
-                }
-            }
-        }
 
-        Spacer(modifier = Modifier.height(18.dp))
+                    Spacer(modifier = Modifier.height(14.dp))
+                    HorizontalDivider(
+                        color = colors.outlineVariant.copy(alpha = 0.6f),
+                        thickness = 0.75.dp,
+                        modifier = Modifier.padding(horizontal = 18.dp)
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
 
-        // ==========================================
-        // MAIN BODY: SPLIT VIEW WITH VERTICAL DIVIDER
-        // ==========================================
-        state.tasks.forEachIndexed { index, task ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(60.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Left Column: Task Icon + Title + Time
-                Row(
-                    modifier = Modifier
-                        .weight(1.1f)
-                        .fillMaxHeight()
-                        .padding(end = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    // Tinted Rounded Square Icon Container
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(colors.primaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        TaskIconVector(taskId = task.id, tint = colors.primary)
-                    }
-
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = task.title,
-                            color = colors.onSurface,
-                            fontSize = 13.5.sp,
-                            fontWeight = FontWeight.Bold,
-                            maxLines = 1
-                        )
-                        Spacer(modifier = Modifier.height(1.dp))
-                        Text(
-                            text = task.timeSubtitle,
-                            color = colors.onSurfaceVariant,
-                            fontSize = 11.sp,
-                            maxLines = 1
+                    // ── Task rows ──
+                    state.tasks.forEach { task ->
+                        CalendarTaskRow(
+                            task = task,
+                            selectedDay = state.selectedDayOfWeek,
+                            currentDay = state.currentDayOfWeek,
+                            onToggle = { dayIdx -> onIntent(CalendarIntent.ToggleTaskDay(task.id, dayIdx)) }
                         )
                     }
-                }
 
-                // Center Vertical Hairline Divider
-                Box(
-                    modifier = Modifier
-                        .width(0.6.dp)
-                        .fillMaxHeight()
-                        .background(colors.outlineVariant.copy(alpha = 0.7f))
-                )
-
-                // Right Column: 5 Aligned Check Circles
-                val daysCompleted = listOf(
-                    task.mondayCompleted,
-                    task.tuesdayCompleted,
-                    task.wednesdayCompleted,
-                    task.thursdayCompleted,
-                    task.fridayCompleted
-                )
-
-                Row(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .padding(start = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    daysCompleted.forEachIndexed { dayIdx, isCompleted ->
-                        val isActiveDay = dayIdx == state.selectedDayOfWeek
-                        val isCurrentDay = dayIdx == state.currentDayOfWeek
-
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            HabitCheckCircle(
-                                isCompleted = isCompleted,
-                                isActiveDay = isActiveDay,
-                                isEditable = isCurrentDay,
-                                onClick = { 
-                                    if (isCurrentDay) {
-                                        onIntent(CalendarIntent.ToggleTaskDay(task.id, dayIdx)) 
-                                    }
-                                }
-                            )
-                        }
-                    }
+                    Spacer(modifier = Modifier.height(6.dp))
                 }
             }
-        }
 
-        // Safe clearance for bottom navigation bar
-        Spacer(modifier = Modifier.navigationBarsPadding().height(96.dp))
+            // Clearance for floating nav
+            Spacer(modifier = Modifier.navigationBarsPadding().height(110.dp))
+        }
+    }
+}
+
+@Composable
+private fun CalendarTaskRow(
+    task: CalendarMatrixRow,
+    selectedDay: Int,
+    currentDay: Int,
+    onToggle: (Int) -> Unit
+) {
+    val colors = LuminaTheme.colors
+    val daysCompleted = listOf(
+        task.mondayCompleted,
+        task.tuesdayCompleted,
+        task.wednesdayCompleted,
+        task.thursdayCompleted,
+        task.fridayCompleted
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Icon box
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(colors.primaryContainer.copy(alpha = 0.6f)),
+            contentAlignment = Alignment.Center
+        ) {
+            TaskIconVector(taskId = task.id, tint = colors.primary)
+        }
+        Spacer(modifier = Modifier.width(10.dp))
+        // Title + time — fixed width column so 5 circles always fit
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = task.title,
+                color = colors.onSurface,
+                fontSize = 13.5.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                softWrap = false
+            )
+            Spacer(modifier = Modifier.height(1.dp))
+            Text(
+                text = task.timeSubtitle,
+                color = colors.onSurfaceVariant,
+                fontSize = 11.sp,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                softWrap = false
+            )
+        }
+        Spacer(modifier = Modifier.width(6.dp))
+        // 5 circles
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(7.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            daysCompleted.forEachIndexed { dayIdx, isCompleted ->
+                val isActiveDay = dayIdx == selectedDay
+                val isEditable = dayIdx == currentDay
+                HabitCheckCircle(
+                    isCompleted = isCompleted,
+                    isActiveDay = isActiveDay,
+                    isEditable = isEditable,
+                    onClick = { if (isEditable) onToggle(dayIdx) }
+                )
+            }
+        }
     }
 }
 
@@ -440,5 +480,3 @@ private fun TaskIconVector(
         }
     }
 }
-
-

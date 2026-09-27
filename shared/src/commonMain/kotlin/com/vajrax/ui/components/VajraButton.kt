@@ -10,12 +10,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.vajrax.ui.theme.BackgroundObsidian
-import com.vajrax.ui.theme.VajraGold
 
 /**
- * Reusable Primary Action Button
- * Implements "Soft Neumorphism" and strict Vajra Gold styling.
+ * Reusable Primary Action Button — Exact Figma match.
+ * Uses indigo primary color #4F46E5, white text, rounded corners.
  */
 @Composable
 fun VajraButton(
@@ -24,27 +22,28 @@ fun VajraButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
+    val colors = com.vajrax.ui.theme.LuminaTheme.colors
+
     Button(
         onClick = onClick,
         modifier = modifier,
         enabled = enabled,
-        shape = RoundedCornerShape(14.dp), // Soft corners as per design.md
+        shape = RoundedCornerShape(14.dp),
         colors = ButtonDefaults.buttonColors(
-            containerColor = VajraGold,
-            contentColor = BackgroundObsidian
+            containerColor = colors.primary,       // Figma: #4F46E5 indigo
+            contentColor = colors.onPrimary        // Figma: white
         ),
-        // A soft elevation provides the subtle neumorphic depth
         elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 2.dp,
+            defaultElevation = 0.dp,
             pressedElevation = 0.dp
         ),
         contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
     ) {
         Text(
-            text = text.uppercase(),
+            text = text,
             fontWeight = FontWeight.Bold,
-            fontSize = 15.sp,
-            letterSpacing = 1.sp
+            fontSize = 14.sp,
+            letterSpacing = 0.sp
         )
     }
 }

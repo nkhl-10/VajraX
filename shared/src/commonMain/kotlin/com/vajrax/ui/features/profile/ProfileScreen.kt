@@ -18,7 +18,6 @@ import com.vajrax.ui.utils.gyroShadowCard
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.vajrax.ui.theme.LocalThemeModeController
@@ -50,7 +49,7 @@ fun ProfileScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         // ==========================================
-        // 1. HEADER
+        // 1. HEADER — Figma: Inter ExtraBold 800, 28sp, color #111827
         // ==========================================
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -60,9 +59,9 @@ fun ProfileScreen(
             Text(
                 text = "Profile",
                 color = colors.onSurface,
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = (-0.6).sp
+                fontSize = 28.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = (-0.5).sp
             )
 
             // Cloud Sync Indicator / Button
@@ -98,16 +97,16 @@ fun ProfileScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         // ==========================================
-        // 2. USER PROFILE HERO (Centered)
+        // 2. USER PROFILE HERO (Left-aligned — matches reference)
         // ==========================================
-        Column(
+        Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
+            verticalAlignment = Alignment.CenterVertically
         ) {
             // JD Avatar Circle
             Box(
                 modifier = Modifier
-                    .size(76.dp)
+                    .size(64.dp)
                     .clip(CircleShape)
                     .background(colors.primary),
                 contentAlignment = Alignment.Center
@@ -115,41 +114,50 @@ fun ProfileScreen(
                 Text(
                     text = state.avatarInitials,
                     color = Color.White,
-                    fontSize = 24.sp,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.width(14.dp))
 
-            Text(
-                text = state.displayName,
-                color = colors.onSurface,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = (-0.3).sp
-            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = state.displayName,
+                    color = colors.onSurface,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = (-0.3).sp
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = state.email,
+                    color = Color(0xFF64748B),
+                    fontSize = 13.5.sp
+                )
+            }
+        }
 
-            Spacer(modifier = Modifier.height(3.dp))
+        Spacer(modifier = Modifier.height(14.dp))
 
-            Text(
-                text = state.email,
-                color = Color(0xFF64748B),
-                fontSize = 13.5.sp
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
+        // Outlined "Edit Profile" button — matches reference
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(44.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .border(1.25.dp, colors.primary, RoundedCornerShape(12.dp))
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null
+                ) { /* Edit profile */ },
+            contentAlignment = Alignment.Center
+        ) {
             Text(
                 text = "Edit Profile",
                 color = colors.primary,
-                fontSize = 13.5.sp,
-                fontWeight = FontWeight.SemiBold,
-                textDecoration = TextDecoration.Underline,
-                modifier = Modifier.clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) { /* Edit profile */ }
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold
             )
         }
 
@@ -412,15 +420,31 @@ fun ProfileScreen(
                 }
                 HorizontalDivider(color = colors.outlineVariant.copy(alpha = 0.5f), thickness = 0.5.dp)
 
-                ProfileChevronRow(
-                    title = "Account Settings",
-                    onClick = {}
-                )
+                // Language row — matches reference bottom
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 18.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Language",
+                        color = colors.onSurface,
+                        fontSize = 14.5.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = "English  ›",
+                        color = colors.onSurfaceVariant,
+                        fontSize = 13.5.sp
+                    )
+                }
             }
         }
 
         // Safe clearance for bottom navigation dock
-        Spacer(modifier = Modifier.navigationBarsPadding().height(96.dp))
+        Spacer(modifier = Modifier.navigationBarsPadding().height(110.dp))
     }
 }
 
