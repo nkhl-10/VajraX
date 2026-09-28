@@ -1,413 +1,334 @@
 package com.vajrax.ui.features.onboarding
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.vajrax.domain.template.DefaultTemplate
+import com.vajrax.domain.template.TemplateCatalog
+import com.vajrax.platform.LocalPlatformActions
+import com.vajrax.ui.designsystem.*
+import com.vajrax.ui.features.templates.BottomBar
+import com.vajrax.ui.features.templates.TemplateCard
 import com.vajrax.ui.theme.LuminaTheme
+import com.vajrax.ui.theme.VxShape
+import com.vajrax.ui.theme.VxSpace
 
-/**
- * Onboarding Screen — first-launch template selection.
- * Goes directly to template selection (no welcome tap needed).
- * Templates load eagerly from ViewModel init.
- */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun OnboardingScreen(
     state: OnboardingUiState,
-    onIntent: (OnboardingIntent) -> Unit
+    recommended: List<com.vajrax.domain.template.DefaultTemplate>,
+    onIntent: (OnboardingIntent) -> Unit,
+    onOpenTemplate: (String) -> Unit,
+    onUseTemplate: (String) -> Unit
 ) {
     val colors = LuminaTheme.colors
+    val platform = LocalPlatformActions.current
+    var pickWake by remember { mutableStateOf(false) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.background)
-            .statusBarsPadding()
-            .navigationBarsPadding()
-    ) {
-        if (state.isLoading) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    CircularProgressIndicator(
-                        color = colors.primary,
-                        strokeWidth = 2.5.dp,
-                        modifier = Modifier.size(36.dp)
-                    )
-                    Text(
-                        text = "Loading templates...",
-                        color = colors.onSurfaceVariant,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-            }
-        } else {
-            TemplateSelectionContent(
-                templates = state.templates,
-                error = state.error,
-                onSelect = { onIntent(OnboardingIntent.SelectTemplate(it)) },
-                onStartBlank = { onIntent(OnboardingIntent.StartBlank) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun TemplateSelectionContent(
-    templates: List<DefaultTemplate>,
-    error: String?,
-    onSelect: (String) -> Unit,
-    onStartBlank: () -> Unit
-) {
-    val colors = LuminaTheme.colors
-    // Group into General and Arc tabs
-    val tabs = listOf("All", "Arc", "General")
-    var selectedTab by remember { mutableStateOf("All") }
-
-    val displayed = when (selectedTab) {
-        "Arc" -> templates.filter { it.category == "Arc" }
-        "General" -> templates.filter { it.category == "General" }
-        else -> templates
-    }
-
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 20.dp),
-        contentPadding = PaddingValues(bottom = 40.dp)
-    ) {
-        // ==========================================
-        // HEADER
-        // ==========================================
-        item {
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Brand mark
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(14.dp))
-                    .background(colors.primary),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = "⚡", fontSize = 22.sp)
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text(
-                text = "Choose your template",
-                color = colors.onSurface,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = (-0.5).sp
-            )
-
-            Spacer(modifier = Modifier.height(6.dp))
-
-            Text(
-                text = "Pick a ready-made routine or build your own from scratch.",
-                color = colors.onSurfaceVariant,
-                fontSize = 14.sp,
-                lineHeight = 20.sp
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Error banner
-            if (error != null) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(Color(0xFFFEF2F2))
-                        .border(1.dp, Color(0xFFFCA5A5), RoundedCornerShape(12.dp))
-                        .padding(14.dp)
-                ) {
-                    Text("Could not load templates. $error", color = Color(0xFFDC2626), fontSize = 13.sp)
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-
-            // ==========================================
-            // CATEGORY TABS
-            // ==========================================
+    Column(Modifier.fillMaxSize().background(colors.background).statusBarsPadding()) {
+        if (state.step != OnboardingStep.WELCOME) {
             Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(Color(0xFFF3F4F6))
-                    .padding(4.dp),
-                horizontalArrangement = Arrangement.spacedBy(0.dp)
+                Modifier.fillMaxWidth().padding(horizontal = VxSpace.md, vertical = VxSpace.sm),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                tabs.forEach { tab ->
-                    val isActive = selectedTab == tab
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(if (isActive) colors.surface else Color.Transparent)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) { selectedTab = tab }
-                            .padding(horizontal = 16.dp, vertical = 7.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = tab,
-                            color = if (isActive) colors.onSurface else colors.onSurfaceVariant,
-                            fontSize = 13.sp,
-                            fontWeight = if (isActive) FontWeight.Bold else FontWeight.Medium
-                        )
-                    }
+                RoundIconButton(VxIcons.ArrowLeft, "Back", onClick = { onIntent(OnboardingIntent.Back) })
+                Spacer(Modifier.weight(1f))
+                StepDots(current = state.stepIndex, total = OnboardingStep.entries.size)
+                Spacer(Modifier.weight(1f))
+                if (state.step == OnboardingStep.ROUTINE) {
+                    TextButton(onClick = { onIntent(OnboardingIntent.SkipPreferences) }) { Text("Skip") }
+                } else {
+                    Spacer(Modifier.width(48.dp))
                 }
             }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text(
-                text = if (selectedTab == "Arc") "15-ARC TEMPLATES" else "TEMPLATES",
-                color = Color(0xFF9CA3AF),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.8.sp
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
         }
 
-        // ==========================================
-        // TEMPLATE CARDS
-        // ==========================================
-        items(displayed, key = { it.id }) { template ->
-            OnboardingTemplateCard(template = template, onSelect = { onSelect(template.id) })
-            Spacer(modifier = Modifier.height(12.dp))
+        AnimatedContent(
+            targetState = state.step,
+            transitionSpec = {
+                val forward = targetState.ordinal > initialState.ordinal
+                (slideInHorizontally(tween(260)) { if (forward) it / 4 else -it / 4 } + fadeIn(tween(260))) togetherWith
+                    (slideOutHorizontally(tween(180)) { if (forward) -it / 4 else it / 4 } + fadeOut(tween(180)))
+            },
+            modifier = Modifier.weight(1f),
+            label = "onboarding"
+        ) { step ->
+            when (step) {
+                OnboardingStep.WELCOME -> WelcomeStep(onStart = { onIntent(OnboardingIntent.Next) })
+                OnboardingStep.ABOUT -> AboutStep(state, onIntent)
+                OnboardingStep.ROUTINE -> RoutineStep(state, onIntent, onPickWake = { pickWake = true }, onContinue = {
+                    if (state.reminderStyle != ReminderStyle.OFF && !platform.notificationsPermitted()) {
+                        platform.requestNotificationPermission { granted ->
+                            if (!granted) onIntent(OnboardingIntent.SetReminderStyle(ReminderStyle.OFF))
+                            onIntent(OnboardingIntent.Next)
+                        }
+                    } else {
+                        onIntent(OnboardingIntent.Next)
+                    }
+                })
+                OnboardingStep.TEMPLATE -> TemplateStep(state, recommended, onIntent, onOpenTemplate, onUseTemplate)
+            }
         }
+    }
 
-        // ==========================================
-        // START FROM SCRATCH
-        // ==========================================
-        item {
-            Spacer(modifier = Modifier.height(8.dp))
+    if (pickWake) {
+        TimePickerDialog(state.wakeTime, title = "Wake-up time", onDismiss = { pickWake = false }, onConfirm = {
+            onIntent(OnboardingIntent.SetWakeTime(it))
+            pickWake = false
+        })
+    }
+}
 
-            Text(
-                text = "OR",
-                color = Color(0xFF9CA3AF),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = 0.8.sp
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
+@Composable
+private fun StepDots(current: Int, total: Int) {
+    val colors = LuminaTheme.colors
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier.semantics { contentDescription = "Step ${current + 1} of $total" }
+    ) {
+        repeat(total) { i ->
             Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(colors.surface)
-                    .border(1.5.dp, colors.outlineVariant, RoundedCornerShape(16.dp))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onStartBlank
-                    )
-                    .padding(18.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(44.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(Color(0xFFF3F4F6)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = "+", color = colors.onSurface, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                    }
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text("Start from scratch", color = colors.onSurface, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text("Build your own custom daily routine", color = colors.onSurfaceVariant, fontSize = 12.sp)
-                    }
-                    Text("›", color = colors.onSurfaceVariant, fontSize = 20.sp)
-                }
-            }
+                Modifier.height(6.dp).width(if (i == current) 22.dp else 6.dp).clip(VxShape.pill)
+                    .background(if (i <= current) colors.primary else colors.surfaceContainerHigh)
+            )
         }
     }
 }
 
 @Composable
-private fun OnboardingTemplateCard(
-    template: DefaultTemplate,
-    onSelect: () -> Unit
+private fun WelcomeStep(onStart: () -> Unit) {
+    val colors = LuminaTheme.colors
+    Column(Modifier.fillMaxSize()) {
+        Column(
+            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = VxSpace.xxl),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Spacer(Modifier.height(VxSpace.xxxl))
+            VajraMark(size = 64.dp)
+            Spacer(Modifier.height(VxSpace.xxl))
+            Text("Choose the life you want to build.", style = MaterialTheme.typography.displaySmall, color = colors.onSurface)
+            Spacer(Modifier.height(VxSpace.md))
+            Text(
+                "VAJRAX turns it into today's actions — small steps, tracked honestly.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = colors.onSurfaceVariant
+            )
+            Spacer(Modifier.height(VxSpace.xxxl))
+            ValueRow(VxIcons.ListChecks, "Start from a ready-made template", "Morning, fitness, study, focus and more — then make it yours.")
+            ValueRow(VxIcons.Check, "Check in with one tap", "Works fully offline. Missed a day? Nothing resets.")
+            ValueRow(VxIcons.Chart, "See real progress", "Weekly and monthly reports built only from what you recorded.")
+        }
+        BottomBar { PrimaryButton("Get started", onStart, Modifier.fillMaxWidth()) }
+    }
+}
+
+@Composable
+private fun ValueRow(icon: ImageVector, title: String, body: String) {
+    val colors = LuminaTheme.colors
+    Row(Modifier.fillMaxWidth().padding(vertical = VxSpace.sm), verticalAlignment = Alignment.Top) {
+        IconBadge(icon, colors.primary, size = 40.dp, iconSize = 20.dp)
+        Spacer(Modifier.width(VxSpace.lg))
+        Column {
+            Text(title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = colors.onSurface)
+            Text(body, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AboutStep(state: OnboardingUiState, onIntent: (OnboardingIntent) -> Unit) {
+    val colors = LuminaTheme.colors
+    Column(Modifier.fillMaxSize()) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = VxSpace.xxl, vertical = VxSpace.lg)) {
+            Text("Let's set you up", style = MaterialTheme.typography.headlineMedium, color = colors.onSurface)
+            Spacer(Modifier.height(VxSpace.xs))
+            Text("Two quick questions. Everything stays on this device.", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+            Spacer(Modifier.height(VxSpace.xxl))
+            VxTextField(
+                label = "What should we call you?",
+                value = state.name,
+                onValueChange = { onIntent(OnboardingIntent.SetName(it)) },
+                placeholder = "Your name (optional)",
+                maxChars = 40
+            )
+            Spacer(Modifier.height(VxSpace.xxl))
+            Text("What do you want to improve?", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+            Text("Pick up to 3 — we'll recommend templates.", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            Spacer(Modifier.height(VxSpace.md))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(VxSpace.sm), verticalArrangement = Arrangement.spacedBy(VxSpace.sm)) {
+                TemplateCatalog.goalToCategories.keys.forEach { goal ->
+                    CategoryChip(goal, goal in state.goals, onClick = { onIntent(OnboardingIntent.ToggleGoal(goal)) })
+                }
+            }
+        }
+        BottomBar { PrimaryButton("Continue", { onIntent(OnboardingIntent.Next) }, Modifier.fillMaxWidth()) }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun RoutineStep(state: OnboardingUiState, onIntent: (OnboardingIntent) -> Unit, onPickWake: () -> Unit, onContinue: () -> Unit) {
+    val colors = LuminaTheme.colors
+    Column(Modifier.fillMaxSize()) {
+        Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = VxSpace.xxl, vertical = VxSpace.lg)) {
+            Text("Your day", style = MaterialTheme.typography.headlineMedium, color = colors.onSurface)
+            Spacer(Modifier.height(VxSpace.xs))
+            Text("We'll suggest times around your morning. You can change every habit later.", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+            Spacer(Modifier.height(VxSpace.xxl))
+            TimeField("Wake-up time", state.wakeTime, onPick = onPickWake)
+            Spacer(Modifier.height(VxSpace.xxl))
+            Text("Time available in the morning", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+            Spacer(Modifier.height(VxSpace.md))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(VxSpace.sm), verticalArrangement = Arrangement.spacedBy(VxSpace.sm)) {
+                listOf(15, 30, 60, 90).forEach { m ->
+                    CategoryChip(if (m == 90) "90+ min" else "$m min", state.morningMinutes == m, onClick = { onIntent(OnboardingIntent.SetMorningMinutes(m)) })
+                }
+            }
+            Spacer(Modifier.height(VxSpace.xxl))
+            Text("Reminders", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+            Spacer(Modifier.height(VxSpace.md))
+            ReminderStyle.entries.forEach { style ->
+                val selected = state.reminderStyle == style
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(VxShape.medium)
+                        .background(if (selected) colors.primaryContainer else colors.surface)
+                        .border(if (selected) 1.5.dp else 1.dp, if (selected) colors.primary else colors.outlineVariant, VxShape.medium)
+                        .selectable(selected, role = Role.RadioButton) { onIntent(OnboardingIntent.SetReminderStyle(style)) }
+                        .padding(VxSpace.lg),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        if (style == ReminderStyle.OFF) VxIcons.Moon else VxIcons.Bell, null,
+                        tint = if (selected) colors.primary else colors.onSurfaceVariant, modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(Modifier.width(VxSpace.md))
+                    Column(Modifier.weight(1f)) {
+                        Text(style.label, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = colors.onSurface)
+                        Text(style.description, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                    }
+                    if (selected) Icon(VxIcons.Check, null, tint = colors.primary, modifier = Modifier.size(18.dp))
+                }
+            }
+        }
+        BottomBar { PrimaryButton("Continue", onContinue, Modifier.fillMaxWidth()) }
+    }
+}
+
+@Composable
+private fun TemplateStep(
+    state: OnboardingUiState,
+    recommended: List<com.vajrax.domain.template.DefaultTemplate>,
+    onIntent: (OnboardingIntent) -> Unit,
+    onOpenTemplate: (String) -> Unit,
+    onUseTemplate: (String) -> Unit
 ) {
     val colors = LuminaTheme.colors
-
-    // Per-template accent color
-    val accentColors = listOf(
-        Color(0xFF4F46E5), Color(0xFF0EA5E9), Color(0xFF10B981), Color(0xFFF59E0B),
-        Color(0xFFEF4444), Color(0xFF8B5CF6), Color(0xFF06B6D4), Color(0xFFEC4899),
-        Color(0xFF84CC16), Color(0xFFF97316), Color(0xFF6366F1), Color(0xFF14B8A6),
-        Color(0xFFD946EF), Color(0xFF64748B), Color(0xFF0F766E), Color(0xFFB45309)
-    )
-    val accentIdx = template.id.hashCode().mod(accentColors.size).let { if (it < 0) it + accentColors.size else it }
-    val accent = accentColors[accentIdx]
-
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(colors.surface)
-            .border(1.dp, colors.outlineVariant, RoundedCornerShape(16.dp))
-            .padding(16.dp)
+    if (state.isLoading) {
+        LoadingSkeleton(Modifier.padding(VxSpace.gutter))
+        return
+    }
+    if (state.error != null && state.templates.isEmpty()) {
+        ErrorState(state.error, onRetry = { onIntent(OnboardingIntent.Restart) })
+        return
+    }
+    val filtering = state.category != null || state.query.isNotBlank()
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = VxSpace.gutter, end = VxSpace.gutter, bottom = VxSpace.xxxl + 48.dp)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            // Emoji icon box
-            Box(
-                modifier = Modifier
-                    .size(46.dp)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(accent.copy(alpha = 0.12f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = templateEmoji(template.id), fontSize = 20.sp)
-            }
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = template.name,
-                    color = colors.onSurface,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-0.2).sp
-                )
-
-                Spacer(modifier = Modifier.height(3.dp))
-
-                Text(
-                    text = template.description,
-                    color = colors.onSurfaceVariant,
-                    fontSize = 12.sp,
-                    lineHeight = 16.sp
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                // Badges
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    TemplateBadge(
-                        text = "${template.habits.size} habits",
-                        bgColor = Color(0xFFF3F4F6),
-                        textColor = colors.onSurfaceVariant
-                    )
-                    TemplateBadge(
-                        text = template.difficulty,
-                        bgColor = Color(0xFFF3F4F6),
-                        textColor = colors.onSurfaceVariant
-                    )
-                    if (template.category == "Arc") {
-                        TemplateBadge(
-                            text = "Arc",
-                            bgColor = accent.copy(alpha = 0.1f),
-                            textColor = accent
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Use this template button
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(40.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(accent)
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onSelect
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Use this template",
-                        color = Color.White,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+        item {
+            Spacer(Modifier.height(VxSpace.sm))
+            Text("Choose your tracker", style = MaterialTheme.typography.headlineMedium, color = colors.onSurface)
+            Spacer(Modifier.height(VxSpace.xs))
+            Text(
+                "Select a starting point. You can customize the habits before activating.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurfaceVariant
+            )
+            Spacer(Modifier.height(VxSpace.lg))
+            VxTextField(
+                label = "Search",
+                value = state.query,
+                onValueChange = { onIntent(OnboardingIntent.Search(it)) },
+                placeholder = "Morning, study, fitness…"
+            )
+            Spacer(Modifier.height(VxSpace.md))
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(VxSpace.sm)) {
+                CategoryChip("All", state.category == null, onClick = { onIntent(OnboardingIntent.SelectCategory(null)) })
+                TemplateCatalog.categories.filter { c -> state.templates.any { it.category == c } }.forEach { c ->
+                    CategoryChip(c, state.category == c, onClick = { onIntent(OnboardingIntent.SelectCategory(if (state.category == c) null else c)) })
                 }
             }
+            Spacer(Modifier.height(VxSpace.lg))
+            BlankTrackerCard(onClick = { onUseTemplate(TemplateCatalog.BLANK_ID) })
+            Spacer(Modifier.height(VxSpace.xl))
+        }
+        if (!filtering && recommended.isNotEmpty()) {
+            item { SectionLabel("Recommended for you"); Spacer(Modifier.height(VxSpace.sm)) }
+            items(recommended, key = { "rec_" + it.id }) { t ->
+                TemplateCard(t, onOpen = { onOpenTemplate(t.id) }, onUse = { onUseTemplate(t.id) })
+                Spacer(Modifier.height(VxSpace.md))
+            }
+            item { Spacer(Modifier.height(VxSpace.md)) }
+        }
+        item { SectionLabel(if (filtering) "${state.filtered.size} templates" else "All templates"); Spacer(Modifier.height(VxSpace.sm)) }
+        if (state.filtered.isEmpty()) {
+            item { EmptyState(VxIcons.Search, "No templates found", "Try another word, or start with a blank tracker.") }
+        }
+        items(state.filtered, key = { it.id }) { t ->
+            TemplateCard(t, onOpen = { onOpenTemplate(t.id) }, onUse = { onUseTemplate(t.id) })
+            Spacer(Modifier.height(VxSpace.md))
         }
     }
 }
 
 @Composable
-private fun TemplateBadge(text: String, bgColor: Color, textColor: Color) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(bgColor)
-            .padding(horizontal = 8.dp, vertical = 4.dp)
+private fun BlankTrackerCard(onClick: () -> Unit) {
+    val colors = LuminaTheme.colors
+    Row(
+        Modifier.fillMaxWidth().clip(VxShape.medium).background(colors.surface)
+            .border(1.5.dp, colors.primary.copy(alpha = 0.3f), VxShape.medium)
+            .clickable(role = Role.Button, onClick = onClick).padding(VxSpace.lg),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = text, color = textColor, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+        Box(Modifier.size(44.dp).clip(CircleShape).background(colors.primaryContainer), contentAlignment = Alignment.Center) {
+            Icon(VxIcons.Plus, null, tint = colors.primary, modifier = Modifier.size(20.dp))
+        }
+        Spacer(Modifier.width(VxSpace.md))
+        Column(Modifier.weight(1f)) {
+            Text("Blank tracker", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+            Text("Create a tracker entirely your own.", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+        }
+        Icon(VxIcons.ChevronRight, null, tint = colors.onSurfaceVariant, modifier = Modifier.size(18.dp))
     }
-}
-
-private fun templateEmoji(id: String): String = when {
-    id == "arc_master_daily"        -> "🔥"
-    id == "arc_winter"              -> "❄️"
-    id == "arc_gym"                 -> "💪"
-    id == "arc_study"               -> "🧠"
-    id == "arc_career"              -> "💻"
-    id == "arc_money"               -> "💰"
-    id == "arc_monk"                -> "📵"
-    id == "arc_spiritual"           -> "🧘"
-    id == "arc_health"              -> "🥗"
-    id == "arc_knowledge"           -> "📚"
-    id == "arc_discipline"          -> "🎯"
-    id == "arc_glowup"              -> "✨"
-    id == "arc_reset"               -> "🌱"
-    id == "arc_build"               -> "🚀"
-    id == "arc_peace"               -> "🧘‍♂️"
-    id == "arc_transformation"      -> "🔥"
-    id.contains("morning")          -> "🌅"
-    id.contains("night")            -> "🌙"
-    id.contains("fitness")          -> "💪"
-    id.contains("mindful")          -> "🧘"
-    id.contains("study")            -> "📚"
-    id.contains("work")             -> "💼"
-    id.contains("reading")          -> "📖"
-    id.contains("detox")            -> "📵"
-    id.contains("finance")          -> "💰"
-    id.contains("home")             -> "🏠"
-    id.contains("growth")           -> "🌱"
-    id.contains("healthy")          -> "🥗"
-    id.contains("weekend")          -> "🌿"
-    id.contains("challenge")        -> "⚡"
-    else                            -> "📋"
 }

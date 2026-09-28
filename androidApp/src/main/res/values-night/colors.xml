@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="vx_background">#0F1117</color>
+    <color name="vx_surface">#181B22</color>
+    <color name="vx_on_surface">#F9FAFB</color>
+    <color name="vx_on_surface_variant">#94A3B8</color>
+    <color name="vx_primary">#6366F1</color>
+    <color name="vx_primary_container">#312E81</color>
+    <color name="vx_outline">#262B38</color>
+</resources>

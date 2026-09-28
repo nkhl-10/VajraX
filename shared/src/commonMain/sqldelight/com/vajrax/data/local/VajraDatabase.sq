@@ -1,7 +1,14 @@
--- Phase 9 & Phase 17: Production-Grade SQLDelight Schema for VAJRAX / Lumina Life OS
--- Full Relational Integrity, Performance Indexes, Templates & Multi-system Queries
+-- VAJRAX / HabitFlow offline-first schema (version 2).
+-- New columns are always appended at the end of a table so that the CREATE statements
+-- here stay column-order compatible with databases upgraded through 1.sqm.
+--
+-- Domain mapping (see doc/HabitFlow_DocumentAI_Specs/10_SYSTEM_ARCHITECTURE.md):
+--   Template        -> TemplateEntity / TemplateHabitEntity (immutable defaults + user custom templates)
+--   Tracker         -> UserTemplateEntity (a user's personal copy of a template)
+--   Habit           -> PracticeEntity
+--   HabitLog        -> ActionRecordEntity (one row per scheduled occurrence, unique per habit + date)
 
--- 1. USER & AUTH (Offline / Test Account Support)
+-- 1. USER (local profile, no cloud account in the offline MVP)
 CREATE TABLE UserSessionEntity (
     userId TEXT NOT NULL PRIMARY KEY,
     email TEXT NOT NULL,
@@ -27,7 +34,7 @@ CREATE TABLE PrincipleEntity (
     FOREIGN KEY (lifePathId) REFERENCES LifePathEntity(id) ON DELETE CASCADE
 );
 
--- 3. TEMPLATES (Provided & Community Discovery System)
+-- 3. TEMPLATES (provided, community and user custom)
 CREATE TABLE TemplateEntity (
     id TEXT NOT NULL PRIMARY KEY,
     title TEXT NOT NULL,
@@ -37,10 +44,14 @@ CREATE TABLE TemplateEntity (
     author TEXT,
     isCommunity INTEGER NOT NULL DEFAULT 0,
     isBookmarked INTEGER NOT NULL DEFAULT 0,
-    isCustom INTEGER NOT NULL DEFAULT 0
+    isCustom INTEGER NOT NULL DEFAULT 0,
+    category TEXT NOT NULL DEFAULT 'General',
+    durationDays INTEGER NOT NULL DEFAULT 30,
+    isDraft INTEGER NOT NULL DEFAULT 0,
+    recommendedFor TEXT,
+    updatedAt TEXT
 );
 
--- 3b. TEMPLATE HABITS (The blueprint tasks)
 CREATE TABLE TemplateHabitEntity (
     id TEXT NOT NULL PRIMARY KEY,
     templateId TEXT NOT NULL,
@@ -52,10 +63,19 @@ CREATE TABLE TemplateHabitEntity (
     repeatDays TEXT NOT NULL,
     reminderEnabled INTEGER NOT NULL DEFAULT 1,
     sortOrder INTEGER NOT NULL,
+    category TEXT,
+    icon TEXT,
+    color TEXT,
+    habitType TEXT NOT NULL DEFAULT 'BOOLEAN',
+    targetValue REAL NOT NULL DEFAULT 1,
+    unit TEXT,
+    scheduleType TEXT NOT NULL DEFAULT 'DAILY',
+    weeklyTarget INTEGER NOT NULL DEFAULT 0,
+    intervalDays INTEGER NOT NULL DEFAULT 1,
     FOREIGN KEY (templateId) REFERENCES TemplateEntity(id) ON DELETE CASCADE
 );
 
--- 4. USER TEMPLATE PROGRESS
+-- 4. TRACKERS (personal copy of a template)
 CREATE TABLE UserTemplateEntity (
     id TEXT NOT NULL PRIMARY KEY,
     userId TEXT NOT NULL,
@@ -64,35 +84,60 @@ CREATE TABLE UserTemplateEntity (
     totalDays INTEGER NOT NULL DEFAULT 30,
     progressPercent INTEGER NOT NULL DEFAULT 0,
     isActive INTEGER NOT NULL DEFAULT 1,
+    name TEXT,
+    startDate TEXT,
+    status TEXT NOT NULL DEFAULT 'ACTIVE',
+    endedAt TEXT,
     FOREIGN KEY (templateId) REFERENCES TemplateEntity(id) ON DELETE CASCADE
 );
 
--- 5. PRACTICES (The Daily System)
+-- 5. HABITS (PracticeEntity)
 CREATE TABLE PracticeEntity (
     id TEXT NOT NULL PRIMARY KEY,
     principleId TEXT,
     title TEXT NOT NULL,
     targetDurationMinutes INTEGER NOT NULL,
     minimumDurationMinutes INTEGER NOT NULL,
-    preferredTime TEXT, -- "06:30", "09:00"
+    preferredTime TEXT, -- "HH:mm"
     trackingMode TEXT NOT NULL, -- 'MANUAL', 'PASSIVE', 'TIMER', 'HYBRID'
     isActive INTEGER NOT NULL DEFAULT 1,
+    trackerId TEXT,
+    category TEXT NOT NULL DEFAULT 'General',
+    icon TEXT NOT NULL DEFAULT 'check',
+    color TEXT NOT NULL DEFAULT 'indigo',
+    habitType TEXT NOT NULL DEFAULT 'BOOLEAN', -- BOOLEAN | COUNT | DURATION | VALUE
+    targetValue REAL NOT NULL DEFAULT 1,
+    unit TEXT,
+    scheduleType TEXT NOT NULL DEFAULT 'DAILY', -- DAILY | WEEKDAYS | WEEKLY_TARGET | INTERVAL
+    scheduleDays TEXT NOT NULL DEFAULT '1,2,3,4,5,6,7', -- ISO day numbers, 1 = Monday
+    weeklyTarget INTEGER NOT NULL DEFAULT 0,
+    intervalDays INTEGER NOT NULL DEFAULT 1,
+    reminderEnabled INTEGER NOT NULL DEFAULT 0,
+    reminderTime TEXT,
+    startDate TEXT, -- "YYYY-MM-DD"
+    archivedAt TEXT, -- "YYYY-MM-DD", not scheduled from this date on
+    sortOrder INTEGER NOT NULL DEFAULT 0,
+    createdAt TEXT,
     FOREIGN KEY (principleId) REFERENCES PrincipleEntity(id) ON DELETE SET NULL
 );
 
--- 6. ACTION RECORDS (Timeline Execution)
+-- 6. HABIT LOGS (one row per scheduled occurrence)
 CREATE TABLE ActionRecordEntity (
     id TEXT NOT NULL PRIMARY KEY,
     practiceId TEXT NOT NULL,
-    date TEXT NOT NULL, -- "YYYY-MM-DD"
-    scheduledTime TEXT, -- "09:00"
-    status TEXT NOT NULL, -- 'PENDING', 'ONGOING', 'COMPLETE', 'MINIMUM', 'SKIPPED', 'MISSED'
-    completedAt TEXT, -- ISO8601
+    date TEXT NOT NULL, -- "YYYY-MM-DD" in the user's local time zone
+    scheduledTime TEXT, -- "HH:mm"
+    status TEXT NOT NULL, -- 'PENDING', 'ONGOING', 'COMPLETE', 'MINIMUM', 'SKIPPED', 'MISSED', 'SNOOZED'
+    completedAt TEXT, -- ISO-8601 instant
     durationMinutes INTEGER,
+    value REAL,
+    note TEXT,
+    skipReason TEXT,
+    updatedAt TEXT,
     FOREIGN KEY (practiceId) REFERENCES PracticeEntity(id) ON DELETE CASCADE
 );
 
--- 7. EVIDENCE & REFLECTION (Real Growth Logging)
+-- 7. EVIDENCE & REFLECTION
 CREATE TABLE EvidenceEntity (
     id TEXT NOT NULL PRIMARY KEY,
     actionRecordId TEXT NOT NULL,
@@ -103,7 +148,7 @@ CREATE TABLE EvidenceEntity (
     FOREIGN KEY (actionRecordId) REFERENCES ActionRecordEntity(id) ON DELETE CASCADE
 );
 
--- 8. BOOK → LIFE (Knowledge to 7-Day Experiments)
+-- 8. BOOK -> LIFE
 CREATE TABLE BookIdeaEntity (
     id TEXT NOT NULL PRIMARY KEY,
     bookTitle TEXT NOT NULL,
@@ -115,7 +160,7 @@ CREATE TABLE BookIdeaEntity (
     createdAt TEXT NOT NULL
 );
 
--- 9. BEHAVIORAL PATTERNS & RECOMMENDATIONS (Danda & Bheda)
+-- 9. PATTERNS
 CREATE TABLE PatternInsightEntity (
     id TEXT NOT NULL PRIMARY KEY,
     title TEXT NOT NULL,
@@ -125,8 +170,46 @@ CREATE TABLE PatternInsightEntity (
     createdAt TEXT NOT NULL
 );
 
+-- 10. SETTINGS (key/value preferences)
+CREATE TABLE SettingEntity (
+    key TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+-- 11. GOALS
+CREATE TABLE GoalEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    targetType TEXT NOT NULL DEFAULT 'COMPLETIONS', -- COMPLETIONS | RATE
+    targetValue REAL NOT NULL,
+    startDate TEXT NOT NULL,
+    endDate TEXT,
+    status TEXT NOT NULL DEFAULT 'ACTIVE',
+    createdAt TEXT NOT NULL
+);
+
+CREATE TABLE GoalHabitEntity (
+    goalId TEXT NOT NULL,
+    habitId TEXT NOT NULL,
+    contributionWeight REAL NOT NULL DEFAULT 1,
+    PRIMARY KEY (goalId, habitId)
+);
+
+-- 12. REFLECTIONS (weekly / monthly review)
+CREATE TABLE ReflectionEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    periodType TEXT NOT NULL, -- WEEK | MONTH
+    periodStart TEXT NOT NULL,
+    achievements TEXT NOT NULL DEFAULT '',
+    obstacles TEXT NOT NULL DEFAULT '',
+    nextActions TEXT NOT NULL DEFAULT '',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL
+);
+
 -- ==========================================
--- INDEXES FOR 16ms / FLUID QUERY PERFORMANCE
+-- INDEXES
 -- ==========================================
 CREATE INDEX idx_action_date ON ActionRecordEntity(date);
 CREATE INDEX idx_action_practice ON ActionRecordEntity(practiceId);
@@ -136,18 +219,35 @@ CREATE INDEX idx_evidence_record ON EvidenceEntity(actionRecordId);
 CREATE INDEX idx_template_community ON TemplateEntity(isCommunity);
 CREATE INDEX idx_template_habit_tid ON TemplateHabitEntity(templateId);
 CREATE INDEX idx_user_template_user ON UserTemplateEntity(userId);
+CREATE UNIQUE INDEX idx_action_practice_date ON ActionRecordEntity(practiceId, date);
+CREATE INDEX idx_action_status ON ActionRecordEntity(status);
+CREATE INDEX idx_practice_tracker ON PracticeEntity(trackerId);
+CREATE UNIQUE INDEX idx_reflection_period ON ReflectionEntity(periodType, periodStart);
 
 -- ==========================================
 -- QUERIES
 -- ==========================================
 
--- User Session
+-- Settings
+getSetting:
+SELECT value FROM SettingEntity WHERE key = ?;
+
+putSetting:
+INSERT OR REPLACE INTO SettingEntity(key, value) VALUES (?, ?);
+
+getAllSettings:
+SELECT * FROM SettingEntity;
+
+-- User
 insertOrUpdateUser:
 INSERT OR REPLACE INTO UserSessionEntity(userId, email, displayName, isGuest, activePathId, createdAt)
 VALUES (?, ?, ?, ?, ?, ?);
 
 getCurrentUser:
 SELECT * FROM UserSessionEntity LIMIT 1;
+
+updateUserProfile:
+UPDATE UserSessionEntity SET displayName = ?, email = ? WHERE userId = ?;
 
 clearUserSession:
 DELETE FROM UserSessionEntity;
@@ -166,7 +266,6 @@ SELECT * FROM LifePathEntity WHERE isActive = 1 LIMIT 1;
 setActiveLifePath:
 UPDATE LifePathEntity SET isActive = CASE WHEN id = ? THEN 1 ELSE 0 END;
 
--- Principles
 insertPrinciple:
 INSERT OR REPLACE INTO PrincipleEntity(id, lifePathId, title, description)
 VALUES (?, ?, ?, ?);
@@ -174,13 +273,17 @@ VALUES (?, ?, ?, ?);
 getPrinciplesForPath:
 SELECT * FROM PrincipleEntity WHERE lifePathId = ?;
 
--- Templates (Provided, Community, Custom)
+-- Templates
 insertTemplate:
 INSERT OR REPLACE INTO TemplateEntity(id, title, description, taskCount, frequency, author, isCommunity, isBookmarked, isCustom)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
 
+upsertTemplate:
+INSERT OR REPLACE INTO TemplateEntity(id, title, description, taskCount, frequency, author, isCommunity, isBookmarked, isCustom, category, durationDays, isDraft, recommendedFor, updatedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
 getAllTemplates:
-SELECT * FROM TemplateEntity;
+SELECT * FROM TemplateEntity WHERE isDraft = 0 ORDER BY isCustom DESC, isCommunity ASC, title ASC;
 
 getProvidedTemplates:
 SELECT * FROM TemplateEntity WHERE isCommunity = 0 AND isCustom = 0;
@@ -189,7 +292,7 @@ getCommunityTemplates:
 SELECT * FROM TemplateEntity WHERE isCommunity = 1;
 
 getCustomTemplates:
-SELECT * FROM TemplateEntity WHERE isCustom = 1;
+SELECT * FROM TemplateEntity WHERE isCustom = 1 ORDER BY updatedAt DESC;
 
 getTemplateById:
 SELECT * FROM TemplateEntity WHERE id = ? LIMIT 1;
@@ -198,31 +301,59 @@ toggleTemplateBookmark:
 UPDATE TemplateEntity SET isBookmarked = ? WHERE id = ?;
 
 updateTemplate:
-UPDATE TemplateEntity 
-SET title = ?, description = ?, taskCount = ?, frequency = ? 
+UPDATE TemplateEntity
+SET title = ?, description = ?, taskCount = ?, frequency = ?
 WHERE id = ?;
 
 deleteTemplate:
 DELETE FROM TemplateEntity WHERE id = ?;
 
+deleteSystemTemplates:
+DELETE FROM TemplateEntity WHERE isCustom = 0;
+
 -- Template Habits
 insertTemplateHabit:
-INSERT OR REPLACE INTO TemplateHabitEntity(id, templateId, name, startTime, durationMinutes, trackingMode, target, repeatDays, reminderEnabled, sortOrder)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+INSERT OR REPLACE INTO TemplateHabitEntity(id, templateId, name, startTime, durationMinutes, trackingMode, target, repeatDays, reminderEnabled, sortOrder, category, icon, color, habitType, targetValue, unit, scheduleType, weeklyTarget, intervalDays)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 getHabitsForTemplate:
 SELECT * FROM TemplateHabitEntity WHERE templateId = ? ORDER BY sortOrder ASC;
 
+getAllTemplateHabits:
+SELECT * FROM TemplateHabitEntity ORDER BY templateId, sortOrder ASC;
+
 deleteTemplateHabits:
 DELETE FROM TemplateHabitEntity WHERE templateId = ?;
 
--- User Templates Progress
+deleteSystemTemplateHabits:
+DELETE FROM TemplateHabitEntity WHERE templateId IN (SELECT id FROM TemplateEntity WHERE isCustom = 0);
+
+-- Trackers
+insertTracker:
+INSERT OR REPLACE INTO UserTemplateEntity(id, userId, templateId, currentDay, totalDays, progressPercent, isActive, name, startDate, status, endedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+getActiveTracker:
+SELECT * FROM UserTemplateEntity WHERE isActive = 1 LIMIT 1;
+
+getAllTrackers:
+SELECT * FROM UserTemplateEntity ORDER BY isActive DESC, startDate DESC;
+
+getTrackerById:
+SELECT * FROM UserTemplateEntity WHERE id = ? LIMIT 1;
+
+archiveActiveTrackers:
+UPDATE UserTemplateEntity SET isActive = 0, status = 'ARCHIVED', endedAt = ? WHERE isActive = 1;
+
+renameTracker:
+UPDATE UserTemplateEntity SET name = ? WHERE id = ?;
+
 insertOrUpdateUserTemplate:
 INSERT OR REPLACE INTO UserTemplateEntity(id, userId, templateId, currentDay, totalDays, progressPercent, isActive)
 VALUES (?, ?, ?, ?, ?, ?, ?);
 
 getActiveUserTemplate:
-SELECT 
+SELECT
     UserTemplateEntity.id,
     UserTemplateEntity.userId,
     UserTemplateEntity.templateId,
@@ -237,25 +368,42 @@ JOIN TemplateEntity ON UserTemplateEntity.templateId = TemplateEntity.id
 WHERE UserTemplateEntity.isActive = 1
 LIMIT 1;
 
-getAllUserTemplates:
-SELECT 
-    UserTemplateEntity.id,
-    UserTemplateEntity.userId,
-    UserTemplateEntity.templateId,
-    UserTemplateEntity.currentDay,
-    UserTemplateEntity.totalDays,
-    UserTemplateEntity.progressPercent,
-    UserTemplateEntity.isActive,
-    TemplateEntity.title,
-    TemplateEntity.description
-FROM UserTemplateEntity
-JOIN TemplateEntity ON UserTemplateEntity.templateId = TemplateEntity.id
-ORDER BY UserTemplateEntity.isActive DESC;
-
--- Practices
+-- Habits (PracticeEntity)
 insertPractice:
 INSERT OR REPLACE INTO PracticeEntity(id, principleId, title, targetDurationMinutes, minimumDurationMinutes, preferredTime, trackingMode, isActive)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+insertHabit:
+INSERT OR REPLACE INTO PracticeEntity(id, principleId, title, targetDurationMinutes, minimumDurationMinutes, preferredTime, trackingMode, isActive, trackerId, category, icon, color, habitType, targetValue, unit, scheduleType, scheduleDays, weeklyTarget, intervalDays, reminderEnabled, reminderTime, startDate, archivedAt, sortOrder, createdAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateHabit:
+UPDATE PracticeEntity
+SET title = ?, targetDurationMinutes = ?, minimumDurationMinutes = ?, preferredTime = ?, trackingMode = ?,
+    category = ?, icon = ?, color = ?, habitType = ?, targetValue = ?, unit = ?,
+    scheduleType = ?, scheduleDays = ?, weeklyTarget = ?, intervalDays = ?,
+    reminderEnabled = ?, reminderTime = ?, startDate = ?
+WHERE id = ?;
+
+archiveHabit:
+UPDATE PracticeEntity SET isActive = 0, archivedAt = ? WHERE id = ?;
+
+archiveHabitsForTracker:
+UPDATE PracticeEntity SET isActive = 0, archivedAt = ? WHERE trackerId = ? AND archivedAt IS NULL;
+
+updateHabitSortOrder:
+UPDATE PracticeEntity SET sortOrder = ? WHERE id = ?;
+
+getHabitById:
+SELECT * FROM PracticeEntity WHERE id = ? LIMIT 1;
+
+getHabitsForTracker:
+SELECT * FROM PracticeEntity
+WHERE trackerId = ? AND archivedAt IS NULL
+ORDER BY preferredTime ASC, sortOrder ASC;
+
+getTrackedHabits:
+SELECT * FROM PracticeEntity WHERE coalesce(trackerId, '') <> '';
 
 getAllPractices:
 SELECT * FROM PracticeEntity;
@@ -266,18 +414,72 @@ SELECT * FROM PracticeEntity WHERE isActive = 1;
 togglePracticeActive:
 UPDATE PracticeEntity SET isActive = ? WHERE id = ?;
 
--- Action Records & Living Timeline
+-- Habit logs / occurrences
 insertActionRecord:
 INSERT OR REPLACE INTO ActionRecordEntity(id, practiceId, date, scheduledTime, status, completedAt, durationMinutes)
 VALUES (?, ?, ?, ?, ?, ?, ?);
 
+insertOccurrenceIfAbsent:
+INSERT OR IGNORE INTO ActionRecordEntity(id, practiceId, date, scheduledTime, status, updatedAt)
+VALUES (?, ?, ?, ?, 'PENDING', ?);
+
+getOccurrenceById:
+SELECT * FROM ActionRecordEntity WHERE id = ? LIMIT 1;
+
+getOccurrence:
+SELECT * FROM ActionRecordEntity WHERE practiceId = ? AND date = ? LIMIT 1;
+
+updateCheckIn:
+UPDATE ActionRecordEntity
+SET status = ?, completedAt = ?, durationMinutes = ?, value = ?, skipReason = NULL, updatedAt = ?
+WHERE id = ?;
+
+updateSkip:
+UPDATE ActionRecordEntity
+SET status = 'SKIPPED', skipReason = ?, completedAt = NULL, updatedAt = ?
+WHERE id = ?;
+
+updateOccurrenceTime:
+UPDATE ActionRecordEntity SET scheduledTime = ?, status = ?, updatedAt = ? WHERE id = ?;
+
+updateOccurrenceNote:
+UPDATE ActionRecordEntity SET note = ?, updatedAt = ? WHERE id = ?;
+
+updatePendingOccurrenceTime:
+UPDATE ActionRecordEntity SET scheduledTime = ?
+WHERE practiceId = ? AND date = ? AND status IN ('PENDING', 'SNOOZED');
+
+deletePendingOccurrence:
+DELETE FROM ActionRecordEntity
+WHERE practiceId = ? AND date >= ? AND status IN ('PENDING', 'SNOOZED', 'ONGOING');
+
+deletePendingOccurrencesForTracker:
+DELETE FROM ActionRecordEntity
+WHERE date >= ? AND status IN ('PENDING', 'SNOOZED', 'ONGOING')
+  AND practiceId IN (SELECT id FROM PracticeEntity WHERE trackerId = ?);
+
 updateActionStatus:
-UPDATE ActionRecordEntity 
+UPDATE ActionRecordEntity
 SET status = ?, completedAt = ?, durationMinutes = ?
 WHERE id = ?;
 
+getTimelineForDate:
+SELECT * FROM ActionRecordEntity
+WHERE date = ?
+ORDER BY scheduledTime ASC;
+
+getRecordsBetween:
+SELECT * FROM ActionRecordEntity
+WHERE date >= ? AND date <= ?
+ORDER BY date ASC, scheduledTime ASC;
+
+getRecordsForHabitSince:
+SELECT * FROM ActionRecordEntity
+WHERE practiceId = ? AND date >= ?
+ORDER BY date ASC;
+
 getTodayTimeline:
-SELECT 
+SELECT
     ActionRecordEntity.id,
     ActionRecordEntity.practiceId,
     ActionRecordEntity.date,
@@ -285,18 +487,21 @@ SELECT
     ActionRecordEntity.status,
     ActionRecordEntity.completedAt,
     ActionRecordEntity.durationMinutes,
-    PracticeEntity.title, 
-    PracticeEntity.targetDurationMinutes, 
+    PracticeEntity.title,
+    PracticeEntity.targetDurationMinutes,
     PracticeEntity.minimumDurationMinutes,
     PracticeEntity.trackingMode
 FROM ActionRecordEntity
 JOIN PracticeEntity ON ActionRecordEntity.practiceId = PracticeEntity.id
-WHERE ActionRecordEntity.date = ? 
+WHERE ActionRecordEntity.date = ?
 ORDER BY ActionRecordEntity.scheduledTime ASC;
 
 getActionRecordsBetweenDates:
 SELECT * FROM ActionRecordEntity
 WHERE date >= ? AND date <= ?;
+
+earliestRecordDate:
+SELECT MIN(date) AS minDate FROM ActionRecordEntity;
 
 countCompletedActionsBetweenDates:
 SELECT COUNT(*) FROM ActionRecordEntity
@@ -311,8 +516,11 @@ insertEvidence:
 INSERT OR REPLACE INTO EvidenceEntity(id, actionRecordId, reflectionRating, note, mediaPath, createdAt)
 VALUES (?, ?, ?, ?, ?, ?);
 
+getAllEvidence:
+SELECT * FROM EvidenceEntity ORDER BY createdAt DESC;
+
 getRecentEvidence:
-SELECT 
+SELECT
     EvidenceEntity.id,
     EvidenceEntity.actionRecordId,
     EvidenceEntity.reflectionRating,
@@ -337,7 +545,7 @@ getAllBookIdeas:
 SELECT * FROM BookIdeaEntity ORDER BY createdAt DESC;
 
 updateExperimentStatus:
-UPDATE BookIdeaEntity 
+UPDATE BookIdeaEntity
 SET isExperimentActive = ?, experimentDaysLeft = ?, practicalApplication = ?
 WHERE id = ?;
 
@@ -351,3 +559,53 @@ SELECT * FROM PatternInsightEntity WHERE isApplied = 0 ORDER BY createdAt DESC;
 
 markPatternInsightApplied:
 UPDATE PatternInsightEntity SET isApplied = 1 WHERE id = ?;
+
+-- Goals
+upsertGoal:
+INSERT OR REPLACE INTO GoalEntity(id, title, description, targetType, targetValue, startDate, endDate, status, createdAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+getGoals:
+SELECT * FROM GoalEntity ORDER BY status ASC, createdAt DESC;
+
+deleteGoal:
+DELETE FROM GoalEntity WHERE id = ?;
+
+insertGoalHabit:
+INSERT OR REPLACE INTO GoalHabitEntity(goalId, habitId, contributionWeight) VALUES (?, ?, ?);
+
+deleteGoalHabits:
+DELETE FROM GoalHabitEntity WHERE goalId = ?;
+
+getAllGoalHabits:
+SELECT * FROM GoalHabitEntity;
+
+-- Reflections
+upsertReflection:
+INSERT OR REPLACE INTO ReflectionEntity(id, periodType, periodStart, achievements, obstacles, nextActions, createdAt, updatedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+getReflection:
+SELECT * FROM ReflectionEntity WHERE periodType = ? AND periodStart = ? LIMIT 1;
+
+getAllReflections:
+SELECT * FROM ReflectionEntity ORDER BY periodStart DESC;
+
+-- Delete all personal data (templates library is re-seeded, custom templates removed)
+wipePersonalData {
+    DELETE FROM EvidenceEntity;
+    DELETE FROM ActionRecordEntity;
+    DELETE FROM PracticeEntity;
+    DELETE FROM UserTemplateEntity;
+    DELETE FROM GoalHabitEntity;
+    DELETE FROM GoalEntity;
+    DELETE FROM ReflectionEntity;
+    DELETE FROM TemplateHabitEntity WHERE templateId IN (SELECT id FROM TemplateEntity WHERE isCustom = 1);
+    DELETE FROM TemplateEntity WHERE isCustom = 1;
+    DELETE FROM UserSessionEntity;
+    DELETE FROM BookIdeaEntity;
+    DELETE FROM PatternInsightEntity;
+    -- Keep the library version, and the scheduled-reminder ids so the next sync can cancel those alarms.
+    DELETE FROM SettingEntity WHERE key NOT IN ('template_library_version', 'reminder_scheduled_ids');
+    UPDATE LifePathEntity SET isActive = 0;
+}

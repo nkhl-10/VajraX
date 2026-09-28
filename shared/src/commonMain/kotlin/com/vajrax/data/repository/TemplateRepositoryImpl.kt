@@ -1,134 +1,136 @@
+@file:OptIn(kotlin.time.ExperimentalTime::class)
+
 package com.vajrax.data.repository
 
+import app.cash.sqldelight.coroutines.asFlow
+import app.cash.sqldelight.coroutines.mapToList
+import com.vajrax.data.local.DbDispatcher
+import com.vajrax.data.local.TemplateEntity
+import com.vajrax.data.local.TemplateHabitEntity
 import com.vajrax.data.local.VajraDatabase
-import com.vajrax.domain.model.TrackingMode
+import com.vajrax.data.local.io
+import com.vajrax.data.local.toDb
+import com.vajrax.data.local.toDefaultHabit
+import com.vajrax.data.local.toDefaultTemplate
+import com.vajrax.domain.repository.SettingsRepository
 import com.vajrax.domain.repository.TemplateRepository
-import com.vajrax.domain.template.DefaultHabit
 import com.vajrax.domain.template.DefaultTemplate
+import com.vajrax.domain.template.TemplateCatalog
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 
 class TemplateRepositoryImpl(
     private val database: VajraDatabase
 ) : TemplateRepository {
     private val queries = database.vajraDatabaseQueries
 
-    override suspend fun getAllTemplates(): List<DefaultTemplate> {
-        return queries.getAllTemplates().executeAsList().map { entity ->
-            getTemplateWithHabits(entity.id) ?: throw IllegalStateException("Template not found after fetch")
+    private fun assemble(templates: List<TemplateEntity>, habits: List<TemplateHabitEntity>): List<DefaultTemplate> {
+        val byTemplate = habits.groupBy { it.templateId }
+        return templates.map { t ->
+            t.toDefaultTemplate(byTemplate[t.id].orEmpty().sortedBy { it.sortOrder }.map { it.toDefaultHabit() })
         }
     }
 
-    override suspend fun getProvidedTemplates(): List<DefaultTemplate> {
-        return queries.getProvidedTemplates().executeAsList().map { entity ->
-            getTemplateWithHabits(entity.id) ?: throw IllegalStateException("Template not found after fetch")
-        }
+    override suspend fun getAllTemplates(): List<DefaultTemplate> = io {
+        assemble(queries.getAllTemplates().executeAsList(), queries.getAllTemplateHabits().executeAsList())
     }
 
-    override suspend fun getCustomTemplates(): List<DefaultTemplate> {
-        return queries.getCustomTemplates().executeAsList().map { entity ->
-            getTemplateWithHabits(entity.id) ?: throw IllegalStateException("Template not found after fetch")
-        }
+    override suspend fun getProvidedTemplates(): List<DefaultTemplate> = io {
+        assemble(queries.getProvidedTemplates().executeAsList(), queries.getAllTemplateHabits().executeAsList())
     }
 
-    override suspend fun getTemplateWithHabits(templateId: String): DefaultTemplate? {
-        val entity = queries.getTemplateById(templateId).executeAsOneOrNull() ?: return null
+    override suspend fun getCustomTemplates(): List<DefaultTemplate> = io {
+        assemble(queries.getCustomTemplates().executeAsList(), queries.getAllTemplateHabits().executeAsList())
+    }
 
-        val habits = queries.getHabitsForTemplate(templateId).executeAsList().map { habitEntity ->
-            DefaultHabit(
-                name = habitEntity.name,
-                startTime = habitEntity.startTime,
-                duration = habitEntity.durationMinutes.toInt(),
-                trackingType = TrackingMode.valueOf(habitEntity.trackingMode),
-                target = habitEntity.target,
-                repeatDays = habitEntity.repeatDays.split(",").mapNotNull { it.toIntOrNull() },
-                reminderEnabled = habitEntity.reminderEnabled == 1L,
-                sortOrder = habitEntity.sortOrder.toInt()
-            )
-        }
+    override suspend fun getTemplateWithHabits(templateId: String): DefaultTemplate? = io {
+        val entity = queries.getTemplateById(templateId).executeAsOneOrNull() ?: return@io null
+        entity.toDefaultTemplate(queries.getHabitsForTemplate(templateId).executeAsList().map { it.toDefaultHabit() })
+    }
 
-        // Derive category: check TemplateLibrary first, fall back to flags
-        val libraryTemplate = com.vajrax.domain.template.TemplateLibrary.defaultTemplates.find { it.id == templateId }
-        val category = when {
-            libraryTemplate != null -> libraryTemplate.category
-            entity.isCustom == 1L -> "Custom"
-            entity.isCommunity == 1L -> "Community"
-            else -> "General"
-        }
-        val difficulty = libraryTemplate?.difficulty ?: "Medium"
-        val duration = libraryTemplate?.estimatedDuration ?: "Variable"
+    override fun observeLibrary(): Flow<List<DefaultTemplate>> = combine(
+        queries.getAllTemplates().asFlow().mapToList(DbDispatcher),
+        queries.getAllTemplateHabits().asFlow().mapToList(DbDispatcher)
+    ) { templates, habits -> assemble(templates, habits) }
 
-        return DefaultTemplate(
-            id = entity.id,
-            name = entity.title,
-            category = category,
-            description = entity.description,
-            difficulty = difficulty,
-            estimatedDuration = duration,
-            habits = habits
+    override fun observeCustomTemplates(): Flow<List<DefaultTemplate>> = combine(
+        queries.getCustomTemplates().asFlow().mapToList(DbDispatcher),
+        queries.getAllTemplateHabits().asFlow().mapToList(DbDispatcher)
+    ) { templates, habits -> assemble(templates, habits) }
+
+    private fun writeTemplate(template: DefaultTemplate, isCustom: Boolean, updatedAt: String) {
+        queries.upsertTemplate(
+            id = template.id,
+            title = template.name.trim(),
+            description = template.description.trim(),
+            taskCount = template.habits.size.toLong(),
+            frequency = template.frequencyLabel,
+            author = template.author,
+            isCommunity = template.isCommunity.toDb(),
+            isBookmarked = 0L,
+            isCustom = isCustom.toDb(),
+            category = template.category,
+            durationDays = template.durationDays.toLong(),
+            isDraft = template.isDraft.toDb(),
+            recommendedFor = template.recommendedFor,
+            updatedAt = updatedAt
         )
-    }
-
-    override suspend fun saveCustomTemplate(template: DefaultTemplate) {
-        database.transaction {
-            queries.insertTemplate(
-                id = template.id,
-                title = template.name,
-                description = template.description,
-                taskCount = template.habits.size.toLong(),
-                frequency = "Custom",
-                author = "User",
-                isCommunity = 0L,
-                isBookmarked = 0L,
-                isCustom = 1L
+        queries.deleteTemplateHabits(template.id)
+        template.habits.forEachIndexed { index, habit ->
+            queries.insertTemplateHabit(
+                id = "${template.id}_habit_$index",
+                templateId = template.id,
+                name = habit.name.trim(),
+                startTime = habit.startTime,
+                durationMinutes = habit.duration.toLong(),
+                trackingMode = habit.trackingType.name,
+                target = habit.target,
+                repeatDays = habit.repeatDays.joinToString(","),
+                reminderEnabled = habit.reminderEnabled.toDb(),
+                sortOrder = index.toLong(),
+                category = habit.category,
+                icon = habit.icon,
+                color = habit.color,
+                habitType = habit.habitType.name,
+                targetValue = habit.targetValue,
+                unit = habit.unit,
+                scheduleType = habit.scheduleType.name,
+                weeklyTarget = habit.weeklyTarget.toLong(),
+                intervalDays = habit.intervalDays.toLong()
             )
-            
-            template.habits.forEachIndexed { index, habit ->
-                queries.insertTemplateHabit(
-                    id = "${template.id}_habit_$index",
-                    templateId = template.id,
-                    name = habit.name,
-                    startTime = habit.startTime,
-                    durationMinutes = habit.duration.toLong(),
-                    trackingMode = habit.trackingType.name,
-                    target = habit.target,
-                    repeatDays = habit.repeatDays.joinToString(","),
-                    reminderEnabled = if (habit.reminderEnabled) 1L else 0L,
-                    sortOrder = habit.sortOrder.toLong()
-                )
-            }
         }
     }
 
-    override suspend fun updateTemplate(template: DefaultTemplate) {
+    override suspend fun saveCustomTemplate(template: DefaultTemplate): Unit = io {
+        val now = kotlin.time.Clock.System.now().toString()
+        database.transaction { writeTemplate(template.copy(isCustom = true), isCustom = true, updatedAt = now) }
+    }
+
+    override suspend fun updateTemplate(template: DefaultTemplate): Unit = io {
+        val existing = queries.getTemplateById(template.id).executeAsOneOrNull()
+        // System templates are immutable source definitions.
+        if (existing != null && existing.isCustom != 1L) return@io
+        val now = kotlin.time.Clock.System.now().toString()
+        database.transaction { writeTemplate(template.copy(isCustom = true), isCustom = true, updatedAt = now) }
+    }
+
+    override suspend fun deleteTemplate(templateId: String): Unit = io {
+        val existing = queries.getTemplateById(templateId).executeAsOneOrNull() ?: return@io
+        if (existing.isCustom != 1L) return@io
         database.transaction {
-            queries.updateTemplate(
-                title = template.name,
-                description = template.description,
-                taskCount = template.habits.size.toLong(),
-                frequency = "Custom",
-                id = template.id
-            )
-            
-            // Re-insert habits
-            queries.deleteTemplateHabits(template.id)
-            template.habits.forEachIndexed { index, habit ->
-                queries.insertTemplateHabit(
-                    id = "${template.id}_habit_$index",
-                    templateId = template.id,
-                    name = habit.name,
-                    startTime = habit.startTime,
-                    durationMinutes = habit.duration.toLong(),
-                    trackingMode = habit.trackingType.name,
-                    target = habit.target,
-                    repeatDays = habit.repeatDays.joinToString(","),
-                    reminderEnabled = if (habit.reminderEnabled) 1L else 0L,
-                    sortOrder = habit.sortOrder.toLong()
-                )
-            }
+            queries.deleteTemplateHabits(templateId)
+            queries.deleteTemplate(templateId)
         }
     }
 
-    override suspend fun deleteTemplate(templateId: String) {
-        // FK constraint with ON DELETE CASCADE will handle TemplateHabitEntity deletion
-        queries.deleteTemplate(templateId)
+    override suspend fun seedSystemTemplatesIfNeeded(): Unit = io {
+        val stored = queries.getSetting(SettingsRepository.LIBRARY_VERSION).executeAsOneOrNull()
+        if (stored == TemplateCatalog.VERSION) return@io
+        database.transaction {
+            queries.deleteSystemTemplateHabits()
+            queries.deleteSystemTemplates()
+            TemplateCatalog.all.forEach { writeTemplate(it, isCustom = false, updatedAt = "") }
+            queries.putSetting(SettingsRepository.LIBRARY_VERSION, TemplateCatalog.VERSION)
+        }
     }
 }

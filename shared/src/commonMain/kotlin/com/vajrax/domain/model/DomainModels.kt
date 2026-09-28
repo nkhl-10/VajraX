@@ -9,7 +9,11 @@ enum class TrackingMode {
 }
 
 enum class ActionStatus {
-    PENDING, ONGOING, COMPLETE, MINIMUM, SKIPPED, MISSED
+    PENDING, ONGOING, COMPLETE, MINIMUM, SKIPPED, MISSED, SNOOZED;
+
+    companion object {
+        fun of(raw: String?): ActionStatus = entries.firstOrNull { it.name == raw } ?: PENDING
+    }
 }
 
 enum class ReflectionRating {

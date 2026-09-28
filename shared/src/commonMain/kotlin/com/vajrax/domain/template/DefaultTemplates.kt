@@ -9,7 +9,14 @@ data class DefaultTemplate(
     val description: String,
     val difficulty: String,
     val estimatedDuration: String,
-    val habits: List<DefaultHabit>
+    val habits: List<DefaultHabit>,
+    val isCommunity: Boolean = false,
+    val author: String? = null,
+    val isCustom: Boolean = false,
+    val isDraft: Boolean = false,
+    val frequencyLabel: String = "Daily",
+    val durationDays: Int = 30,
+    val recommendedFor: String = ""
 )
 
 data class DefaultHabit(
@@ -20,7 +27,16 @@ data class DefaultHabit(
     val target: String,
     val repeatDays: List<Int>,
     val reminderEnabled: Boolean,
-    val sortOrder: Int
+    val sortOrder: Int,
+    val habitType: com.vajrax.domain.habit.HabitType = com.vajrax.domain.habit.HabitType.BOOLEAN,
+    val targetValue: Double = 1.0,
+    val unit: String? = null,
+    val category: String? = null,
+    val icon: String? = null,
+    val color: String? = null,
+    val scheduleType: com.vajrax.domain.habit.ScheduleType = com.vajrax.domain.habit.ScheduleType.DAILY,
+    val weeklyTarget: Int = 0,
+    val intervalDays: Int = 1
 )
 
 object TemplateLibrary {

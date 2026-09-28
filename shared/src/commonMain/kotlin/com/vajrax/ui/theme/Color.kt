@@ -42,7 +42,13 @@ data class LuminaColors(
     val statusSuccess: Color,
     val statusWarning: Color,
     val statusError: Color,
-    val isDark: Boolean
+    val isDark: Boolean,
+    /** Non-essential hints only (captions next to stronger text); never for body copy. */
+    val textTertiary: Color = Color(0xFF9CA3AF),
+    val successContainer: Color = Color(0xFFDCFCE7),
+    val onSuccessContainer: Color = Color(0xFF166534),
+    val warningContainer: Color = Color(0xFFFEF3C7),
+    val onWarningContainer: Color = Color(0xFF92400E)
 )
 
 // ==========================================
@@ -60,7 +66,7 @@ val LuminaLightColors = LuminaColors(
     surfaceContainer = Color(0xFFEEF2FF),    // Figma primary container / tint
     surfaceContainerHigh = Color(0xFFE5E7EB),
     surfaceContainerHighest = Color(0xFFD1D5DB),
-    onSurfaceVariant = Color(0xFF9CA3AF),    // Figma text secondary: r=0.612, g=0.639, b=0.686
+    onSurfaceVariant = Color(0xFF6B7280),    // Secondary text, 4.8:1 on white (Figma #9CA3AF is 2.5:1)
     primary = Color(0xFF4F46E5),             // Figma indigo: r=0.310, g=0.275, b=0.898
     onPrimary = Color(0xFFFFFFFF),
     primaryContainer = Color(0xFFEEF2FF),    // Soft indigo tint
@@ -118,7 +124,12 @@ val LuminaDarkColors = LuminaColors(
     statusSuccess = Color(0xFF22C55E),
     statusWarning = Color(0xFFF59E0B),
     statusError = Color(0xFFEF4444),
-    isDark = true
+    isDark = true,
+    textTertiary = Color(0xFF7C8799),
+    successContainer = Color(0xFF14532D),
+    onSuccessContainer = Color(0xFFBBF7D0),
+    warningContainer = Color(0xFF451A03),
+    onWarningContainer = Color(0xFFFDE68A)
 )
 
 // Backward Compatibility Aliases for Vajra Tokens

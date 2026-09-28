@@ -12,6 +12,9 @@ kotlin {
             implementation(project(":shared"))
             implementation(libs.androidx.activity.compose)
             implementation(libs.koin.core)
+            implementation(libs.coroutines.core)
+            implementation(libs.datetime)
+            implementation(libs.glance.appwidget)
         }
     }
 }

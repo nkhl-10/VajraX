@@ -1,16 +1,25 @@
 package com.vajrax.di
 
+import com.vajrax.core.time.AppClock
+import com.vajrax.core.time.SystemAppClock
 import com.vajrax.data.local.DatabaseDriverFactory
 import com.vajrax.data.local.DatabaseSeeder
 import com.vajrax.data.local.VajraDatabase
 import com.vajrax.data.remote.SupabaseSyncManager
 import com.vajrax.data.remote.createHttpClient
 import com.vajrax.data.repository.AuthRepositoryImpl
+import com.vajrax.data.repository.DataRepositoryImpl
+import com.vajrax.data.repository.GoalRepositoryImpl
 import com.vajrax.data.repository.GrowRepositoryImpl
 import com.vajrax.data.repository.LearnRepositoryImpl
 import com.vajrax.data.repository.LifePathRepositoryImpl
 import com.vajrax.data.repository.PracticeRepositoryImpl
+import com.vajrax.data.repository.ProfileRepositoryImpl
+import com.vajrax.data.repository.ReflectionRepositoryImpl
 import com.vajrax.data.repository.ReviewRepositoryImpl
+import com.vajrax.data.repository.SettingsRepositoryImpl
+import com.vajrax.data.repository.TemplateRepositoryImpl
+import com.vajrax.data.repository.TrackerRepositoryImpl
 import com.vajrax.domain.ai.AiClient
 import com.vajrax.domain.ai.AiPatternInterpreter
 import com.vajrax.domain.engine.BehavioralEngine
@@ -20,84 +29,105 @@ import com.vajrax.domain.engine.DandaEngine
 import com.vajrax.domain.engine.SamaEngine
 import com.vajrax.domain.growth.GrowthAnalyticsManager
 import com.vajrax.domain.learn.BookToLifeManager
-import com.vajrax.domain.passive.PassiveIntelligenceManager
 import com.vajrax.domain.repository.AuthRepository
+import com.vajrax.domain.repository.DataRepository
+import com.vajrax.domain.repository.GoalRepository
 import com.vajrax.domain.repository.GrowRepository
 import com.vajrax.domain.repository.LearnRepository
 import com.vajrax.domain.repository.LifePathRepository
 import com.vajrax.domain.repository.PracticeRepository
+import com.vajrax.domain.repository.ProfileRepository
+import com.vajrax.domain.repository.ReflectionRepository
 import com.vajrax.domain.repository.ReviewRepository
+import com.vajrax.domain.repository.SettingsRepository
+import com.vajrax.domain.repository.TemplateRepository
+import com.vajrax.domain.repository.TrackerRepository
 import com.vajrax.domain.template.LifePathTemplateEngine
+import com.vajrax.domain.usecase.AppHooks
+import com.vajrax.domain.usecase.NoopAppHooks
+import com.vajrax.domain.usecase.RoutineManager
+import com.vajrax.app.AppViewModel
 import com.vajrax.ui.features.calendar.CalendarViewModel
-import com.vajrax.ui.features.grow.GrowViewModel
+import com.vajrax.ui.features.discover.DiscoverViewModel
 import com.vajrax.ui.features.learn.LearnViewModel
+import com.vajrax.ui.features.onboarding.OnboardingViewModel
 import com.vajrax.ui.features.path.PathViewModel
+import com.vajrax.ui.features.profile.ProfileViewModel
+import com.vajrax.ui.features.report.ReportViewModel
 import com.vajrax.ui.features.review.ReviewViewModel
 import com.vajrax.ui.features.today.TodayViewModel
-import com.vajrax.ui.features.discover.DiscoverViewModel
+import com.vajrax.ui.features.grow.GrowViewModel
 import org.koin.dsl.module
 
 /**
- * Phase 18: Complete Production Koin Dependency Injection.
- * Provides Database, Repositories, Behavioral Engine, AI Interpretation, and ViewModels.
+ * Shared dependency graph. Platform modules (see androidApp) provide [DatabaseDriverFactory]
+ * and may provide [AppHooks] / [com.vajrax.platform.WidgetController]; they are looked up with
+ * getOrNull so the shared graph works without them (tests, iOS).
  */
 fun dataModule() = module {
-    // 0. Networking
     single { createHttpClient() }
+    single<AppClock> { SystemAppClock }
 
-    // 1. SQLDelight Database & Seeder
-    single { 
-        val driverFactory = get<DatabaseDriverFactory>()
-        val db = VajraDatabase(driverFactory.createDriver())
+    single {
+        val db = VajraDatabase(get<DatabaseDriverFactory>().createDriver())
         DatabaseSeeder(db).seedInitialDataIfEmpty()
         db
     }
 
-    // 2. Repositories
+    // Repositories
+    single { PracticeRepositoryImpl(get()) }
+    single<PracticeRepository> { get<PracticeRepositoryImpl>() }
+    single<TrackerRepository> { TrackerRepositoryImpl(get(), get()) }
+    single<TemplateRepository> { TemplateRepositoryImpl(get()) }
+    single<SettingsRepository> { SettingsRepositoryImpl(get()) }
+    single<ProfileRepository> { ProfileRepositoryImpl(get()) }
+    single<GoalRepository> { GoalRepositoryImpl(get()) }
+    single<ReflectionRepository> { ReflectionRepositoryImpl(get()) }
+    single<DataRepository> { DataRepositoryImpl(get()) }
     single<AuthRepository> { AuthRepositoryImpl(get()) }
     single<LifePathRepository> { LifePathRepositoryImpl(get()) }
-    single<PracticeRepository> { PracticeRepositoryImpl(get()) }
-    single<com.vajrax.domain.repository.TemplateRepository> { com.vajrax.data.repository.TemplateRepositoryImpl(get()) }
     single<LearnRepository> { LearnRepositoryImpl(get()) }
     single<GrowRepository> { GrowRepositoryImpl(get()) }
     single<ReviewRepository> { ReviewRepositoryImpl(get()) }
-    
 
-    // 3. Behavioral Intervention Engine (Phase 12)
+    // Domain
+    single {
+        RoutineManager(
+            practices = get(),
+            trackers = get(),
+            templates = get(),
+            settings = get(),
+            profiles = get(),
+            clock = get(),
+            hooks = getOrNull<AppHooks>() ?: NoopAppHooks
+        )
+    }
+
+    // Legacy VAJRAX engines (Learn / Path / AI companion)
     single { SamaEngine() }
     single { DamaEngine(get()) }
     single { DandaEngine(get()) }
     single { BhedaEngine(get()) }
     single { BehavioralEngine(get(), get(), get(), get()) }
-
-    // 4. Template Engine (Phase 14)
     single { LifePathTemplateEngine(get(), get()) }
-
-    // 5. Book-to-Life Knowledge Pipeline (Phase 15)
     single { BookToLifeManager(get(), get()) }
-
-    // 6. Growth & Character Analytics (Phase 16)
     single { GrowthAnalyticsManager(get(), get()) }
-
-    // 7. Supabase Cloud Sync (Phase 17)
     single { SupabaseSyncManager(get(), get(), get()) }
-
-    // 8. AI Pattern Interpretation Engine (Phase 18)
     single { AiPatternInterpreter() }
     single { com.vajrax.domain.ai.AiHumanTouchEngine() }
     single { AiClient(get(), get()) }
 
-
-    // 9. Presentation ViewModels (MVI / UDF)
-    single { com.vajrax.app.AppViewModel(get()) }
-    single { TodayViewModel(get(), getOrNull()) }
-    single { CalendarViewModel(get()) }
-    single { PathViewModel(get(), get(), get()) }
+    // Presentation
+    single { AppViewModel(get(), get(), get(), get()) }
+    single { OnboardingViewModel(get(), get(), get(), get(), get()) }
+    single { TodayViewModel(get(), get(), get(), get(), get(), get(), get()) }
+    single { CalendarViewModel(get(), get(), get(), get()) }
     single { DiscoverViewModel(get(), get()) }
+    single { com.vajrax.ui.features.templates.ActivationViewModel(get(), get(), get(), get(), get()) }
+    single { ReportViewModel(get(), get(), get(), get(), get()) }
+    single { ProfileViewModel(get(), get(), get(), get(), get(), get(), getOrNull<AppHooks>()) }
+    single { PathViewModel(get(), get(), get()) }
     single { LearnViewModel(get()) }
     single { GrowViewModel(get()) }
     single { ReviewViewModel(get()) }
-    single { com.vajrax.ui.features.profile.ProfileViewModel(get(), get(), get()) }
-    single { com.vajrax.ui.features.onboarding.OnboardingViewModel(get(), get(), get()) }
 }
-

@@ -1,0 +1,105 @@
+-- Migration 1 -> 2: HabitFlow offline MVP.
+-- Adds tracker / schedule / check-in columns, settings, goals and reflections,
+-- and removes the demo rows the v1 seeder inserted (fake "John Doe" profile, fake logs),
+-- so upgraded installs start at onboarding with real data only.
+
+ALTER TABLE TemplateEntity ADD COLUMN category TEXT NOT NULL DEFAULT 'General';
+ALTER TABLE TemplateEntity ADD COLUMN durationDays INTEGER NOT NULL DEFAULT 30;
+ALTER TABLE TemplateEntity ADD COLUMN isDraft INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE TemplateEntity ADD COLUMN recommendedFor TEXT;
+ALTER TABLE TemplateEntity ADD COLUMN updatedAt TEXT;
+
+ALTER TABLE TemplateHabitEntity ADD COLUMN category TEXT;
+ALTER TABLE TemplateHabitEntity ADD COLUMN icon TEXT;
+ALTER TABLE TemplateHabitEntity ADD COLUMN color TEXT;
+ALTER TABLE TemplateHabitEntity ADD COLUMN habitType TEXT NOT NULL DEFAULT 'BOOLEAN';
+ALTER TABLE TemplateHabitEntity ADD COLUMN targetValue REAL NOT NULL DEFAULT 1;
+ALTER TABLE TemplateHabitEntity ADD COLUMN unit TEXT;
+ALTER TABLE TemplateHabitEntity ADD COLUMN scheduleType TEXT NOT NULL DEFAULT 'DAILY';
+ALTER TABLE TemplateHabitEntity ADD COLUMN weeklyTarget INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE TemplateHabitEntity ADD COLUMN intervalDays INTEGER NOT NULL DEFAULT 1;
+
+ALTER TABLE UserTemplateEntity ADD COLUMN name TEXT;
+ALTER TABLE UserTemplateEntity ADD COLUMN startDate TEXT;
+ALTER TABLE UserTemplateEntity ADD COLUMN status TEXT NOT NULL DEFAULT 'ACTIVE';
+ALTER TABLE UserTemplateEntity ADD COLUMN endedAt TEXT;
+
+ALTER TABLE PracticeEntity ADD COLUMN trackerId TEXT;
+ALTER TABLE PracticeEntity ADD COLUMN category TEXT NOT NULL DEFAULT 'General';
+ALTER TABLE PracticeEntity ADD COLUMN icon TEXT NOT NULL DEFAULT 'check';
+ALTER TABLE PracticeEntity ADD COLUMN color TEXT NOT NULL DEFAULT 'indigo';
+ALTER TABLE PracticeEntity ADD COLUMN habitType TEXT NOT NULL DEFAULT 'BOOLEAN';
+ALTER TABLE PracticeEntity ADD COLUMN targetValue REAL NOT NULL DEFAULT 1;
+ALTER TABLE PracticeEntity ADD COLUMN unit TEXT;
+ALTER TABLE PracticeEntity ADD COLUMN scheduleType TEXT NOT NULL DEFAULT 'DAILY';
+ALTER TABLE PracticeEntity ADD COLUMN scheduleDays TEXT NOT NULL DEFAULT '1,2,3,4,5,6,7';
+ALTER TABLE PracticeEntity ADD COLUMN weeklyTarget INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE PracticeEntity ADD COLUMN intervalDays INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE PracticeEntity ADD COLUMN reminderEnabled INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE PracticeEntity ADD COLUMN reminderTime TEXT;
+ALTER TABLE PracticeEntity ADD COLUMN startDate TEXT;
+ALTER TABLE PracticeEntity ADD COLUMN archivedAt TEXT;
+ALTER TABLE PracticeEntity ADD COLUMN sortOrder INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE PracticeEntity ADD COLUMN createdAt TEXT;
+
+ALTER TABLE ActionRecordEntity ADD COLUMN value REAL;
+ALTER TABLE ActionRecordEntity ADD COLUMN note TEXT;
+ALTER TABLE ActionRecordEntity ADD COLUMN skipReason TEXT;
+ALTER TABLE ActionRecordEntity ADD COLUMN updatedAt TEXT;
+
+CREATE TABLE SettingEntity (
+    key TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL
+);
+
+CREATE TABLE GoalEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT,
+    targetType TEXT NOT NULL DEFAULT 'COMPLETIONS',
+    targetValue REAL NOT NULL,
+    startDate TEXT NOT NULL,
+    endDate TEXT,
+    status TEXT NOT NULL DEFAULT 'ACTIVE',
+    createdAt TEXT NOT NULL
+);
+
+CREATE TABLE GoalHabitEntity (
+    goalId TEXT NOT NULL,
+    habitId TEXT NOT NULL,
+    contributionWeight REAL NOT NULL DEFAULT 1,
+    PRIMARY KEY (goalId, habitId)
+);
+
+CREATE TABLE ReflectionEntity (
+    id TEXT NOT NULL PRIMARY KEY,
+    periodType TEXT NOT NULL,
+    periodStart TEXT NOT NULL,
+    achievements TEXT NOT NULL DEFAULT '',
+    obstacles TEXT NOT NULL DEFAULT '',
+    nextActions TEXT NOT NULL DEFAULT '',
+    createdAt TEXT NOT NULL,
+    updatedAt TEXT NOT NULL
+);
+
+-- Remove v1 demo seed rows.
+DELETE FROM EvidenceEntity WHERE id IN ('ev_1', 'ev_2');
+DELETE FROM ActionRecordEntity WHERE id IN ('act_1', 'act_2', 'act_3', 'act_4', 'act_5', 'act_6', 'act_7', 'act_8');
+DELETE FROM PracticeEntity WHERE id IN ('prac_1', 'prac_2', 'prac_3', 'prac_4', 'prac_5', 'prac_6', 'prac_7', 'prac_8');
+DELETE FROM UserTemplateEntity WHERE id = 'ut_01';
+DELETE FROM UserSessionEntity WHERE userId = 'user_lumina_01';
+DELETE FROM BookIdeaEntity WHERE id = 'idea_1';
+DELETE FROM PatternInsightEntity WHERE id = 'pattern_1';
+UPDATE LifePathEntity SET isActive = 0;
+
+-- Habits created by the v1 flows had no tracker; keep their rows but stop scheduling them.
+UPDATE PracticeEntity SET isActive = 0 WHERE trackerId IS NULL;
+
+-- One occurrence per habit per day.
+DELETE FROM ActionRecordEntity
+WHERE rowid NOT IN (SELECT MIN(rowid) FROM ActionRecordEntity GROUP BY practiceId, date);
+
+CREATE UNIQUE INDEX idx_action_practice_date ON ActionRecordEntity(practiceId, date);
+CREATE INDEX idx_action_status ON ActionRecordEntity(status);
+CREATE INDEX idx_practice_tracker ON PracticeEntity(trackerId);
+CREATE UNIQUE INDEX idx_reflection_period ON ReflectionEntity(periodType, periodStart);

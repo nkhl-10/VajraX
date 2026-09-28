@@ -1,482 +1,366 @@
 package com.vajrax.ui.features.calendar
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.vajrax.core.time.Dates
+import com.vajrax.core.time.TimeFormat
+import com.vajrax.domain.model.ActionStatus
+import com.vajrax.ui.designsystem.*
 import com.vajrax.ui.theme.LuminaTheme
+import com.vajrax.ui.theme.VxShape
+import com.vajrax.ui.theme.VxSpace
+import com.vajrax.ui.theme.habitAccent
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 
-/**
- * Calendar Screen — matches reference image 2.
- * Header: "Calendar" + Week/Month segmented pill.
- * Single white card: "30-Day Challenge" + day tabs (19-23, 21 selected)
- * + task rows with icon box + 5 check circles each.
- */
 @Composable
 fun CalendarScreen(
     state: CalendarUiState,
-    onIntent: (CalendarIntent) -> Unit
+    effects: Flow<CalendarEffect>,
+    onIntent: (CalendarIntent) -> Unit,
+    onOpenDiscover: () -> Unit
 ) {
     val colors = LuminaTheme.colors
-    val scroll = rememberScrollState()
+    val snackbar = LocalVxSnackbar.current
+    val scope = rememberCoroutineScope()
+    var correction by remember { mutableStateOf<Pair<MatrixCell, String>?>(null) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.background)
-            .statusBarsPadding()
-    ) {
-        Spacer(modifier = Modifier.height(16.dp))
+    LaunchedEffect(effects) {
+        effects.collect { e -> if (e is CalendarEffect.ShowMessage) scope.launch { snackbar.showSnackbar(e.message) } }
+    }
 
-        // ── Header: Calendar + Week/Month pill ──
+    Column(Modifier.fillMaxSize().background(colors.background).statusBarsPadding()) {
+        Spacer(Modifier.height(VxSpace.lg))
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            Modifier.fillMaxWidth().padding(horizontal = VxSpace.gutter),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = "Calendar",
-                color = colors.onSurface,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = (-0.5).sp
+            ScreenTitle("Calendar", Modifier.weight(1f))
+            SegmentedToggle(
+                options = listOf("Week", "Month"),
+                selectedIndex = state.mode.ordinal,
+                onSelect = { onIntent(CalendarIntent.SetMode(CalendarMode.entries[it])) }
             )
-            // Segmented: Week (selected white) | Month (gray)
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(colors.surfaceContainerLow)
-                    .padding(4.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+        }
+        Spacer(Modifier.height(VxSpace.lg))
+
+        Column(
+            Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = VxSpace.lg)
+        ) {
+            if (state.isLoading) {
+                LoadingSkeleton()
+            } else if (!state.hasTracker && state.rows.isEmpty()) {
+                EmptyState(VxIcons.Calendar, "Your calendar is empty", "Start a routine and your daily check-ins will show up here.", actionLabel = "Choose a template", onAction = onOpenDiscover)
+            } else if (state.mode == CalendarMode.WEEK) {
+                WeekMatrix(
+                    state = state,
+                    onIntent = onIntent,
+                    onPastTap = { scope.launch { snackbar.showSnackbar("Past days are read-only. Long-press a circle to correct a record.") } },
+                    onPastLongPress = { cell, title -> correction = cell to title }
+                )
+                Spacer(Modifier.height(VxSpace.md))
+                Legend(
+                    listOf(
+                        LegendItem(colors.primary, "Done today", filled = true),
+                        LegendItem(colors.outline, "Done", filled = false, check = true),
+                        LegendItem(colors.outlineVariant, "Not done / upcoming", filled = false)
+                    )
+                )
+            } else {
+                MonthView(state, onIntent)
+            }
+            Spacer(Modifier.height(VxSpace.navClearance))
+        }
+    }
+
+    correction?.let { (cell, title) ->
+        val markDone = cell.kind != CellKind.DONE_PAST
+        ConfirmDialog(
+            title = "Correct this record?",
+            message = "$title on ${Dates.shortLabel(cell.date)} will be marked as ${if (markDone) "done" else "not done"}. Your reports update to match.",
+            confirmLabel = if (markDone) "Mark done" else "Mark not done",
+            onConfirm = {
+                cell.occurrenceId?.let { onIntent(CalendarIntent.CorrectPast(it, markDone)) }
+                correction = null
+            },
+            onDismiss = { correction = null }
+        )
+    }
+}
+
+@Composable
+private fun WeekMatrix(
+    state: CalendarUiState,
+    onIntent: (CalendarIntent) -> Unit,
+    onPastTap: () -> Unit,
+    onPastLongPress: (MatrixCell, String) -> Unit
+) {
+    val colors = LuminaTheme.colors
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        RoundIconButton(VxIcons.ChevronLeft, "Previous days", onClick = { onIntent(CalendarIntent.Shift(-5)) })
+        Text(state.rangeLabel, style = MaterialTheme.typography.labelLarge, color = colors.onSurface, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+        if (state.selected != state.today) {
+            TextButton(onClick = { onIntent(CalendarIntent.GoToday) }) { Text("Today") }
+        }
+        RoundIconButton(VxIcons.ChevronRight, "Next days", onClick = { onIntent(CalendarIntent.Shift(5)) })
+    }
+    Spacer(Modifier.height(VxSpace.sm))
+    var dragTotal by remember { mutableStateOf(0f) }
+    VxCard(
+        elevated = true,
+        contentPadding = PaddingValues(vertical = VxSpace.lg),
+        modifier = Modifier.pointerInput(Unit) {
+            detectHorizontalDragGestures(
+                onDragEnd = {
+                    if (dragTotal > 120f) onIntent(CalendarIntent.Shift(-5)) else if (dragTotal < -120f) onIntent(CalendarIntent.Shift(5))
+                    dragTotal = 0f
+                },
+                onHorizontalDrag = { _, amount -> dragTotal += amount }
+            )
+        }
+    ) {
+        Row(Modifier.fillMaxWidth().padding(start = VxSpace.lg, end = VxSpace.sm), verticalAlignment = Alignment.Top) {
+            Text(
+                state.trackerName.ifBlank { "Your habits" },
+                style = MaterialTheme.typography.titleMedium,
+                color = colors.onSurface,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f).padding(top = 6.dp, end = VxSpace.sm)
+            )
+            state.weekDays.forEach { d ->
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.width(40.dp).clip(RoundedCornerShape(12.dp))
+                        .clickable(role = Role.Button) { onIntent(CalendarIntent.Select(d.date)) }
+                        .semantics { contentDescription = "${d.dayName} ${d.dayNumber}${if (d.isToday) ", today" else ""}" }
+                ) {
                     Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(colors.surface)
-                            .padding(horizontal = 16.dp, vertical = 7.dp),
+                        Modifier.size(32.dp).clip(CircleShape).background(if (d.isSelected) colors.primary else Color.Transparent),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Week",
-                            color = colors.onSurface,
-                            fontSize = 12.5.sp,
-                            fontWeight = FontWeight.Bold
+                            "${d.dayNumber}",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = when {
+                                d.isSelected -> colors.onPrimary
+                                d.isToday -> colors.primary
+                                else -> colors.onSurfaceVariant
+                            }
                         )
                     }
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 16.dp, vertical = 7.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Month",
-                            color = colors.onSurfaceVariant,
-                            fontSize = 12.5.sp,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
+                    Text(
+                        d.dayName,
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = if (d.isSelected) FontWeight.Bold else FontWeight.Normal),
+                        color = if (d.isSelected) colors.primary else colors.onSurfaceVariant
+                    )
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .verticalScroll(scroll)
-                .padding(horizontal = 16.dp)
-        ) {
-            // ── Main white card ──
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(colors.surface)
-                    .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(22.dp))
-                    .padding(vertical = 18.dp)
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    // Card header: 30-Day Challenge + day tabs
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 18.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.Top
-                    ) {
-                        Text(
-                            text = "30-Day Challenge",
-                            color = colors.onSurface,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = (-0.2).sp,
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(top = 6.dp)
-                        )
-                        // Day tabs 19-23
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(2.dp),
-                            verticalAlignment = Alignment.Top
-                        ) {
-                            state.days.forEach { day ->
-                                val isSelected = day.index == state.selectedDayOfWeek
-                                val isClickable = day.index == state.currentDayOfWeek
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier
-                                        .width(36.dp)
-                                        .clickable(
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = null
-                                        ) {
-                                            if (isClickable) onIntent(CalendarIntent.SelectDay(day.index))
-                                        }
-                                ) {
-                                    if (isSelected) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(30.dp)
-                                                .clip(CircleShape)
-                                                .background(colors.primary),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = "${day.dateNumber}",
-                                                color = Color.White,
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                        }
-                                    } else {
-                                        Box(
-                                            modifier = Modifier.size(30.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(
-                                                text = "${day.dateNumber}",
-                                                color = colors.onSurfaceVariant,
-                                                fontSize = 13.sp,
-                                                fontWeight = FontWeight.Medium
-                                            )
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        text = day.dayName,
-                                        color = if (isSelected) colors.primary else colors.outline,
-                                        fontSize = 10.5.sp,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(14.dp))
-                    HorizontalDivider(
-                        color = colors.outlineVariant.copy(alpha = 0.6f),
-                        thickness = 0.75.dp,
-                        modifier = Modifier.padding(horizontal = 18.dp)
-                    )
-                    Spacer(modifier = Modifier.height(6.dp))
-
-                    // ── Task rows ──
-                    state.tasks.forEach { task ->
-                        CalendarTaskRow(
-                            task = task,
-                            selectedDay = state.selectedDayOfWeek,
-                            currentDay = state.currentDayOfWeek,
-                            onToggle = { dayIdx -> onIntent(CalendarIntent.ToggleTaskDay(task.id, dayIdx)) }
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(6.dp))
-                }
+        Spacer(Modifier.height(VxSpace.md))
+        HorizontalDivider(Modifier.padding(horizontal = VxSpace.lg), color = colors.outlineVariant.copy(alpha = 0.7f))
+        if (state.rows.isEmpty()) {
+            Text(
+                "No habits in this range.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurfaceVariant,
+                modifier = Modifier.padding(VxSpace.lg)
+            )
+        }
+        state.rows.forEachIndexed { index, row ->
+            MatrixRowView(row, onIntent, onPastTap, onPastLongPress)
+            if (index != state.rows.lastIndex) {
+                HorizontalDivider(Modifier.padding(horizontal = VxSpace.lg), color = colors.outlineVariant.copy(alpha = 0.4f))
             }
-
-            // Clearance for floating nav
-            Spacer(modifier = Modifier.navigationBarsPadding().height(110.dp))
         }
     }
 }
 
 @Composable
-private fun CalendarTaskRow(
-    task: CalendarMatrixRow,
-    selectedDay: Int,
-    currentDay: Int,
-    onToggle: (Int) -> Unit
+private fun MatrixRowView(
+    row: MatrixRow,
+    onIntent: (CalendarIntent) -> Unit,
+    onPastTap: () -> Unit,
+    onPastLongPress: (MatrixCell, String) -> Unit
 ) {
     val colors = LuminaTheme.colors
-    val daysCompleted = listOf(
-        task.mondayCompleted,
-        task.tuesdayCompleted,
-        task.wednesdayCompleted,
-        task.thursdayCompleted,
-        task.fridayCompleted
-    )
+    Row(Modifier.fillMaxWidth().padding(start = VxSpace.md, end = VxSpace.sm, top = 2.dp, bottom = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+        IconBadge(VxIcons.forKey(row.habit.icon), habitAccent(row.habit.color, colors.isDark), size = 36.dp, iconSize = 18.dp)
+        Spacer(Modifier.width(VxSpace.sm))
+        Column(Modifier.weight(1f)) {
+            Text(row.habit.title, style = MaterialTheme.typography.labelLarge, color = colors.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(row.timeLabel, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Normal), color = colors.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        row.cells.forEach { cell ->
+            val label = "${row.habit.title}, ${Dates.shortLabel(cell.date)}"
+            when (cell.kind) {
+                CellKind.DONE_TODAY -> CheckCircle(CheckState.DONE, { cell.occurrenceId?.let { onIntent(CalendarIntent.ToggleToday(it)) } }, label, size = 24.dp, touchWidth = 40.dp)
+                CellKind.OPEN_TODAY -> CheckCircle(CheckState.OPEN, { cell.occurrenceId?.let { onIntent(CalendarIntent.ToggleToday(it)) } }, label, size = 24.dp, touchWidth = 40.dp)
+                CellKind.DONE_PAST -> CheckCircle(CheckState.DONE_MUTED, onPastTap, label, size = 24.dp, touchWidth = 40.dp, onLongClick = { onPastLongPress(cell, row.habit.title) })
+                CellKind.MISSED -> CheckCircle(CheckState.DISABLED, onPastTap, "$label, not done", size = 24.dp, touchWidth = 40.dp, onLongClick = { onPastLongPress(cell, row.habit.title) })
+                CellKind.SKIPPED -> CheckCircle(CheckState.SKIPPED, null, "$label, skipped", size = 24.dp, touchWidth = 40.dp)
+                CellKind.FUTURE -> CheckCircle(CheckState.DISABLED, null, "$label, upcoming", size = 24.dp, touchWidth = 40.dp)
+                CellKind.REST -> Box(Modifier.width(40.dp).height(48.dp).semantics { contentDescription = "$label, rest day" }, contentAlignment = Alignment.Center) {
+                    Box(Modifier.width(8.dp).height(2.dp).clip(VxShape.pill).background(colors.outlineVariant))
+                }
+            }
+        }
+    }
+}
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 9.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Icon box
+private data class LegendItem(val color: Color, val label: String, val filled: Boolean, val check: Boolean = false)
+
+@Composable
+private fun Legend(items: List<LegendItem>) {
+    val colors = LuminaTheme.colors
+    Row(Modifier.fillMaxWidth().padding(horizontal = VxSpace.sm), horizontalArrangement = Arrangement.spacedBy(VxSpace.lg)) {
+        items.forEach { item ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier.size(12.dp).clip(CircleShape)
+                        .background(if (item.filled) item.color else Color.Transparent)
+                        .border(1.dp, item.color, CircleShape)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(item.label, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Normal), color = colors.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MonthView(state: CalendarUiState, onIntent: (CalendarIntent) -> Unit) {
+    val colors = LuminaTheme.colors
+    VxCard(elevated = true) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            RoundIconButton(VxIcons.ChevronLeft, "Previous month", onClick = { onIntent(CalendarIntent.ShiftMonth(-1)) })
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(state.monthLabel, style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+                Text(
+                    state.monthStats.rate?.let { "$it% completed · ${state.monthStats.completed} of ${state.monthStats.eligible}" } ?: "No completed days yet",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant
+                )
+            }
+            RoundIconButton(VxIcons.ChevronRight, "Next month", onClick = { onIntent(CalendarIntent.ShiftMonth(1)) })
+        }
+        Spacer(Modifier.height(VxSpace.md))
+        Row(Modifier.fillMaxWidth()) {
+            listOf("M", "T", "W", "T", "F", "S", "S").forEach {
+                Text(it, style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
+            }
+        }
+        Spacer(Modifier.height(VxSpace.xs))
+        state.monthCells.chunked(7).forEach { week ->
+            Row(Modifier.fillMaxWidth()) {
+                week.forEach { cell -> HeatCell(cell, Modifier.weight(1f), onClick = { cell.date?.let { onIntent(CalendarIntent.Select(it)) } }) }
+            }
+        }
+        Spacer(Modifier.height(VxSpace.md))
+        Row(horizontalArrangement = Arrangement.spacedBy(VxSpace.md), verticalAlignment = Alignment.CenterVertically) {
+            listOf(3 to "High", 2 to "Medium", 1 to "Low", 0 to "None").forEach { (level, label) ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.size(12.dp).clip(RoundedCornerShape(3.dp)).background(heatColor(level)).border(1.dp, colors.outlineVariant, RoundedCornerShape(3.dp)))
+                    Spacer(Modifier.width(4.dp))
+                    Text(label, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Normal), color = colors.onSurfaceVariant)
+                }
+            }
+        }
+    }
+    Spacer(Modifier.height(VxSpace.lg))
+    VxCard {
+        Text(state.selectedLabel, style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+        val s = state.selectedStats
+        Text(
+            when {
+                state.selected != null && state.today != null && state.selected > state.today -> "Upcoming day"
+                s.scheduled == 0 -> "Nothing was scheduled — rest day"
+                else -> "${s.completed} of ${s.eligible + s.pending} done" + (if (s.skipped > 0) " · ${s.skipped} skipped" else "")
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.onSurfaceVariant
+        )
+        Spacer(Modifier.height(VxSpace.sm))
+        state.selectedItems.forEach { item ->
+            Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                val (icon, tint, text) = when (item.status) {
+                    ActionStatus.COMPLETE, ActionStatus.MINIMUM -> Triple(VxIcons.Check, colors.statusSuccess, if (item.status == ActionStatus.MINIMUM) "Minimum" else "Done")
+                    ActionStatus.SKIPPED -> Triple(VxIcons.SkipForward, colors.onSurfaceVariant, "Skipped")
+                    else -> Triple(VxIcons.Clock, colors.onSurfaceVariant, if (item.isPast) "Not done" else "Open")
+                }
+                Icon(icon, null, tint = tint, modifier = Modifier.size(16.dp))
+                Spacer(Modifier.width(VxSpace.sm))
+                Text(item.habit.title, style = MaterialTheme.typography.bodyMedium, color = colors.onSurface, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text("${TimeFormat.display(item.habit.time)} · $text", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun heatColor(level: Int): Color {
+    val colors = LuminaTheme.colors
+    return when (level) {
+        3 -> colors.primary
+        2 -> colors.primary.copy(alpha = 0.55f)
+        1 -> colors.primary.copy(alpha = 0.22f)
+        0 -> colors.surfaceContainerHigh
+        else -> Color.Transparent
+    }
+}
+
+@Composable
+private fun HeatCell(cell: MonthCell, modifier: Modifier, onClick: () -> Unit) {
+    val colors = LuminaTheme.colors
+    Box(modifier.aspectRatio(1f).padding(3.dp), contentAlignment = Alignment.Center) {
+        if (cell.date == null) return@Box
+        val bg = heatColor(cell.level)
+        val description = "${Dates.shortLabel(cell.date)}: " + when {
+            cell.isFuture -> "upcoming"
+            cell.level == -1 -> "nothing scheduled"
+            else -> "${cell.rate ?: 0} percent completed"
+        }
         Box(
-            modifier = Modifier
-                .size(38.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(colors.primaryContainer.copy(alpha = 0.6f)),
+            Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp)).background(bg)
+                .then(if (cell.isSelected) Modifier.border(2.dp, colors.onSurface, RoundedCornerShape(10.dp)) else if (cell.isToday) Modifier.border(1.5.dp, colors.primary, RoundedCornerShape(10.dp)) else Modifier)
+                .clickable(role = Role.Button, onClick = onClick)
+                .semantics { contentDescription = description },
             contentAlignment = Alignment.Center
         ) {
-            TaskIconVector(taskId = task.id, tint = colors.primary)
-        }
-        Spacer(modifier = Modifier.width(10.dp))
-        // Title + time — fixed width column so 5 circles always fit
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.Center
-        ) {
             Text(
-                text = task.title,
-                color = colors.onSurface,
-                fontSize = 13.5.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                softWrap = false
+                "${cell.date.day}",
+                style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (cell.isToday) FontWeight.Bold else FontWeight.Medium),
+                color = when {
+                    cell.level == 3 || cell.level == 2 -> colors.onPrimary
+                    cell.isFuture -> colors.textTertiary
+                    else -> colors.onSurface
+                }
             )
-            Spacer(modifier = Modifier.height(1.dp))
-            Text(
-                text = task.timeSubtitle,
-                color = colors.onSurfaceVariant,
-                fontSize = 11.sp,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                softWrap = false
-            )
-        }
-        Spacer(modifier = Modifier.width(6.dp))
-        // 5 circles
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(7.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            daysCompleted.forEachIndexed { dayIdx, isCompleted ->
-                val isActiveDay = dayIdx == selectedDay
-                val isEditable = dayIdx == currentDay
-                HabitCheckCircle(
-                    isCompleted = isCompleted,
-                    isActiveDay = isActiveDay,
-                    isEditable = isEditable,
-                    onClick = { if (isEditable) onToggle(dayIdx) }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun HabitCheckCircle(
-    isCompleted: Boolean,
-    isActiveDay: Boolean,
-    isEditable: Boolean,
-    onClick: () -> Unit
-) {
-    val colors = LuminaTheme.colors
-
-    when {
-        // Active Day Completed -> Solid Royal Indigo Circle with White Check
-        isCompleted && isActiveDay -> {
-            Box(
-                modifier = Modifier
-                    .size(22.dp)
-                    .clip(CircleShape)
-                    .background(colors.primary)
-                    .then(
-                        if (isEditable) Modifier.clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onClick
-                        ) else Modifier
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "✓",
-                    color = Color.White,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-
-        // Past Day Completed -> Subtle Grey Circle Outline with Grey Check
-        isCompleted && !isActiveDay -> {
-            Box(
-                modifier = Modifier
-                    .size(22.dp)
-                    .clip(CircleShape)
-                    .border(1.2.dp, colors.outline.copy(alpha = 0.6f), CircleShape)
-                    .then(
-                        if (isEditable) Modifier.clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onClick
-                        ) else Modifier
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "✓",
-                    color = colors.outline,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-
-        // Incomplete / Future Day -> Empty Circle Outline
-        else -> {
-            Box(
-                modifier = Modifier
-                    .size(22.dp)
-                    .clip(CircleShape)
-                    .border(1.2.dp, colors.outlineVariant, CircleShape)
-                    .then(
-                        if (isEditable) Modifier.clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null,
-                            onClick = onClick
-                        ) else Modifier
-                    )
-            )
-        }
-    }
-}
-
-@Composable
-private fun TaskIconVector(
-    taskId: String,
-    tint: Color,
-    size: Dp = 18.dp
-) {
-    Canvas(modifier = Modifier.size(size)) {
-        val w = this.size.width
-        val h = this.size.height
-        val sx = w / 24f
-        val sy = h / 24f
-        val strokeWidth = 1.9f * sx
-
-        when (taskId) {
-            "1" -> { // Clock (Daily Review)
-                drawCircle(color = tint, radius = 9f * sx, center = Offset(12f * sx, 12f * sy), style = Stroke(width = strokeWidth))
-                drawLine(color = tint, start = Offset(12f * sx, 12f * sy), end = Offset(12f * sx, 7f * sy), strokeWidth = strokeWidth, cap = StrokeCap.Round)
-                drawLine(color = tint, start = Offset(12f * sx, 12f * sy), end = Offset(15.5f * sx, 12f * sy), strokeWidth = strokeWidth, cap = StrokeCap.Round)
-            }
-            "2" -> { // Briefcase (Deep Work)
-                val body = RoundRect(Rect(4f * sx, 8f * sy, 20f * sx, 20f * sy), CornerRadius(2.5f * sx, 2.5f * sy))
-                val handle = RoundRect(Rect(9f * sx, 4.5f * sy, 15f * sx, 8f * sy), CornerRadius(1.5f * sx, 1.5f * sy))
-                drawPath(Path().apply { addRoundRect(body) }, color = tint, style = Stroke(width = strokeWidth))
-                drawPath(Path().apply { addRoundRect(handle) }, color = tint, style = Stroke(width = strokeWidth))
-                drawLine(color = tint, start = Offset(4f * sx, 13f * sy), end = Offset(20f * sx, 13f * sy), strokeWidth = strokeWidth * 0.8f)
-            }
-            "3" -> { // Location Pin (Lunch Walk)
-                val pinPath = Path().apply {
-                    moveTo(12f * sx, 21f * sy)
-                    cubicTo(6f * sx, 14f * sy, 5f * sx, 10f * sy, 5f * sx, 7.5f * sy)
-                    arcTo(Rect(5f * sx, 3f * sy, 19f * sx, 17f * sy), -180f, 180f, false)
-                    cubicTo(19f * sx, 10f * sy, 18f * sx, 14f * sy, 12f * sx, 21f * sy)
-                    close()
-                }
-                drawPath(pinPath, color = tint, style = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round))
-                drawCircle(color = tint, radius = 2.5f * sx, center = Offset(12f * sx, 9f * sy), style = Stroke(width = strokeWidth))
-            }
-            "4" -> { // Book (Learning)
-                val bookPath = Path().apply {
-                    moveTo(12f * sx, 19f * sy)
-                    cubicTo(8f * sx, 17f * sy, 4f * sx, 17f * sy, 3f * sx, 17.5f * sy)
-                    lineTo(3f * sx, 6.5f * sy)
-                    cubicTo(4f * sx, 6f * sy, 8f * sx, 6f * sy, 12f * sx, 8f * sy)
-                    cubicTo(16f * sx, 6f * sy, 20f * sx, 6f * sy, 21f * sx, 6.5f * sy)
-                    lineTo(21f * sx, 17.5f * sy)
-                    cubicTo(20f * sx, 17f * sy, 16f * sx, 17f * sy, 12f * sx, 19f * sy)
-                }
-                drawPath(bookPath, color = tint, style = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round))
-                drawLine(color = tint, start = Offset(12f * sx, 8f * sy), end = Offset(12f * sx, 19f * sy), strokeWidth = strokeWidth)
-            }
-            "5" -> { // Lightning Bolt (Workout)
-                val boltPath = Path().apply {
-                    moveTo(13f * sx, 2.5f * sy)
-                    lineTo(6f * sx, 13f * sy)
-                    lineTo(12f * sx, 13f * sy)
-                    lineTo(11f * sx, 21.5f * sy)
-                    lineTo(18f * sx, 11f * sy)
-                    lineTo(12f * sx, 11f * sy)
-                    close()
-                }
-                drawPath(boltPath, color = tint, style = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round))
-            }
-            "6" -> { // Smartphone / Screen (Reading)
-                val phone = RoundRect(Rect(6.5f * sx, 3.5f * sy, 17.5f * sx, 20.5f * sy), CornerRadius(3f * sx, 3f * sy))
-                drawPath(Path().apply { addRoundRect(phone) }, color = tint, style = Stroke(width = strokeWidth))
-                drawLine(color = tint, start = Offset(10f * sx, 18f * sy), end = Offset(14f * sx, 18f * sy), strokeWidth = strokeWidth, cap = StrokeCap.Round)
-            }
-            "7" -> { // Edit / Note (Plan Tomorrow)
-                val editPath = Path().apply {
-                    moveTo(4f * sx, 20f * sy)
-                    lineTo(8f * sx, 20f * sy)
-                    lineTo(19f * sx, 9f * sy)
-                    lineTo(15f * sx, 5f * sy)
-                    lineTo(4f * sx, 16f * sy)
-                    close()
-                }
-                drawPath(editPath, color = tint, style = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round))
-            }
-            "8" -> { // Moon (Sleep)
-                val moonPath = Path().apply {
-                    moveTo(12f * sx, 3.5f * sy)
-                    cubicTo(7f * sx, 3.5f * sy, 3.5f * sx, 7f * sy, 3.5f * sx, 12f * sy)
-                    cubicTo(3.5f * sx, 17f * sy, 7.5f * sx, 20.5f * sy, 12.5f * sy, 20.5f * sy)
-                    cubicTo(16f * sx, 20.5f * sy, 19f * sx, 18.5f * sy, 20.5f * sx, 15.5f * sy)
-                    cubicTo(14.5f * sx, 16f * sy, 9.5f * sx, 11f * sy, 10f * sx, 5f * sy)
-                    cubicTo(10.7f * sx, 4.3f * sy, 11.4f * sx, 3.8f * sy, 12f * sx, 3.5f * sy)
-                    close()
-                }
-                drawPath(moonPath, color = tint, style = Stroke(width = strokeWidth, cap = StrokeCap.Round, join = StrokeJoin.Round))
-            }
         }
     }
 }

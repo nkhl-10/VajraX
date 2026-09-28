@@ -16,4 +16,7 @@ data class WidgetTimelineSnapshot(
  */
 interface WidgetController {
     fun updateWidget(snapshot: WidgetTimelineSnapshot)
+
+    /** Ask widgets to re-read today's data from the shared database. */
+    fun refresh() {}
 }

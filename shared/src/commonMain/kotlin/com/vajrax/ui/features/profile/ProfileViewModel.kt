@@ -1,81 +1,174 @@
-﻿package com.vajrax.ui.features.profile
+@file:OptIn(ExperimentalUuidApi::class)
 
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.vajrax.data.local.VajraDatabase
-import com.vajrax.data.remote.SupabaseSyncManager
-import com.vajrax.domain.repository.AuthRepository
+package com.vajrax.ui.features.profile
+
+import com.vajrax.core.time.AppClock
+import com.vajrax.core.time.minuteTicks
+import com.vajrax.domain.habit.Tracker
+import com.vajrax.domain.repository.DataRepository
+import com.vajrax.domain.repository.ProfileRepository
+import com.vajrax.domain.repository.SettingsRepository
+import com.vajrax.domain.repository.TemplateRepository
+import com.vajrax.domain.repository.TrackerRepository
+import com.vajrax.domain.template.DefaultTemplate
+import com.vajrax.domain.usecase.AppHooks
+import com.vajrax.presentation.mvi.MviViewModel
+import com.vajrax.ui.theme.ThemeMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlin.uuid.ExperimentalUuidApi
+import kotlin.uuid.Uuid
 
 data class ProfileUiState(
-    val displayName: String = "John Doe",
-    val email: String = "john@example.com",
-    val avatarInitials: String = "JD",
-    val activeTemplateTitle: String = "Morning Discipline",
-    val activeTemplateDescription: String = "Build a structured morning routine",
-    val currentDay: Int = 12,
-    val totalDays: Int = 30,
-    val progressPercent: Int = 40,
-    val isSyncing: Boolean = false,
-    val syncStatusMessage: String? = null
+    val isLoading: Boolean = true,
+    val displayName: String = "",
+    val email: String = "",
+    val initials: String = "",
+    val tracker: Tracker? = null,
+    val trackerDescription: String = "",
+    val dayNumber: Int = 0,
+    val cycleFraction: Float = 0f,
+    val myTemplates: List<DefaultTemplate> = emptyList(),
+    val themeMode: ThemeMode = ThemeMode.AUTO,
+    val remindersEnabled: Boolean = false,
+    val privacy: String = "GENERIC",
+    val widgetHideNames: Boolean = false,
+    val isExporting: Boolean = false
 )
 
+sealed interface ProfileIntent {
+    data class SaveProfile(val name: String, val email: String) : ProfileIntent
+    data class SetTheme(val mode: ThemeMode) : ProfileIntent
+    data class SetReminders(val enabled: Boolean) : ProfileIntent
+    data class SetPrivacy(val privacy: String) : ProfileIntent
+    data class SetWidgetHideNames(val hide: Boolean) : ProfileIntent
+    data class DuplicateTemplate(val templateId: String) : ProfileIntent
+    data class DeleteTemplate(val templateId: String) : ProfileIntent
+    data object Export : ProfileIntent
+    data object DeleteAllData : ProfileIntent
+}
+
+sealed interface ProfileEffect {
+    data class ShowMessage(val message: String) : ProfileEffect
+    data class ExportReady(val fileName: String, val json: String) : ProfileEffect
+    data object DataWiped : ProfileEffect
+}
+
+/** Profile & settings (spec 04 Screen 12): local profile, current tracker, my templates, preferences, data. */
 class ProfileViewModel(
-    private val database: VajraDatabase,
-    private val authRepository: AuthRepository,
-    private val supabaseSyncManager: SupabaseSyncManager
-) : ViewModel() {
-
-    private val _uiState = MutableStateFlow(ProfileUiState())
-    val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
-
-    private val queries = database.vajraDatabaseQueries
+    private val profiles: ProfileRepository,
+    private val trackers: TrackerRepository,
+    private val templates: TemplateRepository,
+    private val settings: SettingsRepository,
+    private val data: DataRepository,
+    private val clock: AppClock,
+    private val hooks: AppHooks? = null
+) : MviViewModel<ProfileUiState, ProfileIntent, ProfileEffect>(ProfileUiState()) {
 
     init {
-        loadProfileData()
+        val today = clock.minuteTicks().map { it.first }.distinctUntilChanged()
+        viewModelScope.launch {
+            combine(profiles.observeProfile(), trackers.observeActiveTracker(), templates.observeCustomTemplates(), today) { p, t, mine, d ->
+                val description = t?.let { templates.getTemplateWithHabits(it.templateId)?.description } ?: ""
+                val day = t?.dayNumber(d) ?: 0
+                updateState {
+                    copy(
+                        isLoading = false,
+                        displayName = p?.displayName?.ifBlank { null } ?: "You",
+                        email = p?.email ?: "",
+                        initials = p?.initials?.takeIf { it != "?" } ?: "Y",
+                        tracker = t,
+                        trackerDescription = description,
+                        dayNumber = day,
+                        cycleFraction = if (t != null && t.totalDays > 0) day.toFloat() / t.totalDays else 0f,
+                        myTemplates = mine
+                    )
+                }
+            }.collect { }
+        }
+        viewModelScope.launch {
+            combine(
+                settings.observe(SettingsRepository.THEME),
+                settings.observe(SettingsRepository.REMINDERS_ENABLED),
+                settings.observe(SettingsRepository.NOTIFICATION_PRIVACY),
+                settings.observe(SettingsRepository.WIDGET_HIDE_NAMES)
+            ) { theme, reminders, privacy, hide ->
+                updateState {
+                    copy(
+                        themeMode = ThemeMode.of(theme),
+                        remindersEnabled = reminders == "true",
+                        privacy = privacy ?: "GENERIC",
+                        widgetHideNames = hide == "true"
+                    )
+                }
+            }.collect { }
+        }
     }
 
-    fun loadProfileData() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val user = queries.getCurrentUser().executeAsOneOrNull()
-            val activeUserTemplate = queries.getActiveUserTemplate().executeAsOneOrNull()
-
-            _uiState.update { state ->
-                state.copy(
-                    displayName = user?.displayName ?: "John Doe",
-                    email = user?.email ?: "john@example.com",
-                    avatarInitials = (user?.displayName ?: "JD")
-                        .split(" ")
-                        .mapNotNull { it.firstOrNull()?.toString() }
-                        .take(2)
-                        .joinToString("")
-                        .ifBlank { "JD" },
-                    activeTemplateTitle = activeUserTemplate?.title ?: "Morning Discipline",
-                    activeTemplateDescription = activeUserTemplate?.description ?: "Build a structured morning routine",
-                    currentDay = activeUserTemplate?.currentDay?.toInt() ?: 12,
-                    totalDays = activeUserTemplate?.totalDays?.toInt() ?: 30,
-                    progressPercent = activeUserTemplate?.progressPercent?.toInt() ?: 40
+    override fun sendIntent(intent: ProfileIntent) {
+        when (intent) {
+            is ProfileIntent.SaveProfile -> io("Profile updated") {
+                val email = intent.email.trim()
+                if (email.isNotEmpty() && !EMAIL.matches(email)) throw com.vajrax.domain.usecase.RoutineException("Enter a valid email or leave it empty.")
+                profiles.saveProfile(intent.name, email, clock.nowIso())
+            }
+            is ProfileIntent.SetTheme -> io(null) { settings.put(SettingsRepository.THEME, if (intent.mode == ThemeMode.AUTO) "SYSTEM" else intent.mode.name) }
+            is ProfileIntent.SetReminders -> io(if (intent.enabled) "Reminders on" else "Reminders off") {
+                settings.put(SettingsRepository.REMINDERS_ENABLED, intent.enabled.toString())
+                hooks?.onRoutineChanged()
+            }
+            is ProfileIntent.SetPrivacy -> io(null) {
+                settings.put(SettingsRepository.NOTIFICATION_PRIVACY, intent.privacy)
+                hooks?.onRoutineChanged()
+            }
+            is ProfileIntent.SetWidgetHideNames -> io(null) {
+                settings.put(SettingsRepository.WIDGET_HIDE_NAMES, intent.hide.toString())
+                hooks?.onCheckInChanged()
+            }
+            is ProfileIntent.DuplicateTemplate -> io("Template duplicated") {
+                val t = templates.getTemplateWithHabits(intent.templateId) ?: return@io
+                templates.saveCustomTemplate(
+                    t.copy(id = "custom_" + Uuid.random().toString(), name = "${t.name} (copy)".take(40), isCustom = true, isDraft = false, isCommunity = false, author = null)
                 )
+            }
+            is ProfileIntent.DeleteTemplate -> io("Template deleted") { templates.deleteTemplate(intent.templateId) }
+            ProfileIntent.Export -> {
+                updateState { copy(isExporting = true) }
+                viewModelScope.launch(Dispatchers.IO) {
+                    runCatching { data.exportJson(clock.nowIso()) }
+                        .onSuccess { json ->
+                            updateState { copy(isExporting = false) }
+                            sendEffect(ProfileEffect.ExportReady("vajrax-export-${clock.today()}.json", json))
+                        }
+                        .onFailure {
+                            updateState { copy(isExporting = false) }
+                            sendEffect(ProfileEffect.ShowMessage("Export failed. Please try again."))
+                        }
+                }
+            }
+            ProfileIntent.DeleteAllData -> viewModelScope.launch(Dispatchers.IO) {
+                runCatching {
+                    data.wipePersonalData()
+                    hooks?.onRoutineChanged()
+                }.onSuccess { sendEffect(ProfileEffect.DataWiped) }
+                    .onFailure { sendEffect(ProfileEffect.ShowMessage("Couldn't delete data. Nothing was changed.")) }
             }
         }
     }
 
-    fun triggerCloudSync() {
+    private fun io(success: String?, block: suspend () -> Unit) {
         viewModelScope.launch(Dispatchers.IO) {
-            _uiState.update { it.copy(isSyncing = true, syncStatusMessage = "Syncing with Supabase...") }
-            val result = supabaseSyncManager.syncLocalDataToCloud()
-            _uiState.update {
-                it.copy(
-                    isSyncing = false,
-                    syncStatusMessage = result.message
-                )
-            }
+            runCatching { block() }
+                .onSuccess { success?.let { sendEffect(ProfileEffect.ShowMessage(it)) } }
+                .onFailure { sendEffect(ProfileEffect.ShowMessage(userMessage(it))) }
         }
+    }
+
+    companion object {
+        private val EMAIL = Regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$")
     }
 }

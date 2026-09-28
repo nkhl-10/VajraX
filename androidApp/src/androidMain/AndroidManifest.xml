@@ -1,36 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Local reminders only; no network permission is needed for the offline MVP. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application
+        android:name=".VajraApplication"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="VAJRAX"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@android:style/Theme.NoTitleBar">
-        
+        android:theme="@style/Theme.VajraX">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@android:style/Theme.NoTitleBar">
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode|density"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.VajraX"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <!-- Home Screen Widget Provider -->
+        <!-- Home-screen widgets (Jetpack Glance): check in without opening the app -->
         <receiver
-            android:name=".widget.VajraTodayWidgetProvider"
-            android:exported="true">
+            android:name=".widget.TodayWidgetReceiver"
+            android:exported="true"
+            android:label="VAJRAX · Today">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="com.vajrax.android.ACTION_UPDATE_WIDGET" />
-                <action android:name="com.vajrax.android.WIDGET_ACTION_COMPLETE" />
-                <action android:name="com.vajrax.android.WIDGET_ACTION_MINIMUM" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/vajra_widget_list_info" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.NowWidgetReceiver"
+            android:exported="true"
+            android:label="VAJRAX · Now">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/vajra_widget_info" />
+        </receiver>
+
+        <!-- Habit reminders: alarms, notification actions, reschedule after reboot / time changes -->
+        <receiver
+            android:name=".reminders.ReminderReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+            </intent-filter>
         </receiver>
 
     </application>

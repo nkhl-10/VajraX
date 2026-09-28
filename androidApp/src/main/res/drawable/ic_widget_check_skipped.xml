@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dashed-look circle with a skip mark for skipped habits. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="28dp"
+    android:height="28dp"
+    android:viewportWidth="28"
+    android:viewportHeight="28">
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M14,14m-12,0a12,12 0,1 1,24 0a12,12 0,1 1,-24 0"
+        android:strokeWidth="1.6"
+        android:strokeColor="@color/vx_outline" />
+    <path
+        android:fillColor="@color/vx_on_surface_variant"
+        android:pathData="M10,9 L16,14 L10,19 Z M17,9 L18.6,9 L18.6,19 L17,19 Z" />
+</vector>

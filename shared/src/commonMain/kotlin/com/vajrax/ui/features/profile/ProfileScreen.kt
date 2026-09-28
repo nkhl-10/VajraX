@@ -1,496 +1,408 @@
-﻿package com.vajrax.ui.features.profile
+package com.vajrax.ui.features.profile
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import com.vajrax.ui.utils.gyroShadowCard
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.vajrax.ui.theme.LocalThemeModeController
+import com.vajrax.domain.template.DefaultTemplate
+import com.vajrax.platform.LocalPlatformActions
+import com.vajrax.ui.designsystem.*
 import com.vajrax.ui.theme.LuminaTheme
 import com.vajrax.ui.theme.ThemeMode
+import com.vajrax.ui.theme.VxSpace
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
 
-/**
- * 1:1 Figma-Faithful Profile Screen for Lumina Life OS.
- * Features centered user identity (John Doe, JD avatar, Edit Profile),
- * Current Template progress card (Morning Discipline, Day 12 of 30, 40%),
- * My Templates list, Cloud Sync, and Preferences.
- */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    state: ProfileUiState = ProfileUiState(),
-    onSync: () -> Unit = {}
+    state: ProfileUiState,
+    effects: Flow<ProfileEffect>,
+    onIntent: (ProfileIntent) -> Unit,
+    onViewRoutine: () -> Unit,
+    onChangeTemplate: () -> Unit,
+    onCreateTemplate: () -> Unit,
+    onEditTemplate: (String) -> Unit,
+    onUseTemplate: (String) -> Unit,
+    onDataWiped: () -> Unit
 ) {
     val colors = LuminaTheme.colors
-    val themeController = LocalThemeModeController.current
+    val snackbar = LocalVxSnackbar.current
+    val platform = LocalPlatformActions.current
+    val scope = rememberCoroutineScope()
+    var editProfile by remember { mutableStateOf(false) }
+    var appearance by remember { mutableStateOf(false) }
+    var notifications by remember { mutableStateOf(false) }
+    var confirmExport by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
+    var templateMenu by remember { mutableStateOf<DefaultTemplate?>(null) }
+    var confirmDeleteTemplate by remember { mutableStateOf<DefaultTemplate?>(null) }
+    var widgetPicker by remember { mutableStateOf(false) }
+
+    LaunchedEffect(effects) {
+        effects.collect { e ->
+            when (e) {
+                is ProfileEffect.ShowMessage -> scope.launch { snackbar.showSnackbar(e.message) }
+                is ProfileEffect.ExportReady -> platform.exportFile(e.fileName, e.json) { ok ->
+                    scope.launch { snackbar.showSnackbar(if (ok) "Export saved" else "Export cancelled") }
+                }
+                ProfileEffect.DataWiped -> onDataWiped()
+            }
+        }
+    }
 
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colors.background)
-            .statusBarsPadding()
-            .padding(horizontal = 20.dp)
-            .verticalScroll(rememberScrollState())
+        Modifier.fillMaxSize().background(colors.background).verticalScroll(rememberScrollState())
+            .statusBarsPadding().padding(horizontal = VxSpace.gutter)
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(Modifier.height(VxSpace.lg))
+        ScreenTitle("Profile")
+        Spacer(Modifier.height(VxSpace.xl))
 
-        // ==========================================
-        // 1. HEADER — Figma: Inter ExtraBold 800, 28sp, color #111827
-        // ==========================================
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Profile",
-                color = colors.onSurface,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.ExtraBold,
-                letterSpacing = (-0.5).sp
-            )
-
-            // Cloud Sync Indicator / Button
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(colors.primaryContainer)
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onSync
-                    )
-                    .padding(horizontal = 10.dp, vertical = 6.dp)
-            ) {
-                Text(
-                    text = if (state.isSyncing) "Syncing..." else "☁ Sync",
-                    color = colors.primary,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-
-        if (state.syncStatusMessage != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = state.syncStatusMessage,
-                color = colors.primary,
-                fontSize = 12.sp
-            )
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        // ==========================================
-        // 2. USER PROFILE HERO (Left-aligned — matches reference)
-        // ==========================================
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // JD Avatar Circle
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .clip(CircleShape)
-                    .background(colors.primary),
+                Modifier.size(72.dp).clip(CircleShape)
+                    .background(Brush.linearGradient(listOf(colors.primary, Color(0xFF7C3AED)))),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = state.avatarInitials,
-                    color = Color.White,
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(state.initials, style = MaterialTheme.typography.headlineSmall, color = Color.White)
             }
+            Spacer(Modifier.width(VxSpace.lg))
+            Column(Modifier.weight(1f)) {
+                Text(state.displayName, style = MaterialTheme.typography.titleLarge, color = colors.onSurface)
+                Text(state.email.ifBlank { "Local profile · stored on this device" }, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+            }
+        }
+        Spacer(Modifier.height(VxSpace.md))
+        SecondaryButton("Edit Profile", onClick = { editProfile = true }, modifier = Modifier.widthIn(min = 150.dp))
 
-            Spacer(modifier = Modifier.width(14.dp))
-
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = state.displayName,
-                    color = colors.onSurface,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-0.3).sp
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = state.email,
-                    color = Color(0xFF64748B),
-                    fontSize = 13.5.sp
-                )
+        Spacer(Modifier.height(VxSpace.xxl))
+        SectionLabel("Current template")
+        Spacer(Modifier.height(VxSpace.sm))
+        VxCard {
+            val t = state.tracker
+            if (t == null) {
+                Text("No active routine", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+                Text("Choose a template to start tracking.", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+                Spacer(Modifier.height(VxSpace.md))
+                PrimaryButton("Choose a template", onChangeTemplate, Modifier.fillMaxWidth())
+            } else {
+                Text(t.name, style = MaterialTheme.typography.titleLarge, color = colors.onSurface)
+                if (state.trackerDescription.isNotBlank()) {
+                    Text(state.trackerDescription, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+                }
+                Spacer(Modifier.height(VxSpace.md))
+                Row {
+                    Text("Day ${state.dayNumber} of ${t.totalDays}", style = MaterialTheme.typography.labelLarge, color = colors.primary, modifier = Modifier.weight(1f))
+                    Text("${(state.cycleFraction * 100).toInt()}% Complete", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                }
+                Spacer(Modifier.height(VxSpace.sm))
+                LinearBar(state.cycleFraction)
+                Spacer(Modifier.height(VxSpace.lg))
+                Row(horizontalArrangement = Arrangement.spacedBy(VxSpace.md)) {
+                    SecondaryButton("View Template", onViewRoutine, Modifier.weight(1f))
+                    PrimaryButton("Change Template", onChangeTemplate, Modifier.weight(1f))
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(Modifier.height(VxSpace.xxl))
+        SectionLabel("My templates")
+        Spacer(Modifier.height(VxSpace.sm))
+        VxCard(contentPadding = PaddingValues(vertical = VxSpace.xs)) {
+            state.myTemplates.forEach { t ->
+                ListRow(
+                    title = t.name,
+                    value = if (t.isDraft) "Draft" else "${t.habits.size} habits",
+                    onClick = { templateMenu = t }
+                )
+                RowDivider()
+            }
+            ListRow("Create New Template", onClick = onCreateTemplate, icon = VxIcons.Plus, titleColor = colors.primary, showChevron = false)
+        }
 
-        // Outlined "Edit Profile" button — matches reference
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(44.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .border(1.25.dp, colors.primary, RoundedCornerShape(12.dp))
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) { /* Edit profile */ },
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "Edit Profile",
-                color = colors.primary,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold
+        Spacer(Modifier.height(VxSpace.xxl))
+        SectionLabel("Preferences")
+        Spacer(Modifier.height(VxSpace.sm))
+        VxCard(contentPadding = PaddingValues(vertical = VxSpace.xs)) {
+            ListRow("Notifications", onClick = { notifications = true }, value = if (state.remindersEnabled) "On" else "Off", icon = VxIcons.Bell)
+            RowDivider()
+            ListRow(
+                "Appearance",
+                onClick = { appearance = true },
+                value = when (state.themeMode) { ThemeMode.AUTO -> "System"; ThemeMode.LIGHT -> "Light"; ThemeMode.DARK -> "Dark" },
+                icon = VxIcons.Sun
             )
+            RowDivider()
+            ListRow(
+                "Home-screen widget",
+                onClick = {
+                    if (platform.canPinWidget()) widgetPicker = true
+                    else scope.launch { snackbar.showSnackbar("Long-press your home screen → Widgets → VAJRAX.") }
+                },
+                value = "Add",
+                icon = VxIcons.Smartphone
+            )
+            RowDivider()
+            ListRow("Language", onClick = { scope.launch { snackbar.showSnackbar("English is the only language for now.") } }, value = "English", icon = VxIcons.Globe)
         }
 
-        Spacer(modifier = Modifier.height(28.dp))
-
-        // ==========================================
-        // 3. CURRENT TEMPLATE CARD
-        // ==========================================
-        Text(
-            text = "CURRENT TEMPLATE",
-            color = Color(0xFF8B95A5),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 0.8.sp
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .gyroShadowCard()
-                .clip(RoundedCornerShape(26.dp))
-                .background(colors.surface)
-                .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(26.dp))
-                .padding(20.dp)
-        ) {
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = state.activeTemplateTitle,
-                    color = colors.onSurface,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = (-0.3).sp
-                )
-                Spacer(modifier = Modifier.height(3.dp))
-                Text(
-                    text = state.activeTemplateDescription,
-                    color = colors.onSurfaceVariant,
-                    fontSize = 13.5.sp
-                )
-
-                Spacer(modifier = Modifier.height(18.dp))
-
-                // Progress Info Row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Day ${state.currentDay} of ${state.totalDays}",
-                        color = colors.primary,
-                        fontSize = 13.5.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "${state.progressPercent}% Complete",
-                        color = Color(0xFF64748B),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // Progress Bar
-                val progressFrac = (state.progressPercent / 100f).coerceIn(0f, 1f)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                        .background(Color(0xFFEEF2FF))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(progressFrac)
-                            .fillMaxHeight()
-                            .clip(RoundedCornerShape(3.dp))
-                            .background(colors.primary)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // Action Buttons Row: [View Template] [Change Template]
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    // Outlined "View Template" Button
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(colors.surface)
-                            .border(1.5.dp, colors.primary, RoundedCornerShape(14.dp))
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) { /* View Template action */ },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "View Template",
-                            color = colors.primary,
-                            fontSize = 13.5.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-
-                    // Solid "Change Template" Button
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(44.dp)
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(colors.primary)
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) { /* Change Template action */ },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Change Template",
-                            color = Color.White,
-                            fontSize = 13.5.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
-                }
-            }
+        Spacer(Modifier.height(VxSpace.xxl))
+        SectionLabel("Data & privacy")
+        Spacer(Modifier.height(VxSpace.sm))
+        VxCard(contentPadding = PaddingValues(vertical = VxSpace.xs)) {
+            ListRow("Export my data", onClick = { confirmExport = true }, icon = VxIcons.Download, value = if (state.isExporting) "Preparing…" else "JSON")
+            RowDivider()
+            ListRow("Delete all data", onClick = { confirmDelete = true }, icon = VxIcons.Trash, titleColor = colors.statusError, showChevron = false)
         }
-
-        Spacer(modifier = Modifier.height(28.dp))
-
-        // ==========================================
-        // 4. MY TEMPLATES SECTION
-        // ==========================================
+        Spacer(Modifier.height(VxSpace.md))
         Text(
-            text = "MY TEMPLATES",
-            color = Color(0xFF8B95A5),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 0.8.sp
+            "Everything is stored only on this device and works offline. VAJRAX ${platform.appVersion}",
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.onSurfaceVariant
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(Modifier.height(VxSpace.navClearance))
+    }
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .gyroShadowCard()
-                .clip(RoundedCornerShape(22.dp))
-                .background(colors.surface)
-                .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(22.dp))
-        ) {
-            Column {
-                ProfileChevronRow(
-                    title = "Custom Evening Routine",
-                    onClick = {}
-                )
-                HorizontalDivider(color = colors.outlineVariant.copy(alpha = 0.5f), thickness = 0.5.dp)
+    if (editProfile) EditProfileDialog(state, onDismiss = { editProfile = false }, onSave = { n, e ->
+        onIntent(ProfileIntent.SaveProfile(n, e))
+        editProfile = false
+    })
 
-                ProfileChevronRow(
-                    title = "Weekend Reset",
-                    onClick = {}
-                )
-                HorizontalDivider(color = colors.outlineVariant.copy(alpha = 0.5f), thickness = 0.5.dp)
-
-                // "+ Create New Template" Row
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) { /* Create new template */ }
-                        .padding(horizontal = 18.dp, vertical = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "+",
-                        color = colors.primary,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = "Create New Template",
-                        color = colors.primary,
-                        fontSize = 14.5.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(28.dp))
-
-        // ==========================================
-        // 5. PREFERENCES SECTION
-        // ==========================================
-        Text(
-            text = "PREFERENCES",
-            color = Color(0xFF8B95A5),
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 0.8.sp
+    if (appearance) {
+        OptionDialog(
+            title = "Appearance",
+            options = listOf(ThemeMode.AUTO to "Use system setting", ThemeMode.LIGHT to "Light", ThemeMode.DARK to "Dark"),
+            selected = state.themeMode,
+            onSelect = {
+                onIntent(ProfileIntent.SetTheme(it))
+                appearance = false
+            },
+            onDismiss = { appearance = false }
         )
-        Spacer(modifier = Modifier.height(12.dp))
+    }
 
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .gyroShadowCard()
-                .clip(RoundedCornerShape(22.dp))
-                .background(colors.surface)
-                .border(1.dp, colors.outlineVariant.copy(alpha = 0.7f), RoundedCornerShape(22.dp))
-        ) {
-            Column {
-                ProfileChevronRow(
-                    title = "Notifications",
-                    onClick = {}
-                )
-                HorizontalDivider(color = colors.outlineVariant.copy(alpha = 0.5f), thickness = 0.5.dp)
-
-                // Theme Mode Switch Row
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            themeController.value = if (colors.isDark) ThemeMode.LIGHT else ThemeMode.DARK
+    if (notifications) {
+        ModalBottomSheet(onDismissRequest = { notifications = false }, sheetState = rememberModalBottomSheetState(true), containerColor = colors.surface) {
+            Column(Modifier.padding(horizontal = VxSpace.xxl).padding(bottom = VxSpace.xxxl)) {
+                Text("Notifications", style = MaterialTheme.typography.headlineSmall, color = colors.onSurface)
+                Text("Reminders are set per habit. They are silent nudges, never guilt.", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                Spacer(Modifier.height(VxSpace.lg))
+                SwitchRow(
+                    title = "Habit reminders",
+                    subtitle = if (state.remindersEnabled) "On for habits with a reminder time" else "Off",
+                    checked = state.remindersEnabled,
+                    onChange = { enable ->
+                        if (enable && !platform.notificationsPermitted()) {
+                            platform.requestNotificationPermission { granted ->
+                                onIntent(ProfileIntent.SetReminders(granted))
+                                if (!granted) scope.launch { snackbar.showSnackbar("Allow notifications in system settings to get reminders.") }
+                            }
+                        } else {
+                            onIntent(ProfileIntent.SetReminders(enable))
                         }
-                        .padding(horizontal = 18.dp, vertical = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Appearance",
-                        color = colors.onSurface,
-                        fontSize = 14.5.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(10.dp))
-                            .background(Color(0xFFEEF2FF))
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    }
+                )
+                Spacer(Modifier.height(VxSpace.lg))
+                Text("On the lock screen", style = MaterialTheme.typography.titleSmall, color = colors.onSurface)
+                Spacer(Modifier.height(VxSpace.sm))
+                listOf("FULL" to "Show habit names", "GENERIC" to "Generic: “You have a habit due”", "HIDDEN" to "No details").forEach { (key, label) ->
+                    Row(
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp).selectable(state.privacy == key, role = Role.RadioButton) { onIntent(ProfileIntent.SetPrivacy(key)) },
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = if (colors.isDark) "Dark" else "Light",
-                            color = colors.primary,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold
-                        )
+                        RadioButton(selected = state.privacy == key, onClick = null)
+                        Spacer(Modifier.width(VxSpace.sm))
+                        Text(label, style = MaterialTheme.typography.bodyMedium, color = colors.onSurface)
                     }
                 }
-                HorizontalDivider(color = colors.outlineVariant.copy(alpha = 0.5f), thickness = 0.5.dp)
-
-                // Language row — matches reference bottom
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 18.dp, vertical = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Language",
-                        color = colors.onSurface,
-                        fontSize = 14.5.sp,
-                        fontWeight = FontWeight.Medium
-                    )
-                    Text(
-                        text = "English  ›",
-                        color = colors.onSurfaceVariant,
-                        fontSize = 13.5.sp
-                    )
-                }
+                Spacer(Modifier.height(VxSpace.md))
+                SecondaryButton(
+                    "Send a test reminder",
+                    onClick = {
+                        val send = {
+                            platform.sendTestReminder()
+                            scope.launch { snackbar.showSnackbar("Test reminder sent — check your notifications.") }
+                        }
+                        if (platform.notificationsPermitted()) send()
+                        else platform.requestNotificationPermission { granted ->
+                            if (granted) send() else scope.launch { snackbar.showSnackbar("Allow notifications in system settings to get reminders.") }
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    icon = VxIcons.Bell
+                )
+                Spacer(Modifier.height(VxSpace.md))
+                SwitchRow(
+                    title = "Hide habit names on the home-screen widget",
+                    subtitle = null,
+                    checked = state.widgetHideNames,
+                    onChange = { onIntent(ProfileIntent.SetWidgetHideNames(it)) }
+                )
             }
         }
+    }
 
-        // Safe clearance for bottom navigation dock
-        Spacer(modifier = Modifier.navigationBarsPadding().height(110.dp))
+    if (widgetPicker) {
+        ModalBottomSheet(onDismissRequest = { widgetPicker = false }, sheetState = rememberModalBottomSheetState(true), containerColor = colors.surface) {
+            Column(Modifier.padding(bottom = VxSpace.xxxl)) {
+                Text("Add a home-screen widget", style = MaterialTheme.typography.headlineSmall, color = colors.onSurface, modifier = Modifier.padding(horizontal = VxSpace.xl))
+                Text(
+                    "Check in without opening the app — the same actions as a reminder.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = VxSpace.xl)
+                )
+                Spacer(Modifier.height(VxSpace.md))
+                WidgetOption(
+                    title = "Today list",
+                    body = "Every habit for today. Tap a circle to mark it done (tap again to undo), +1 for counts, Later to snooze the current one.",
+                    onClick = {
+                        widgetPicker = false
+                        platform.requestPinWidget(list = true)
+                    }
+                )
+                WidgetOption(
+                    title = "Now card",
+                    body = "Just the current habit with Done and Snooze. Fits a small space.",
+                    onClick = {
+                        widgetPicker = false
+                        platform.requestPinWidget(list = false)
+                    }
+                )
+            }
+        }
+    }
+
+    if (confirmExport) {
+        ConfirmDialog(
+            title = "Export your data?",
+            message = "The file contains your habits, history, notes and reflections. You choose where it is saved; nothing is uploaded.",
+            confirmLabel = "Export",
+            onConfirm = {
+                confirmExport = false
+                onIntent(ProfileIntent.Export)
+            },
+            onDismiss = { confirmExport = false }
+        )
+    }
+    if (confirmDelete) {
+        ConfirmDialog(
+            title = "Delete all data?",
+            message = "This permanently removes your profile, routines, history, goals, reflections and custom templates from this device. It can't be undone — export first if you want a copy.",
+            confirmLabel = "Delete everything",
+            destructive = true,
+            onConfirm = {
+                confirmDelete = false
+                onIntent(ProfileIntent.DeleteAllData)
+            },
+            onDismiss = { confirmDelete = false }
+        )
+    }
+
+    templateMenu?.let { t ->
+        ModalBottomSheet(onDismissRequest = { templateMenu = null }, sheetState = rememberModalBottomSheetState(true), containerColor = colors.surface) {
+            Column(Modifier.padding(bottom = VxSpace.xxxl)) {
+                Text(t.name, style = MaterialTheme.typography.titleLarge, color = colors.onSurface, modifier = Modifier.padding(horizontal = VxSpace.xl))
+                Text(if (t.isDraft) "Draft" else "${t.habits.size} habits", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, modifier = Modifier.padding(horizontal = VxSpace.xl))
+                Spacer(Modifier.height(VxSpace.md))
+                if (!t.isDraft && t.habits.isNotEmpty()) {
+                    ListRow("Use this template", onClick = { templateMenu = null; onUseTemplate(t.id) }, icon = VxIcons.Check)
+                }
+                ListRow("Edit", onClick = { templateMenu = null; onEditTemplate(t.id) }, icon = VxIcons.Pencil)
+                ListRow("Duplicate", onClick = { templateMenu = null; onIntent(ProfileIntent.DuplicateTemplate(t.id)) }, icon = VxIcons.Copy)
+                ListRow("Delete", onClick = { templateMenu = null; confirmDeleteTemplate = t }, icon = VxIcons.Trash, titleColor = colors.statusError, showChevron = false)
+            }
+        }
+    }
+    confirmDeleteTemplate?.let { t ->
+        ConfirmDialog(
+            title = "Delete “${t.name}”?",
+            message = "Routines already started from it keep their history.",
+            confirmLabel = "Delete",
+            destructive = true,
+            onConfirm = {
+                onIntent(ProfileIntent.DeleteTemplate(t.id))
+                confirmDeleteTemplate = null
+            },
+            onDismiss = { confirmDeleteTemplate = null }
+        )
     }
 }
 
 @Composable
-private fun ProfileChevronRow(
-    title: String,
-    onClick: () -> Unit
-) {
+private fun EditProfileDialog(state: ProfileUiState, onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
     val colors = LuminaTheme.colors
+    var name by remember { mutableStateOf(if (state.displayName == "You") "" else state.displayName) }
+    var email by remember { mutableStateOf(state.email) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit profile", style = MaterialTheme.typography.titleLarge) },
+        text = {
+            Column {
+                VxTextField("Name", name, { name = it }, maxChars = 40)
+                Spacer(Modifier.height(VxSpace.md))
+                VxTextField("Email (optional)", email, { email = it }, keyboardType = KeyboardType.Email, helper = "Only stored on this device.")
+            }
+        },
+        confirmButton = { TextButton(onClick = { onSave(name, email) }) { Text("Save", fontWeight = FontWeight.Bold) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        containerColor = colors.surface
+    )
+}
 
+@Composable
+private fun <T> OptionDialog(title: String, options: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit, onDismiss: () -> Unit) {
+    val colors = LuminaTheme.colors
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title, style = MaterialTheme.typography.titleLarge) },
+        text = {
+            Column {
+                options.forEach { (value, label) ->
+                    Row(
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp).selectable(value == selected, role = Role.RadioButton) { onSelect(value) },
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(selected = value == selected, onClick = null)
+                        Spacer(Modifier.width(VxSpace.sm))
+                        Text(label, style = MaterialTheme.typography.bodyLarge, color = colors.onSurface)
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        containerColor = colors.surface
+    )
+}
+
+@Composable
+private fun WidgetOption(title: String, body: String, onClick: () -> Unit) {
+    val colors = LuminaTheme.colors
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
-            )
-            .padding(horizontal = 18.dp, vertical = 16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick).padding(horizontal = VxSpace.xl, vertical = VxSpace.md),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = title,
-            color = colors.onSurface,
-            fontSize = 14.5.sp,
-            fontWeight = FontWeight.Medium
-        )
-
-        // Chevron Right Icon
-        androidx.compose.foundation.Canvas(modifier = Modifier.size(14.dp)) {
-            val stroke = 1.6.dp.toPx()
-            drawLine(
-                color = Color(0xFF94A3B8),
-                start = androidx.compose.ui.geometry.Offset(size.width * 0.35f, size.height * 0.15f),
-                end = androidx.compose.ui.geometry.Offset(size.width * 0.75f, size.height * 0.5f),
-                strokeWidth = stroke,
-                cap = androidx.compose.ui.graphics.StrokeCap.Round
-            )
-            drawLine(
-                color = Color(0xFF94A3B8),
-                start = androidx.compose.ui.geometry.Offset(size.width * 0.75f, size.height * 0.5f),
-                end = androidx.compose.ui.geometry.Offset(size.width * 0.35f, size.height * 0.85f),
-                strokeWidth = stroke,
-                cap = androidx.compose.ui.graphics.StrokeCap.Round
-            )
+        IconBadge(VxIcons.Smartphone, colors.primary, size = 40.dp)
+        Spacer(Modifier.width(VxSpace.md))
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+            Text(body, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
         }
+        Icon(VxIcons.Plus, null, tint = colors.primary, modifier = Modifier.size(20.dp))
     }
 }

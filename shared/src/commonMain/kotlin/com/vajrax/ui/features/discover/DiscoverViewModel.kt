@@ -1,111 +1,46 @@
 package com.vajrax.ui.features.discover
 
 import com.vajrax.domain.repository.TemplateRepository
-import com.vajrax.domain.repository.PracticeRepository
-import com.vajrax.domain.model.Practice
-import com.vajrax.domain.template.DefaultTemplate
-import kotlinx.coroutines.flow.*
+import com.vajrax.domain.repository.TrackerRepository
+import com.vajrax.domain.template.TemplateCatalog
+import com.vajrax.presentation.mvi.MviViewModel
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import kotlin.uuid.Uuid
-import kotlin.uuid.ExperimentalUuidApi
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 
-@OptIn(ExperimentalUuidApi::class)
+/** Template library (spec 04 Screens 02 & 11): provided, bundled community picks and the user's own. */
 class DiscoverViewModel(
-    private val templateRepository: TemplateRepository,
-    private val practiceRepository: PracticeRepository
-) : ViewModel() {
-    private val _state = MutableStateFlow(DiscoverState())
-    val state: StateFlow<DiscoverState> = _state.asStateFlow()
-    
-    private val _effect = MutableSharedFlow<DiscoverEffect>()
-    val effect: SharedFlow<DiscoverEffect> = _effect.asSharedFlow()
+    private val templates: TemplateRepository,
+    private val trackers: TrackerRepository
+) : MviViewModel<DiscoverState, DiscoverIntent, Unit>(DiscoverState()) {
+
+    private val catalogOrder: Map<String, Int> = TemplateCatalog.all.mapIndexed { i, t -> t.id to i }.toMap()
 
     init {
-        loadTemplates()
+        viewModelScope.launch {
+            combine(templates.observeLibrary(), trackers.observeActiveTracker()) { all, tracker -> all to tracker }
+                .collect { (all, tracker) ->
+                    val published = all.filter { !it.isDraft }
+                    val system = published.filter { !it.isCustom }.sortedBy { catalogOrder[it.id] ?: Int.MAX_VALUE }
+                    updateState {
+                        copy(
+                            isLoading = false,
+                            provided = system.filter { !it.isCommunity },
+                            community = system.filter { it.isCommunity },
+                            mine = published.filter { it.isCustom },
+                            activeTemplateId = tracker?.templateId,
+                            categories = TemplateCatalog.categories.filter { c -> published.any { it.category == c } } +
+                                published.map { it.category }.filter { it !in TemplateCatalog.categories }.distinct()
+                        )
+                    }
+                }
+        }
     }
 
-    fun onIntent(intent: DiscoverIntent) {
+    override fun sendIntent(intent: DiscoverIntent) {
         when (intent) {
-            is DiscoverIntent.Initialize -> loadTemplates()
-            is DiscoverIntent.SelectPath -> selectTemplate(intent.index)
-            is DiscoverIntent.TogglePractice -> {} // Preview mode only
-            is DiscoverIntent.UseTemplate -> useTemplate(intent.path)
+            DiscoverIntent.ToggleSearch -> updateState { copy(searchOpen = !searchOpen, query = if (searchOpen) "" else query) }
+            is DiscoverIntent.Search -> updateState { copy(query = intent.query.take(40)) }
+            is DiscoverIntent.SelectCategory -> updateState { copy(category = intent.category) }
         }
     }
-
-    private fun loadTemplates() {
-        viewModelScope.launch {
-            try {
-                val templates = templateRepository.getAllTemplates()
-                val paths = templates.map { template ->
-                    DiscoverLifePath(
-                        id = template.id,
-                        title = template.name,
-                        subtitle = template.category,
-                        description = template.description,
-                        accentColorHex = "#5D3FD3",
-                        practices = template.habits.map { habit ->
-                            DiscoverPractice(
-                                id = habit.name,
-                                title = habit.name,
-                                time = habit.startTime,
-                                duration = "${habit.duration}m",
-                                icon = "⚙️",
-                                isRequired = true
-                            )
-                        }
-                    )
-                }
-                _state.update { it.copy(isLoading = false, paths = paths, rawTemplates = templates) }
-                if (paths.isNotEmpty()) {
-                    selectTemplate(0)
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
-
-    private fun selectTemplate(index: Int) {
-        _state.update { it.copy(selectedPathIndex = index) }
-        val selectedPath = _state.value.paths.getOrNull(index)
-        if (selectedPath != null) {
-            _state.update { it.copy(practices = selectedPath.practices) }
-        }
-    }
-
-    private fun useTemplate(path: DiscoverLifePath) {
-        viewModelScope.launch {
-            try {
-                val template = _state.value.rawTemplates?.find { it.id == path.id } ?: return@launch
-                
-                // Reset existing active practices
-                val existing = practiceRepository.getActivePractices()
-                existing.forEach { 
-                    practiceRepository.togglePracticeActive(it.id, false)
-                }
-                
-                // Insert new habits
-                template.habits.forEach { habit ->
-                    val practice = Practice(
-                        id = Uuid.random().toString(),
-                        principleId = "",
-                        title = habit.name,
-                        targetDurationMinutes = habit.duration,
-                        minimumDurationMinutes = habit.duration,
-                        preferredTime = habit.startTime,
-                        trackingMode = habit.trackingType,
-                        isActive = true
-                    )
-                    practiceRepository.insertPractice(practice)
-                }
-                _effect.emit(DiscoverEffect.NavigateToHome)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }
-
 }

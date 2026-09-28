@@ -4,19 +4,29 @@ import com.vajrax.domain.template.DefaultTemplate
 
 data class DiscoverState(
     val isLoading: Boolean = true,
-    val paths: List<DiscoverLifePath> = emptyList(),
-    val rawTemplates: List<DefaultTemplate>? = null,
-    val selectedPathIndex: Int = 0,
-    val practices: List<DiscoverPractice> = emptyList()
-)
+    val provided: List<DefaultTemplate> = emptyList(),
+    val community: List<DefaultTemplate> = emptyList(),
+    val mine: List<DefaultTemplate> = emptyList(),
+    val activeTemplateId: String? = null,
+    val searchOpen: Boolean = false,
+    val query: String = "",
+    val category: String? = null,
+    val categories: List<String> = emptyList()
+) {
+    private fun List<DefaultTemplate>.filtered() = filter { t ->
+        (category == null || t.category == category) &&
+            (query.isBlank() || t.name.contains(query, true) || t.description.contains(query, true) ||
+                t.habits.any { it.name.contains(query, true) })
+    }
 
-sealed interface DiscoverIntent {
-    object Initialize : DiscoverIntent
-    data class SelectPath(val index: Int) : DiscoverIntent
-    data class TogglePractice(val practiceId: String) : DiscoverIntent
-    data class UseTemplate(val path: DiscoverLifePath) : DiscoverIntent
+    val visibleProvided get() = provided.filtered()
+    val visibleCommunity get() = community.filtered()
+    val visibleMine get() = mine.filtered()
+    val isFiltering get() = category != null || query.isNotBlank()
 }
 
-sealed interface DiscoverEffect {
-    object NavigateToHome : DiscoverEffect
+sealed interface DiscoverIntent {
+    data object ToggleSearch : DiscoverIntent
+    data class Search(val query: String) : DiscoverIntent
+    data class SelectCategory(val category: String?) : DiscoverIntent
 }
