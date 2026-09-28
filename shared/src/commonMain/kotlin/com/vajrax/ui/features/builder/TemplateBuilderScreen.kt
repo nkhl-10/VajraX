@@ -130,7 +130,7 @@ fun TemplateBuilderScreen(
             SectionLabel("Template structure") {
                 Text("${state.habits.size} ${if (state.habits.size == 1) "habit" else "habits"}", style = MaterialTheme.typography.labelMedium, color = colors.primary)
             }
-            Text("Long-press the handle to reorder. Tap a habit to edit it.", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            Text("Drag to reorder. Tap to edit.", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             Spacer(Modifier.height(VxSpace.sm))
             ReorderableHabits(
                 habits = state.habits,
@@ -143,7 +143,7 @@ fun TemplateBuilderScreen(
             }
             DashedAddBox(
                 title = "Shape the next step",
-                subtitle = "Add a check, count, minutes or value habit.",
+                subtitle = "Check, count, minutes or value.",
                 buttonLabel = "Add a habit",
                 onClick = { adding = true }
             )

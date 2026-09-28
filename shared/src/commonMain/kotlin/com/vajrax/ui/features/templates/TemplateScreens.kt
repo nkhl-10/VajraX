@@ -94,12 +94,6 @@ fun TemplateDetailScreen(
                     item { Spacer(Modifier.height(VxSpace.lg)) }
                 }
                 BottomBar {
-                    Text(
-                        "You can rename, retime or remove habits before starting. The original template stays unchanged.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant
-                    )
-                    Spacer(Modifier.height(VxSpace.md))
                     PrimaryButton("Use this template", onUse, Modifier.fillMaxWidth())
                 }
             }
@@ -221,7 +215,7 @@ fun CustomizeScreen(
                 )
                 Spacer(Modifier.height(VxSpace.xs))
                 Text(
-                    "Untick what you don't need, tap a habit to change its time, target or days.",
+                    "Untick or tap to edit.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant
                 )
@@ -249,7 +243,7 @@ fun CustomizeScreen(
                         Icon(VxIcons.Sunrise, null, tint = colors.primary, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(VxSpace.sm))
                         Text(
-                            "Morning times are suggested around your ${TimeFormat.display(state.wakeTime)} wake-up.",
+                            "Timed around your ${TimeFormat.display(state.wakeTime)} wake-up",
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.onPrimaryContainer
                         )
@@ -264,7 +258,7 @@ fun CustomizeScreen(
             if (state.drafts.isEmpty()) {
                 item {
                     Text(
-                        "Your tracker is empty. Add your first habit below.",
+                        "No habits yet.",
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.onSurfaceVariant,
                         modifier = Modifier.padding(vertical = VxSpace.md)
@@ -279,7 +273,7 @@ fun CustomizeScreen(
                 Spacer(Modifier.height(VxSpace.sm))
                 DashedAddBox(
                     title = "Add your own habit",
-                    subtitle = "Check, count, minutes or a measurable value.",
+                    subtitle = "Check, count, minutes or value.",
                     buttonLabel = "Add habit",
                     onClick = { adding = true }
                 )
@@ -343,7 +337,7 @@ fun CustomizeScreen(
     if (confirmSwitch) {
         ConfirmDialog(
             title = "Switch routine?",
-            message = "Your current routine will be archived from today. Everything you've recorded so far stays in your history and reports.",
+            message = "Current routine is archived from today. History stays.",
             confirmLabel = "Switch",
             onConfirm = {
                 confirmSwitch = false

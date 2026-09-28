@@ -19,6 +19,7 @@ import kotlinx.datetime.plus
 
 data class DraftHabit(val habit: Habit, val included: Boolean = true)
 
+@androidx.compose.runtime.Immutable
 data class ActivationState(
     val isLoading: Boolean = true,
     val template: DefaultTemplate? = null,

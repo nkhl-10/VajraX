@@ -188,7 +188,7 @@ fun HabitEditorSheet(
             Spacer(Modifier.height(VxSpace.sm))
             SwitchRow(
                 title = "Use focus timer",
-                subtitle = "Start a timer from Today; finishing early still counts as the minimum version.",
+                subtitle = "Time it from Today",
                 checked = draft.trackingMode == TrackingMode.TIMER,
                 onChange = { draft = draft.copy(trackingMode = if (it) TrackingMode.TIMER else TrackingMode.MANUAL) }
             )
@@ -217,12 +217,12 @@ fun HabitEditorSheet(
                     onPlus = { draft = draft.copy(schedule = draft.schedule.copy(intervalDays = (draft.schedule.intervalDays + 1).coerceAtMost(30))) },
                     label = "Interval"
                 )
-                ScheduleType.DAILY -> Text("Scheduled every day.", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                ScheduleType.DAILY -> Text("Every day", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             }
             val restNote = when (draft.schedule.type) {
-                ScheduleType.WEEKDAYS -> "Unselected days are rest days and never count as missed."
-                ScheduleType.WEEKLY_TARGET -> "Do it on any days you like; progress is checked at the end of each week."
-                ScheduleType.INTERVAL -> "Counted from the start date."
+                ScheduleType.WEEKDAYS -> "Other days are rest days."
+                ScheduleType.WEEKLY_TARGET -> "Any days · checked weekly"
+                ScheduleType.INTERVAL -> "From the start date"
                 else -> null
             }
             if (restNote != null) {
@@ -291,7 +291,7 @@ fun HabitEditorSheet(
     if (confirmRemove && onRemove != null) {
         ConfirmDialog(
             title = "$removeLabel?",
-            message = "It won't be scheduled from today. Everything you've already recorded stays in your history.",
+            message = "Stops from today. History stays.",
             confirmLabel = removeLabel,
             destructive = true,
             onConfirm = {

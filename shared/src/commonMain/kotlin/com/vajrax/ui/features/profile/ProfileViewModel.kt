@@ -23,6 +23,7 @@ import kotlinx.coroutines.launch
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
+@androidx.compose.runtime.Immutable
 data class ProfileUiState(
     val isLoading: Boolean = true,
     val displayName: String = "",

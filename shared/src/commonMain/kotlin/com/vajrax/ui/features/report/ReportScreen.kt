@@ -71,7 +71,7 @@ fun ReportScreen(
                 state.isLoading -> LoadingSkeleton()
                 !state.hasData -> EmptyState(
                     VxIcons.Chart, "Your report builds as you check in",
-                    "Complete a few habits and your weekly and monthly progress will appear here — calculated only from what you record.",
+                    "Check in to see your progress.",
                     actionLabel = "Choose a template", onAction = onOpenDiscover
                 )
                 else -> ReportContent(
@@ -198,8 +198,6 @@ private fun ReportContent(
     if (state.needsAttention.isNotEmpty()) {
         VxCard {
             SectionLabel("Needs attention")
-            Spacer(Modifier.height(VxSpace.xs))
-            Text("Not failures — signals. Try a smaller version or a different time.", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             Spacer(Modifier.height(VxSpace.md))
             state.needsAttention.forEach { row -> HabitRateRow(row, showMissed = true) }
         }
@@ -208,7 +206,6 @@ private fun ReportContent(
     if (state.areas.isNotEmpty()) {
         VxCard {
             SectionLabel("Your areas")
-            Text("Which part of your life system is becoming stronger?", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             Spacer(Modifier.height(VxSpace.md))
             state.areas.forEach { area ->
                 Column(Modifier.padding(vertical = 6.dp)) {
@@ -240,7 +237,7 @@ private fun ReportContent(
         val insight = state.insight
         if (insight == null) {
             Text(
-                "Keep checking in. Once there are a few weeks of records, VAJRAX shows which times of day work best for you — with the raw numbers behind it.",
+                "Appears after a few weeks of check-ins.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurfaceVariant
             )
@@ -264,7 +261,7 @@ private fun ReportContent(
         }
         if (state.overall.skipped > 0) {
             Spacer(Modifier.height(VxSpace.sm))
-            Text("${state.overall.skipped} skipped — not counted against you.", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            Text("${state.overall.skipped} skipped · not counted", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
         }
     }
     Spacer(Modifier.height(VxSpace.lg))
@@ -276,7 +273,7 @@ private fun ReportContent(
             Column(Modifier.weight(1f)) {
                 Text(if (state.period == ReportPeriod.WEEK) "Weekly reflection" else "Monthly reflection", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
                 Text(
-                    state.reflection?.achievements?.takeIf { it.isNotBlank() } ?: "What went well, what got in the way, what to adjust.",
+                    state.reflection?.achievements?.takeIf { it.isNotBlank() } ?: "Look back and adjust.",
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.onSurfaceVariant,
                     maxLines = 2,
@@ -293,7 +290,7 @@ private fun ReportContent(
             TextButton(onClick = onAddGoal) { Text("Add goal") }
         }
         if (state.goals.isEmpty()) {
-            Text("Link habits to a goal to see how daily actions add up.", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            Text("Link habits to a goal.", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
         }
         state.goals.forEach { g ->
             Column(Modifier.padding(vertical = VxSpace.sm)) {
@@ -413,9 +410,7 @@ private fun BreakdownSheet(state: ReportUiState, onDismiss: () -> Unit) {
             )
             Spacer(Modifier.height(VxSpace.sm))
             Text(
-                "Rest days and future days are never counted. Weekly-target habits are evaluated when their week ends. " +
-                    "The change is compared with the same number of days in the previous ${if (state.period == ReportPeriod.WEEK) "week" else "month"}" +
-                    (state.previous.rate?.let { " ($it%)." } ?: "."),
+                "Rest and future days aren't counted." + (state.previous.rate?.let { " Previous ${if (state.period == ReportPeriod.WEEK) "week" else "month"}: $it%." } ?: ""),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant
             )
@@ -442,7 +437,7 @@ private fun WhySheet(insight: PatternInsight, onDismiss: () -> Unit) {
         Column(Modifier.padding(horizontal = VxSpace.xxl).padding(bottom = VxSpace.xxxl)) {
             Text("Why this pattern?", style = MaterialTheme.typography.headlineSmall, color = colors.onSurface)
             Spacer(Modifier.height(VxSpace.xs))
-            Text("Completion by the time each habit was scheduled, last 30 days.", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            Text("Last 30 days, by scheduled time", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             Spacer(Modifier.height(VxSpace.lg))
             insight.buckets.forEach { b ->
                 Column(Modifier.padding(vertical = 6.dp)) {
@@ -457,7 +452,7 @@ private fun WhySheet(insight: PatternInsight, onDismiss: () -> Unit) {
             }
             Spacer(Modifier.height(VxSpace.md))
             Text(
-                "Suggestion: move a habit that often stays open into your strongest time window, or try its minimum version.",
+                "Try moving a habit to your strongest time.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurface
             )

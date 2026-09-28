@@ -8,6 +8,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -77,118 +82,172 @@ fun TodayScreen(
         onIntent(TodayIntent.Toggle(item.id))
     }
 
-    // Keep NOW in view: on open and whenever focus moves to the next habit, scroll to it if hidden.
-    val prefix = 3 + (if (state.weeklyReviewDue) 1 else 0) + (if (state.dayWrap != null) 1 else 0)
-    LaunchedEffect(state.nowId, state.isLoading) {
-        val nowIndex = state.items.indexOfFirst { it.id == state.nowId }
-        if (state.isLoading || nowIndex < 0) return@LaunchedEffect
-        val target = prefix + nowIndex
-        val visible = listState.layoutInfo.visibleItemsInfo
-        val fullyVisible = visible.any { it.index == target && it.offset >= 0 && it.offset + it.size <= listState.layoutInfo.viewportEndOffset - 250 }
-        if (!fullyVisible) listState.animateScrollToItem((target - 1).coerceAtLeast(0))
-    }
+    BoxWithConstraints(Modifier.fillMaxSize().background(colors.background)) {
+        // On short (e.g. landscape) screens a pinned dashboard would leave no room for tasks,
+        // so it scrolls with the list there instead.
+        val pinDashboard = maxHeight >= 560.dp
+        val density = LocalDensity.current
+        var listHeightPx by remember { mutableStateOf(0) }
+        val navClearancePx = with(density) { VxSpace.navClearance.toPx() }
+        // Enough bottom room that the last habit can still sit in the middle of the visible area.
+        val bottomPad = maxOf(VxSpace.navClearance, with(density) { (listHeightPx * 0.5f).toDp() } - 24.dp)
 
-    Box(Modifier.fillMaxSize().background(colors.background)) {
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(start = VxSpace.gutter, end = VxSpace.gutter, bottom = VxSpace.navClearance)
-        ) {
-            item(key = "top") {
-                Spacer(Modifier.statusBarsPadding().height(VxSpace.xl))
+        val listKeys = buildList {
+            if (!pinDashboard) add("dashboard")
+            if (state.hasTracker) {
+                if (state.weeklyReviewDue) add("weekly_review")
+                if (state.dayWrap != null) add("day_wrap")
+                add("header")
+                if (state.items.isEmpty()) add("rest_day")
+                state.items.forEach { add(it.id) }
+            } else add("no_routine")
+        }
+
+        // Keep the active habit in the centre of the visible list area (between the dashboard and
+        // the nav bar): on open and whenever focus moves on to the next habit.
+        LaunchedEffect(state.nowId, state.isLoading, listHeightPx) {
+            val nowId = state.nowId ?: return@LaunchedEffect
+            if (state.isLoading || listHeightPx == 0) return@LaunchedEffect
+            val index = listKeys.indexOf(nowId).takeIf { it >= 0 } ?: return@LaunchedEffect
+            fun centreDelta(): Float? {
+                val info = listState.layoutInfo
+                val item = info.visibleItemsInfo.firstOrNull { it.key == nowId } ?: return null
+                val visibleCentre = (info.viewportSize.height - navClearancePx) / 2f
+                return item.offset + item.size / 2f - visibleCentre
             }
-            if (state.isLoading) {
-                item { LoadingSkeleton() }
-                return@LazyColumn
+            var delta = centreDelta()
+            if (delta == null) {
+                listState.scrollToItem(index)
+                delta = centreDelta()
             }
-            item(key = "dashboard") {
-                DashboardCard(state)
-                Spacer(Modifier.height(VxSpace.xxl))
-            }
-            if (!state.hasTracker) {
-                item {
-                    EmptyState(
-                        icon = VxIcons.Compass,
-                        title = "No routine yet",
-                        message = "Pick a ready-made template or build your own tracker.",
-                        actionLabel = "Choose a template",
-                        onAction = onOpenDiscover
-                    )
-                }
-                return@LazyColumn
-            }
-            if (state.weeklyReviewDue) {
-                item(key = "weekly_review") {
-                    PromptCard(
-                        icon = VxIcons.Pen,
-                        title = "Weekly review",
-                        body = "Two minutes to look back: what worked, what got in the way, what to adjust.",
-                        action = "Start review",
-                        onAction = onWeeklyReview
-                    )
-                    Spacer(Modifier.height(VxSpace.lg))
+            if (delta != null && kotlin.math.abs(delta) > 8f) listState.animateScrollBy(delta)
+        }
+
+        Column(Modifier.fillMaxSize()) {
+            // Opaque status-bar area: scrolled content never shows under the clock and icons.
+            Spacer(Modifier.fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars).background(colors.background))
+            if (pinDashboard && !state.isLoading) {
+                Box(Modifier.padding(start = VxSpace.gutter, end = VxSpace.gutter, top = VxSpace.lg, bottom = VxSpace.md)) {
+                    DashboardCard(state)
                 }
             }
-            state.dayWrap?.let { wrap ->
-                item(key = "day_wrap") {
-                    PromptCard(
-                        icon = if (wrap.allDone) VxIcons.Award else VxIcons.Moon,
-                        title = if (wrap.allDone) "Day complete" else "Wrapping up the day",
-                        body = buildString {
-                            append("${wrap.done} of ${wrap.total} done")
-                            if (wrap.skipped > 0) append(" · ${wrap.skipped} skipped")
-                            append(if (wrap.allDone) ". Every commitment kept." else ". Anything left can still be checked in before midnight.")
-                        },
-                        action = "See progress",
-                        onAction = onOpenReport
+            Box(
+                Modifier.weight(1f).fillMaxWidth().clipToBounds()
+                    .onSizeChanged { listHeightPx = it.height }
+            ) {
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        start = VxSpace.gutter,
+                        end = VxSpace.gutter,
+                        top = if (pinDashboard) VxSpace.sm else VxSpace.lg,
+                        bottom = bottomPad
                     )
-                    Spacer(Modifier.height(VxSpace.lg))
-                }
-            }
-            item(key = "header") {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(state.trackerName, style = MaterialTheme.typography.titleLarge, color = colors.onSurface)
-                        Text("Complete daily routine", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                ) {
+                    if (state.isLoading) {
+                        item { LoadingSkeleton() }
+                        return@LazyColumn
                     }
-                    RoundIconButton(VxIcons.Pencil, "Edit routine", onClick = onOpenRoutine)
-                }
-                Spacer(Modifier.height(VxSpace.lg))
-            }
-            if (state.items.isEmpty()) {
-                item {
-                    EmptyState(
-                        icon = VxIcons.Moon,
-                        title = "Rest day",
-                        message = "Nothing is scheduled today. Rest days never count as missed.",
-                        actionLabel = "Edit routine",
-                        onAction = onOpenRoutine
-                    )
-                }
-            }
-            items(state.items, key = { it.id }) { item ->
-                Box(Modifier.animateItem()) {
-                    if (item.phase == TodayPhase.NOW) {
-                        NowCard(
-                            item = item,
-                            onDone = {
-                                when {
-                                    item.habit.type == HabitType.COUNT -> onIntent(TodayIntent.Increment(item.id))
-                                    item.habit.trackingMode == TrackingMode.TIMER -> onIntent(TodayIntent.StartTimer(item.id))
-                                    item.habit.type != HabitType.BOOLEAN -> sheetFor = item.id
-                                    else -> complete(item)
-                                }
-                            },
-                            onNotes = { sheetFor = item.id },
-                            onSnooze = { onIntent(TodayIntent.Snooze(item.id)) },
-                            onSkip = { onIntent(TodayIntent.Skip(item.id, null)) },
-                            onCheck = { complete(item) }
-                        )
-                    } else {
-                        HabitRow(item, onCheck = { complete(item) }, onOpen = { sheetFor = item.id })
+                    if (!pinDashboard) {
+                        item(key = "dashboard") {
+                            DashboardCard(state)
+                            Spacer(Modifier.height(VxSpace.xl))
+                        }
+                    }
+                    if (!state.hasTracker) {
+                        item(key = "no_routine") {
+                            EmptyState(
+                                icon = VxIcons.Compass,
+                                title = "No routine yet",
+                                message = "Pick a template to start.",
+                                actionLabel = "Choose a template",
+                                onAction = onOpenDiscover
+                            )
+                        }
+                        return@LazyColumn
+                    }
+                    if (state.weeklyReviewDue) {
+                        item(key = "weekly_review") {
+                            PromptCard(
+                                icon = VxIcons.Pen,
+                                title = "Weekly review",
+                                body = "Look back on your week.",
+                                action = "Start review",
+                                onAction = onWeeklyReview
+                            )
+                            Spacer(Modifier.height(VxSpace.lg))
+                        }
+                    }
+                    state.dayWrap?.let { wrap ->
+                        item(key = "day_wrap") {
+                            PromptCard(
+                                icon = if (wrap.allDone) VxIcons.Award else VxIcons.Moon,
+                                title = if (wrap.allDone) "Day complete" else "Wrapping up the day",
+                                body = buildString {
+                                    append("${wrap.done} of ${wrap.total} done")
+                                    if (wrap.skipped > 0) append(" · ${wrap.skipped} skipped")
+                                    append(".")
+                                },
+                                action = "See progress",
+                                onAction = onOpenReport
+                            )
+                            Spacer(Modifier.height(VxSpace.lg))
+                        }
+                    }
+                    item(key = "header") {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(state.trackerName, style = MaterialTheme.typography.titleLarge, color = colors.onSurface)
+                                Text("Complete daily routine", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                            }
+                            RoundIconButton(VxIcons.Pencil, "Edit routine", onClick = onOpenRoutine)
+                        }
+                        Spacer(Modifier.height(VxSpace.md))
+                    }
+                    if (state.items.isEmpty()) {
+                        item(key = "rest_day") {
+                            EmptyState(
+                                icon = VxIcons.Moon,
+                                title = "Rest day",
+                                message = "Nothing scheduled today.",
+                                actionLabel = "Edit routine",
+                                onAction = onOpenRoutine
+                            )
+                        }
+                    }
+                    items(state.items, key = { it.id }) { item ->
+                        Column(Modifier.animateItem()) {
+                            if (item.phase == TodayPhase.NOW) {
+                                NowCard(
+                                    item = item,
+                                    onDone = {
+                                        when {
+                                            item.habit.type == HabitType.COUNT -> onIntent(TodayIntent.Increment(item.id))
+                                            item.habit.trackingMode == TrackingMode.TIMER -> onIntent(TodayIntent.StartTimer(item.id))
+                                            item.habit.type != HabitType.BOOLEAN -> sheetFor = item.id
+                                            else -> complete(item)
+                                        }
+                                    },
+                                    onNotes = { sheetFor = item.id },
+                                    onSnooze = { onIntent(TodayIntent.Snooze(item.id)) },
+                                    onSkip = { onIntent(TodayIntent.Skip(item.id, null)) },
+                                    onCheck = { complete(item) }
+                                )
+                            } else {
+                                HabitRow(item, onCheck = { complete(item) }, onOpen = { sheetFor = item.id })
+                            }
+                            Spacer(Modifier.height(VxSpace.sm))
+                        }
                     }
                 }
-                Spacer(Modifier.height(VxSpace.sm))
+                // Soft edge under the pinned dashboard once the list is scrolled.
+                if (pinDashboard && listState.canScrollBackward) {
+                    Box(
+                        Modifier.fillMaxWidth().height(14.dp)
+                            .background(Brush.verticalGradient(listOf(colors.background, colors.background.copy(alpha = 0f))))
+                    )
+                }
             }
         }
 
@@ -345,7 +404,7 @@ private fun HabitRow(item: TodayItem, onCheck: () -> Unit, onOpen: () -> Unit) {
     val secondary = when (item.phase) {
         TodayPhase.SKIPPED -> "Skipped" + (item.occurrence.skipReason?.let { " · $it" } ?: "")
         TodayPhase.WEEKLY_MET -> "Weekly target met"
-        TodayPhase.OPEN_EARLIER -> item.progressLabel ?: "Still open — there's time"
+        TodayPhase.OPEN_EARLIER -> item.progressLabel ?: "Still open"
         else -> item.progressLabel
     }
     Row(

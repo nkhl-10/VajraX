@@ -75,12 +75,12 @@ fun CalendarScreen(
             if (state.isLoading) {
                 LoadingSkeleton()
             } else if (!state.hasTracker && state.rows.isEmpty()) {
-                EmptyState(VxIcons.Calendar, "Your calendar is empty", "Start a routine and your daily check-ins will show up here.", actionLabel = "Choose a template", onAction = onOpenDiscover)
+                EmptyState(VxIcons.Calendar, "Your calendar is empty", "Start a routine to see your days.", actionLabel = "Choose a template", onAction = onOpenDiscover)
             } else if (state.mode == CalendarMode.WEEK) {
                 WeekMatrix(
                     state = state,
                     onIntent = onIntent,
-                    onPastTap = { scope.launch { snackbar.showSnackbar("Past days are read-only. Long-press a circle to correct a record.") } },
+                    onPastTap = { scope.launch { snackbar.showSnackbar("Long-press to correct a past day") } },
                     onPastLongPress = { cell, title -> correction = cell to title }
                 )
                 Spacer(Modifier.height(VxSpace.md))
@@ -102,7 +102,7 @@ fun CalendarScreen(
         val markDone = cell.kind != CellKind.DONE_PAST
         ConfirmDialog(
             title = "Correct this record?",
-            message = "$title on ${Dates.shortLabel(cell.date)} will be marked as ${if (markDone) "done" else "not done"}. Your reports update to match.",
+            message = "$title · ${Dates.shortLabel(cell.date)} → ${if (markDone) "done" else "not done"}",
             confirmLabel = if (markDone) "Mark done" else "Mark not done",
             onConfirm = {
                 cell.occurrenceId?.let { onIntent(CalendarIntent.CorrectPast(it, markDone)) }

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- App-icon long-press shortcuts: add a check-in widget to the home screen. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_widget_list"
+        android:shortcutId="add_widget_today"
+        android:shortcutLongLabel="@string/shortcut_add_today_long"
+        android:shortcutShortLabel="@string/shortcut_add_today_short">
+        <intent
+            android:action="com.vajrax.android.action.ADD_WIDGET_TODAY"
+            android:targetClass="com.vajrax.android.MainActivity"
+            android:targetPackage="com.vajrax.android" />
+    </shortcut>
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_widget_now"
+        android:shortcutId="add_widget_now"
+        android:shortcutLongLabel="@string/shortcut_add_now_long"
+        android:shortcutShortLabel="@string/shortcut_add_now_short">
+        <intent
+            android:action="com.vajrax.android.action.ADD_WIDGET_NOW"
+            android:targetClass="com.vajrax.android.MainActivity"
+            android:targetPackage="com.vajrax.android" />
+    </shortcut>
+</shortcuts>

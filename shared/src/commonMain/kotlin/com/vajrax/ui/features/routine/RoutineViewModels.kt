@@ -79,8 +79,8 @@ class RoutineViewModel(
                 if (intent.name.isNotBlank()) trackers.renameTracker(t.id, intent.name.take(40))
             }
             is RoutineIntent.Add -> write("Habit added") { routineManager.addHabit(intent.habit) }
-            is RoutineIntent.Update -> write("Changes saved — past days keep their original schedule") { routineManager.updateHabit(intent.habit) }
-            is RoutineIntent.Archive -> write("Habit archived. Its history is kept.") { routineManager.archiveHabit(intent.habitId) }
+            is RoutineIntent.Update -> write("Saved") { routineManager.updateHabit(intent.habit) }
+            is RoutineIntent.Archive -> write("Archived") { routineManager.archiveHabit(intent.habitId) }
             RoutineIntent.SaveAsTemplate -> write("Saved to My templates") {
                 val s = currentState()
                 val t = s.tracker ?: return@write
@@ -177,8 +177,8 @@ class HabitDetailViewModel(
 
     override fun sendIntent(intent: RoutineIntent) {
         when (intent) {
-            is RoutineIntent.Update -> write("Changes saved — past days keep their original schedule") { routineManager.updateHabit(intent.habit) }
-            is RoutineIntent.Archive -> write("Habit archived. Its history is kept.") { routineManager.archiveHabit(intent.habitId) }
+            is RoutineIntent.Update -> write("Saved") { routineManager.updateHabit(intent.habit) }
+            is RoutineIntent.Archive -> write("Archived") { routineManager.archiveHabit(intent.habitId) }
             else -> Unit
         }
     }

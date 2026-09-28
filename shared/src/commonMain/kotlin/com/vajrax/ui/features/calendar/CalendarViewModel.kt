@@ -57,6 +57,7 @@ class CalendarViewModel(
                     }
                 }
                 .flowOn(Dispatchers.Default)
+                .whileVisible()
                 .collect { built -> updateState { built } }
         }
     }

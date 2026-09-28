@@ -13,6 +13,8 @@ interface PlatformActions {
     fun requestNotificationPermission(onResult: (Boolean) -> Unit)
     /** Status / navigation bar icon contrast for the in-app theme. */
     fun setSystemBarsDark(dark: Boolean) {}
+    /** Live backdrop blur for glass surfaces (Android 12+); otherwise a more opaque tint is used. */
+    val supportsBackdropBlur: Boolean get() = false
     /** Whether the launcher supports adding the Today widget from inside the app. */
     fun canPinWidget(): Boolean = false
     /** [list] = the "Today" list widget (every habit); otherwise the compact "Now" widget. */

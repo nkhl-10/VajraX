@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
@@ -70,6 +71,8 @@ class MainActivity : ComponentActivity() {
             enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
         }
 
+        override val supportsBackdropBlur: Boolean get() = Build.VERSION.SDK_INT >= 31
+
         override fun canPinWidget(): Boolean =
             AppWidgetManager.getInstance(this@MainActivity).isRequestPinAppWidgetSupported
 
@@ -93,5 +96,32 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         setContent { VajraApp(platform) }
+        if (savedInstanceState == null) handleShortcut(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleShortcut(intent)
+    }
+
+    /** App-icon long-press shortcuts (res/xml/shortcuts.xml): add a home-screen widget. */
+    private fun handleShortcut(intent: Intent?) {
+        val list = when (intent?.action) {
+            ACTION_ADD_WIDGET_TODAY -> true
+            ACTION_ADD_WIDGET_NOW -> false
+            else -> return
+        }
+        if (platform.canPinWidget()) {
+            platform.requestPinWidget(list)
+        } else {
+            Toast.makeText(this, "Long-press your home screen → Widgets → VAJRAX", Toast.LENGTH_LONG).show()
+        }
+        // Consume the action so a configuration change doesn't ask again.
+        intent.action = Intent.ACTION_MAIN
+    }
+
+    companion object {
+        const val ACTION_ADD_WIDGET_TODAY = "com.vajrax.android.action.ADD_WIDGET_TODAY"
+        const val ACTION_ADD_WIDGET_NOW = "com.vajrax.android.action.ADD_WIDGET_NOW"
     }
 }

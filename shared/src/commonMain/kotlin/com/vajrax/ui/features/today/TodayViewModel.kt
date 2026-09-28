@@ -173,12 +173,12 @@ class TodayViewModel(
             else -> "Good Night"
         }
         val status = when {
-            input.tracker == null -> "Choose a routine to get started."
-            total == 0 -> "Nothing scheduled today — rest well."
-            done == total -> "Everything done today. Well kept."
-            openEarlier > 0 -> "A few are still open — there's time."
+            input.tracker == null -> "Choose a routine."
+            total == 0 -> "Rest day."
+            done == total -> "All done today."
+            openEarlier > 0 -> "A few still open."
             done == 0 -> "Small steps. Consistent progress."
-            else -> "You're on track this day."
+            else -> "You're on track today."
         }
         // End of day: everything done, or the last habit has started and had up to an hour
         // (long overnight habits such as Sleep would otherwise end "tomorrow").
@@ -245,7 +245,7 @@ class TodayViewModel(
             is TodayIntent.CompleteMinimum -> perform {
                 val before = snapshot(intent.occurrenceId)
                 routineManager.completeMinimum(intent.occurrenceId)
-                "Minimum version logged — momentum kept." to before
+                "Minimum done" to before
             }
             is TodayIntent.Increment -> perform {
                 routineManager.increment(intent.occurrenceId)
@@ -258,15 +258,15 @@ class TodayViewModel(
             is TodayIntent.Skip -> perform {
                 val before = snapshot(intent.occurrenceId)
                 routineManager.skip(intent.occurrenceId, intent.reason)
-                "Skipped — it won't count against you." to before
+                "Skipped" to before
             }
             is TodayIntent.Snooze -> perform {
                 routineManager.snooze(intent.occurrenceId, 15)
-                "Snoozed for 15 minutes" to null
+                "Snoozed 15 min" to null
             }
             is TodayIntent.Move -> perform {
                 routineManager.move(intent.occurrenceId, intent.time)
-                "Moved to ${TimeFormat.display(intent.time)} for today" to null
+                "Moved to ${TimeFormat.display(intent.time)}" to null
             }
             is TodayIntent.SaveNote -> perform {
                 routineManager.setNote(intent.occurrenceId, intent.note)
@@ -328,7 +328,7 @@ class TodayViewModel(
         val start = TimeFormat.toMinutes(current.occurrence.scheduledTime ?: current.habit.time) ?: -1
         val next = open.firstOrNull { (TimeFormat.toMinutes(it.occurrence.scheduledTime ?: it.habit.time) ?: Int.MAX_VALUE) >= start }
             ?: open.firstOrNull()
-        return if (next == null) "✓ ${current.habit.title} · That's everything for today"
+        return if (next == null) "✓ ${current.habit.title} · All done"
         else "✓ ${current.habit.title} · Next: ${next.habit.title}, ${next.timeLabel}"
     }
 

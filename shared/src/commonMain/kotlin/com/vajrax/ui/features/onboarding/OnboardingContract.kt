@@ -10,6 +10,7 @@ enum class ReminderStyle(val label: String, val description: String, val privacy
     OFF("No reminders", "You can turn them on later", null)
 }
 
+@androidx.compose.runtime.Immutable
 data class OnboardingUiState(
     val step: OnboardingStep = OnboardingStep.WELCOME,
     val name: String = "",
@@ -21,13 +22,16 @@ data class OnboardingUiState(
     val error: String? = null,
     val templates: List<DefaultTemplate> = emptyList(),
     val category: String? = null,
-    val query: String = ""
+    val query: String = "",
+    /** Template list tab: false = regular templates, true = Arc templates. */
+    val arcTab: Boolean = false
 ) {
     val stepIndex: Int get() = step.ordinal
 
     val filtered: List<DefaultTemplate>
         get() = templates.filter { t ->
-            (category == null || t.category == category) &&
+            ((t.category == "Arc") == arcTab) &&
+                (category == null || t.category == category) &&
                 (query.isBlank() || t.name.contains(query, ignoreCase = true) || t.description.contains(query, ignoreCase = true))
         }
 }
@@ -44,6 +48,7 @@ sealed interface OnboardingIntent {
     data class SetReminderStyle(val style: ReminderStyle) : OnboardingIntent
     data class SelectCategory(val category: String?) : OnboardingIntent
     data class Search(val query: String) : OnboardingIntent
+    data class ShowArc(val arc: Boolean) : OnboardingIntent
 }
 
 sealed interface OnboardingEffect {

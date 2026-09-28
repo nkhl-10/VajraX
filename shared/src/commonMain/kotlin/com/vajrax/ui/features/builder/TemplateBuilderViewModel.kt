@@ -102,7 +102,7 @@ class TemplateBuilderViewModel(
         var nameError: String? = null
         var habitsError: String? = null
         if (name.isEmpty()) nameError = "Give your template a name."
-        if (publish && s.habits.isEmpty()) habitsError = "Add at least one habit to create the template."
+        if (publish && s.habits.isEmpty()) habitsError = "Add at least one habit."
         if (nameError != null || habitsError != null) {
             updateState { copy(nameError = nameError, habitsError = habitsError) }
             return

@@ -88,7 +88,7 @@ fun HabitActionSheet(
                 "skip" -> {
                     Text("Skip today?", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
                     Text(
-                        "Skipped days are excluded from your completion rate. A reason helps spot patterns later.",
+                        "Reason (optional)",
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.onSurfaceVariant
                     )
@@ -99,9 +99,9 @@ fun HabitActionSheet(
                     if (habit.durationMinutes >= 10 && isOpen) {
                         Spacer(Modifier.height(VxSpace.lg))
                         VxCard(onClick = { act(TodayIntent.CompleteMinimum(item.id)) }) {
-                            Text("Or do the minimum version", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = colors.onSurface)
+                            Text("Do the minimum instead", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = colors.onSurface)
                             Text(
-                                "${TimeFormat.duration(habit.minimumMinutes)} still counts as done and keeps your rhythm.",
+                                "${TimeFormat.duration(habit.minimumMinutes)} · counts as done",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = colors.onSurfaceVariant
                             )

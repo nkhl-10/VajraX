@@ -138,14 +138,14 @@ private fun WelcomeStep(onStart: () -> Unit) {
             Text("Choose the life you want to build.", style = MaterialTheme.typography.displaySmall, color = colors.onSurface)
             Spacer(Modifier.height(VxSpace.md))
             Text(
-                "VAJRAX turns it into today's actions — small steps, tracked honestly.",
+                "Small steps, every day.",
                 style = MaterialTheme.typography.bodyLarge,
                 color = colors.onSurfaceVariant
             )
             Spacer(Modifier.height(VxSpace.xxxl))
-            ValueRow(VxIcons.ListChecks, "Start from a ready-made template", "Morning, fitness, study, focus and more — then make it yours.")
-            ValueRow(VxIcons.Check, "Check in with one tap", "Works fully offline. Missed a day? Nothing resets.")
-            ValueRow(VxIcons.Chart, "See real progress", "Weekly and monthly reports built only from what you recorded.")
+            ValueRow(VxIcons.ListChecks, "Ready-made templates", "")
+            ValueRow(VxIcons.Check, "One-tap check-ins", "")
+            ValueRow(VxIcons.Chart, "Real progress", "")
         }
         BottomBar { PrimaryButton("Get started", onStart, Modifier.fillMaxWidth()) }
     }
@@ -157,9 +157,9 @@ private fun ValueRow(icon: ImageVector, title: String, body: String) {
     Row(Modifier.fillMaxWidth().padding(vertical = VxSpace.sm), verticalAlignment = Alignment.Top) {
         IconBadge(icon, colors.primary, size = 40.dp, iconSize = 20.dp)
         Spacer(Modifier.width(VxSpace.lg))
-        Column {
+        Column(Modifier.align(Alignment.CenterVertically)) {
             Text(title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = colors.onSurface)
-            Text(body, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+            if (body.isNotBlank()) Text(body, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
         }
     }
 }
@@ -172,7 +172,7 @@ private fun AboutStep(state: OnboardingUiState, onIntent: (OnboardingIntent) -> 
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = VxSpace.xxl, vertical = VxSpace.lg)) {
             Text("Let's set you up", style = MaterialTheme.typography.headlineMedium, color = colors.onSurface)
             Spacer(Modifier.height(VxSpace.xs))
-            Text("Two quick questions. Everything stays on this device.", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+            Text("Stays on this device.", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
             Spacer(Modifier.height(VxSpace.xxl))
             VxTextField(
                 label = "What should we call you?",
@@ -183,7 +183,7 @@ private fun AboutStep(state: OnboardingUiState, onIntent: (OnboardingIntent) -> 
             )
             Spacer(Modifier.height(VxSpace.xxl))
             Text("What do you want to improve?", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
-            Text("Pick up to 3 — we'll recommend templates.", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            Text("Pick up to 3", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             Spacer(Modifier.height(VxSpace.md))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(VxSpace.sm), verticalArrangement = Arrangement.spacedBy(VxSpace.sm)) {
                 TemplateCatalog.goalToCategories.keys.forEach { goal ->
@@ -203,7 +203,7 @@ private fun RoutineStep(state: OnboardingUiState, onIntent: (OnboardingIntent) -
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = VxSpace.xxl, vertical = VxSpace.lg)) {
             Text("Your day", style = MaterialTheme.typography.headlineMedium, color = colors.onSurface)
             Spacer(Modifier.height(VxSpace.xs))
-            Text("We'll suggest times around your morning. You can change every habit later.", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+            Text("Used to suggest habit times.", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
             Spacer(Modifier.height(VxSpace.xxl))
             TimeField("Wake-up time", state.wakeTime, onPick = onPickWake)
             Spacer(Modifier.height(VxSpace.xxl))
@@ -261,7 +261,7 @@ private fun TemplateStep(
         ErrorState(state.error, onRetry = { onIntent(OnboardingIntent.Restart) })
         return
     }
-    val filtering = state.category != null || state.query.isNotBlank()
+    val filtering = state.category != null || state.query.isNotBlank() || state.arcTab
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = VxSpace.gutter, end = VxSpace.gutter, bottom = VxSpace.xxxl + 48.dp)
@@ -271,7 +271,7 @@ private fun TemplateStep(
             Text("Choose your tracker", style = MaterialTheme.typography.headlineMedium, color = colors.onSurface)
             Spacer(Modifier.height(VxSpace.xs))
             Text(
-                "Select a starting point. You can customize the habits before activating.",
+                "Pick one. You can edit it next.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurfaceVariant
             )
@@ -283,10 +283,19 @@ private fun TemplateStep(
                 placeholder = "Morning, study, fitness…"
             )
             Spacer(Modifier.height(VxSpace.md))
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(VxSpace.sm)) {
-                CategoryChip("All", state.category == null, onClick = { onIntent(OnboardingIntent.SelectCategory(null)) })
-                TemplateCatalog.categories.filter { c -> state.templates.any { it.category == c } }.forEach { c ->
-                    CategoryChip(c, state.category == c, onClick = { onIntent(OnboardingIntent.SelectCategory(if (state.category == c) null else c)) })
+            SegmentedToggle(
+                options = listOf("Templates", "Arc"),
+                selectedIndex = if (state.arcTab) 1 else 0,
+                onSelect = { onIntent(OnboardingIntent.ShowArc(it == 1)) },
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (!state.arcTab) {
+                Spacer(Modifier.height(VxSpace.md))
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(VxSpace.sm)) {
+                    CategoryChip("All", state.category == null, onClick = { onIntent(OnboardingIntent.SelectCategory(null)) })
+                    TemplateCatalog.categories.filter { c -> c != "Arc" && state.templates.any { it.category == c } }.forEach { c ->
+                        CategoryChip(c, state.category == c, onClick = { onIntent(OnboardingIntent.SelectCategory(if (state.category == c) null else c)) })
+                    }
                 }
             }
             Spacer(Modifier.height(VxSpace.lg))
@@ -303,7 +312,7 @@ private fun TemplateStep(
         }
         item { SectionLabel(if (filtering) "${state.filtered.size} templates" else "All templates"); Spacer(Modifier.height(VxSpace.sm)) }
         if (state.filtered.isEmpty()) {
-            item { EmptyState(VxIcons.Search, "No templates found", "Try another word, or start with a blank tracker.") }
+            item { EmptyState(VxIcons.Search, "No templates found", "Try another word.") }
         }
         items(state.filtered, key = { it.id }) { t ->
             TemplateCard(t, onOpen = { onOpenTemplate(t.id) }, onUse = { onUseTemplate(t.id) })

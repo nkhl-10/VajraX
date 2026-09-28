@@ -1,7 +1,6 @@
 package com.vajrax.ui.features.profile
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -51,7 +50,6 @@ fun ProfileScreen(
     var confirmDelete by remember { mutableStateOf(false) }
     var templateMenu by remember { mutableStateOf<DefaultTemplate?>(null) }
     var confirmDeleteTemplate by remember { mutableStateOf<DefaultTemplate?>(null) }
-    var widgetPicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(effects) {
         effects.collect { e ->
@@ -66,8 +64,9 @@ fun ProfileScreen(
     }
 
     Column(
-        Modifier.fillMaxSize().background(colors.background).verticalScroll(rememberScrollState())
-            .statusBarsPadding().padding(horizontal = VxSpace.gutter)
+        // statusBarsPadding before the scroll: content never slides under the status bar.
+        Modifier.fillMaxSize().background(colors.background).statusBarsPadding()
+            .verticalScroll(rememberScrollState()).padding(horizontal = VxSpace.gutter)
     ) {
         Spacer(Modifier.height(VxSpace.lg))
         ScreenTitle("Profile")
@@ -84,7 +83,7 @@ fun ProfileScreen(
             Spacer(Modifier.width(VxSpace.lg))
             Column(Modifier.weight(1f)) {
                 Text(state.displayName, style = MaterialTheme.typography.titleLarge, color = colors.onSurface)
-                Text(state.email.ifBlank { "Local profile · stored on this device" }, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+                Text(state.email.ifBlank { "On this device" }, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
             }
         }
         Spacer(Modifier.height(VxSpace.md))
@@ -121,6 +120,33 @@ fun ProfileScreen(
         }
 
         Spacer(Modifier.height(VxSpace.xxl))
+        SectionLabel("Home-screen widget")
+        Spacer(Modifier.height(VxSpace.sm))
+        VxCard {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconBadge(VxIcons.Smartphone, colors.primary, size = 44.dp)
+                Spacer(Modifier.width(VxSpace.md))
+                Column(Modifier.weight(1f)) {
+                    Text("Check in from your home screen", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+                    Text(
+                        "Check in without opening the app.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = colors.onSurfaceVariant
+                    )
+                }
+            }
+            Spacer(Modifier.height(VxSpace.lg))
+            val addWidget: (Boolean) -> Unit = { list ->
+                if (platform.canPinWidget()) platform.requestPinWidget(list)
+                else scope.launch { snackbar.showSnackbar("Long-press your home screen → Widgets → VAJRAX.") }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(VxSpace.md)) {
+                SecondaryButton("Now card", onClick = { addWidget(false) }, modifier = Modifier.weight(1f), icon = VxIcons.Check)
+                PrimaryButton("Today list", onClick = { addWidget(true) }, modifier = Modifier.weight(1f), icon = VxIcons.ListChecks)
+            }
+        }
+
+        Spacer(Modifier.height(VxSpace.xxl))
         SectionLabel("My templates")
         Spacer(Modifier.height(VxSpace.sm))
         VxCard(contentPadding = PaddingValues(vertical = VxSpace.xs)) {
@@ -148,16 +174,6 @@ fun ProfileScreen(
                 icon = VxIcons.Sun
             )
             RowDivider()
-            ListRow(
-                "Home-screen widget",
-                onClick = {
-                    if (platform.canPinWidget()) widgetPicker = true
-                    else scope.launch { snackbar.showSnackbar("Long-press your home screen → Widgets → VAJRAX.") }
-                },
-                value = "Add",
-                icon = VxIcons.Smartphone
-            )
-            RowDivider()
             ListRow("Language", onClick = { scope.launch { snackbar.showSnackbar("English is the only language for now.") } }, value = "English", icon = VxIcons.Globe)
         }
 
@@ -171,7 +187,7 @@ fun ProfileScreen(
         }
         Spacer(Modifier.height(VxSpace.md))
         Text(
-            "Everything is stored only on this device and works offline. VAJRAX ${platform.appVersion}",
+            "Offline · on this device · v${platform.appVersion}",
             style = MaterialTheme.typography.bodySmall,
             color = colors.onSurfaceVariant
         )
@@ -200,7 +216,7 @@ fun ProfileScreen(
         ModalBottomSheet(onDismissRequest = { notifications = false }, sheetState = rememberModalBottomSheetState(true), containerColor = colors.surface) {
             Column(Modifier.padding(horizontal = VxSpace.xxl).padding(bottom = VxSpace.xxxl)) {
                 Text("Notifications", style = MaterialTheme.typography.headlineSmall, color = colors.onSurface)
-                Text("Reminders are set per habit. They are silent nudges, never guilt.", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                Text("Set per habit.", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
                 Spacer(Modifier.height(VxSpace.lg))
                 SwitchRow(
                     title = "Habit reminders",
@@ -210,7 +226,7 @@ fun ProfileScreen(
                         if (enable && !platform.notificationsPermitted()) {
                             platform.requestNotificationPermission { granted ->
                                 onIntent(ProfileIntent.SetReminders(granted))
-                                if (!granted) scope.launch { snackbar.showSnackbar("Allow notifications in system settings to get reminders.") }
+                                if (!granted) scope.launch { snackbar.showSnackbar("Turn on notifications in Settings") }
                             }
                         } else {
                             onIntent(ProfileIntent.SetReminders(enable))
@@ -236,11 +252,11 @@ fun ProfileScreen(
                     onClick = {
                         val send = {
                             platform.sendTestReminder()
-                            scope.launch { snackbar.showSnackbar("Test reminder sent — check your notifications.") }
+                            scope.launch { snackbar.showSnackbar("Test reminder sent") }
                         }
                         if (platform.notificationsPermitted()) send()
                         else platform.requestNotificationPermission { granted ->
-                            if (granted) send() else scope.launch { snackbar.showSnackbar("Allow notifications in system settings to get reminders.") }
+                            if (granted) send() else scope.launch { snackbar.showSnackbar("Turn on notifications in Settings") }
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -257,41 +273,10 @@ fun ProfileScreen(
         }
     }
 
-    if (widgetPicker) {
-        ModalBottomSheet(onDismissRequest = { widgetPicker = false }, sheetState = rememberModalBottomSheetState(true), containerColor = colors.surface) {
-            Column(Modifier.padding(bottom = VxSpace.xxxl)) {
-                Text("Add a home-screen widget", style = MaterialTheme.typography.headlineSmall, color = colors.onSurface, modifier = Modifier.padding(horizontal = VxSpace.xl))
-                Text(
-                    "Check in without opening the app — the same actions as a reminder.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = colors.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = VxSpace.xl)
-                )
-                Spacer(Modifier.height(VxSpace.md))
-                WidgetOption(
-                    title = "Today list",
-                    body = "Every habit for today. Tap a circle to mark it done (tap again to undo), +1 for counts, Later to snooze the current one.",
-                    onClick = {
-                        widgetPicker = false
-                        platform.requestPinWidget(list = true)
-                    }
-                )
-                WidgetOption(
-                    title = "Now card",
-                    body = "Just the current habit with Done and Snooze. Fits a small space.",
-                    onClick = {
-                        widgetPicker = false
-                        platform.requestPinWidget(list = false)
-                    }
-                )
-            }
-        }
-    }
-
     if (confirmExport) {
         ConfirmDialog(
             title = "Export your data?",
-            message = "The file contains your habits, history, notes and reflections. You choose where it is saved; nothing is uploaded.",
+            message = "Includes habits, history and notes. Saved only where you choose.",
             confirmLabel = "Export",
             onConfirm = {
                 confirmExport = false
@@ -303,7 +288,7 @@ fun ProfileScreen(
     if (confirmDelete) {
         ConfirmDialog(
             title = "Delete all data?",
-            message = "This permanently removes your profile, routines, history, goals, reflections and custom templates from this device. It can't be undone — export first if you want a copy.",
+            message = "Removes all routines, history and templates from this device. This can't be undone.",
             confirmLabel = "Delete everything",
             destructive = true,
             onConfirm = {
@@ -332,7 +317,7 @@ fun ProfileScreen(
     confirmDeleteTemplate?.let { t ->
         ConfirmDialog(
             title = "Delete “${t.name}”?",
-            message = "Routines already started from it keep their history.",
+            message = "Started routines keep their history.",
             confirmLabel = "Delete",
             destructive = true,
             onConfirm = {
@@ -356,7 +341,7 @@ private fun EditProfileDialog(state: ProfileUiState, onDismiss: () -> Unit, onSa
             Column {
                 VxTextField("Name", name, { name = it }, maxChars = 40)
                 Spacer(Modifier.height(VxSpace.md))
-                VxTextField("Email (optional)", email, { email = it }, keyboardType = KeyboardType.Email, helper = "Only stored on this device.")
+                VxTextField("Email (optional)", email, { email = it }, keyboardType = KeyboardType.Email, helper = "On this device only")
             }
         },
         confirmButton = { TextButton(onClick = { onSave(name, email) }) { Text("Save", fontWeight = FontWeight.Bold) } },
@@ -388,21 +373,4 @@ private fun <T> OptionDialog(title: String, options: List<Pair<T, String>>, sele
         confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
         containerColor = colors.surface
     )
-}
-
-@Composable
-private fun WidgetOption(title: String, body: String, onClick: () -> Unit) {
-    val colors = LuminaTheme.colors
-    Row(
-        Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick).padding(horizontal = VxSpace.xl, vertical = VxSpace.md),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconBadge(VxIcons.Smartphone, colors.primary, size = 40.dp)
-        Spacer(Modifier.width(VxSpace.md))
-        Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
-            Text(body, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
-        }
-        Icon(VxIcons.Plus, null, tint = colors.primary, modifier = Modifier.size(20.dp))
-    }
 }

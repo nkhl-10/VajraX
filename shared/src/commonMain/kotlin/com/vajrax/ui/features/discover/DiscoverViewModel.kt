@@ -41,6 +41,7 @@ class DiscoverViewModel(
             DiscoverIntent.ToggleSearch -> updateState { copy(searchOpen = !searchOpen, query = if (searchOpen) "" else query) }
             is DiscoverIntent.Search -> updateState { copy(query = intent.query.take(40)) }
             is DiscoverIntent.SelectCategory -> updateState { copy(category = intent.category) }
+            is DiscoverIntent.SelectTab -> updateState { copy(tab = intent.tab, category = null) }
         }
     }
 }

@@ -20,6 +20,13 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import com.vajrax.platform.LocalPlatformActions
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
@@ -127,6 +134,9 @@ fun MainNavigation(appViewModel: AppViewModel) {
     val destination = entry?.destination
     val currentTab = tabs.firstOrNull { tab -> destination?.hasRoute(tab.route::class) == true }?.type
     val snackbarHost = remember { SnackbarHostState() }
+    val backdrop = rememberGraphicsLayer()
+    var contentOrigin by remember { mutableStateOf(Offset.Zero) }
+    val blurSupported = LocalPlatformActions.current.supportsBackdropBlur
 
     val todayVm = koinInject<TodayViewModel>()
     val calendarVm = koinInject<CalendarViewModel>()
@@ -156,11 +166,17 @@ fun MainNavigation(appViewModel: AppViewModel) {
             NavHost(
                 navController = navController,
                 startDestination = SplashRoute,
-                modifier = Modifier.fillMaxSize(),
-                enterTransition = { fadeIn(tween(220)) },
-                exitTransition = { fadeOut(tween(160)) },
-                popEnterTransition = { fadeIn(tween(220)) },
-                popExitTransition = { fadeOut(tween(160)) }
+                modifier = Modifier.fillMaxSize()
+                    .onGloballyPositioned { contentOrigin = it.positionInRoot() }
+                    // Record the screen so the glass nav bar can frost what is behind it.
+                    .drawWithContent {
+                        backdrop.record { this@drawWithContent.drawContent() }
+                        drawLayer(backdrop)
+                    },
+                enterTransition = { fadeIn(tween(180)) },
+                exitTransition = { fadeOut(tween(120)) },
+                popEnterTransition = { fadeIn(tween(180)) },
+                popExitTransition = { fadeOut(tween(120)) }
             ) {
                 composable<SplashRoute> {
                     SplashScreen(appState.startRoute, appState.startupError) { route ->
@@ -304,6 +320,8 @@ fun MainNavigation(appViewModel: AppViewModel) {
                         tabs = tabs,
                         currentType = currentTab,
                         onTabSelected = { navController.switchTab(it.route) },
+                        backdrop = if (blurSupported) backdrop else null,
+                        backdropOrigin = contentOrigin,
                         modifier = Modifier.navigationBarsPadding()
                     )
                 }

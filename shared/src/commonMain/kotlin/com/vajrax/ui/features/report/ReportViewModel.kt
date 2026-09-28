@@ -77,6 +77,7 @@ class ReportViewModel(
                 }
                 .map { build(it) }
                 .flowOn(Dispatchers.Default)
+                .whileVisible()
                 .collect { built -> updateState { built.copy(openReflection = openReflection) } }
         }
     }

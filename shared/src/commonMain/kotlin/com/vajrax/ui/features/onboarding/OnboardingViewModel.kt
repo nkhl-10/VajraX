@@ -70,6 +70,7 @@ class OnboardingViewModel(
             is OnboardingIntent.SetReminderStyle -> updateState { copy(reminderStyle = intent.style) }
             is OnboardingIntent.SelectCategory -> updateState { copy(category = intent.category) }
             is OnboardingIntent.Search -> updateState { copy(query = intent.query.take(40)) }
+            is OnboardingIntent.ShowArc -> updateState { copy(arcTab = intent.arc, category = null) }
         }
     }
 
@@ -113,9 +114,9 @@ class OnboardingViewModel(
     /** Templates matching the chosen goals; shorter routines first when mornings are short. */
     fun recommended(state: OnboardingUiState): List<DefaultTemplate> {
         val wanted = state.goals.flatMap { TemplateCatalog.goalToCategories[it].orEmpty() }.toSet()
-        if (wanted.isEmpty()) return state.templates.filter { !it.isCommunity && !it.isCustom }.take(3)
+        if (wanted.isEmpty()) return state.templates.filter { !it.isCommunity && !it.isCustom && it.category != "Arc" }.take(3)
         return state.templates
-            .filter { it.category in wanted }
+            .filter { it.category in wanted && it.category != "Arc" }
             .sortedBy { t ->
                 val minutes = t.habits.sumOf { it.duration }
                 if (state.morningMinutes <= 30) minutes else -t.habits.size

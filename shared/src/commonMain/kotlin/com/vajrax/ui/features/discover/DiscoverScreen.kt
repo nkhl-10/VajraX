@@ -26,12 +26,13 @@ fun DiscoverScreen(
     onCreateTemplate: () -> Unit
 ) {
     val colors = LuminaTheme.colors
+    // statusBarsPadding outside the list: scrolled cards never slide under the status bar.
     LazyColumn(
-        modifier = Modifier.fillMaxSize().background(colors.background),
+        modifier = Modifier.fillMaxSize().background(colors.background).statusBarsPadding(),
         contentPadding = PaddingValues(start = VxSpace.gutter, end = VxSpace.gutter, bottom = VxSpace.navClearance)
     ) {
         item(key = "header") {
-            Spacer(Modifier.statusBarsPadding().height(VxSpace.lg))
+            Spacer(Modifier.height(VxSpace.lg))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 ScreenTitle("Discover", Modifier.weight(1f))
                 RoundIconButton(
@@ -50,10 +51,19 @@ fun DiscoverScreen(
                 )
             }
             Spacer(Modifier.height(VxSpace.md))
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(VxSpace.sm)) {
-                CategoryChip("All", state.category == null, onClick = { onIntent(DiscoverIntent.SelectCategory(null)) })
-                state.categories.forEach { c ->
-                    CategoryChip(c, state.category == c, onClick = { onIntent(DiscoverIntent.SelectCategory(if (state.category == c) null else c)) })
+            SegmentedToggle(
+                options = DiscoverTab.entries.map { it.label },
+                selectedIndex = state.tab.ordinal,
+                onSelect = { onIntent(DiscoverIntent.SelectTab(DiscoverTab.entries[it])) },
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (state.visibleCategories.isNotEmpty()) {
+                Spacer(Modifier.height(VxSpace.md))
+                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(VxSpace.sm)) {
+                    CategoryChip("All", state.category == null, onClick = { onIntent(DiscoverIntent.SelectCategory(null)) })
+                    state.visibleCategories.forEach { c ->
+                        CategoryChip(c, state.category == c, onClick = { onIntent(DiscoverIntent.SelectCategory(if (state.category == c) null else c)) })
+                    }
                 }
             }
             Spacer(Modifier.height(VxSpace.xl))
@@ -65,20 +75,21 @@ fun DiscoverScreen(
         val nothing = state.visibleProvided.isEmpty() && state.visibleCommunity.isEmpty() && state.visibleMine.isEmpty()
         if (nothing) {
             item {
-                EmptyState(
-                    VxIcons.Search, "No templates found", "Try another word or category, or build your own.",
-                    actionLabel = "Create a template", onAction = onCreateTemplate
-                )
+                if (state.tab == DiscoverTab.MINE && !state.isFiltering) {
+                    EmptyState(VxIcons.Pen, "No templates yet", "Build your own in a minute.", actionLabel = "Create template", onAction = onCreateTemplate)
+                } else {
+                    EmptyState(VxIcons.Search, "No templates found", "Try another word or category.")
+                }
             }
         }
-        section("Provided templates", state.visibleProvided, state.activeTemplateId, onOpenTemplate, onUseTemplate)
+        section(if (state.tab == DiscoverTab.ARC) "Arc templates" else "Provided templates", state.visibleProvided, state.activeTemplateId, onOpenTemplate, onUseTemplate)
         section("Community templates", state.visibleCommunity, state.activeTemplateId, onOpenTemplate, onUseTemplate)
         section("My templates", state.visibleMine, state.activeTemplateId, onOpenTemplate, onUseTemplate)
         item(key = "create") {
-            if (!state.isFiltering) {
+            if (!state.isFiltering && state.tab != DiscoverTab.ARC && !(state.tab == DiscoverTab.MINE && nothing)) {
                 DashedAddBox(
                     title = "Build your own template",
-                    subtitle = "Turn a routine you already do into a reusable tracker.",
+                    subtitle = "Your routine, reusable.",
                     buttonLabel = "Create template",
                     onClick = onCreateTemplate
                 )

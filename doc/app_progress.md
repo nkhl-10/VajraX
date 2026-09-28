@@ -86,7 +86,8 @@ Open app → Home scrolls to NOW → one tap Done ("✓ Wake up · Next: Drink w
 
 | Item | Implementation |
 |---|---|
-| NOW always visible | Home auto-scrolls to the NOW card on open and whenever focus moves to the next habit (only if it is off-screen) |
+| NOW always visible | Home layout: the dashboard card is **pinned at the top**; the task list scrolls in the fixed area below it, down to the device bottom (clipped under the card, soft edge when scrolled). The **active task is centred** in the visible list area on open and whenever focus moves to the next habit. On short / landscape screens the dashboard scrolls with the list so tasks keep enough room |
+| Status bar | Opaque status-bar area on Home; Discover and Profile pad outside their scroll containers, so content never slides under the clock and icons (Calendar, Report, onboarding and top-bar screens already did) |
 | One-tap quick actions | NOW card: **Mark done / +1 / Start / Log** (primary), **Snooze**, **Skip** (one tap, no reason needed, Undo), **Notes** (full action sheet) |
 | Next habit feedback | Completion snackbar names the next habit and its time, with Undo that restores the exact previous state |
 | End of day → Progress | Card appears when everything is done, or once the last habit has started (max 1 h, so overnight Sleep doesn't hide it); opens Report |
@@ -95,7 +96,18 @@ Open app → Home scrolls to NOW → one tap Done ("✓ Wake up · Next: Drink w
 | Minimal reminders | Default reminders only on 3 habits; no reminder if already done; a reminder notification is removed automatically when the habit is completed or skipped in the app or widget (notifications are tagged per habit) |
 | Auto-created occurrences | On launch, day change (while open), widget refresh, reminder and notification actions |
 | Preserve state after restart | Focus timer start/pause state persisted (`active_focus_timer` setting) and restored after rotation, backgrounding or process death; nav bar hidden while the timer is open |
-| Profile additions | **Home-screen widget → Add** (choose *Today list* or *Now card*, then the system "add widget" dialog) and **Send a test reminder** (posts a reminder for the current habit immediately) |
+| Profile additions | **Home-screen widget** card with **Today list** / **Now card** buttons (system "add widget" dialog) and **Send a test reminder** (posts a reminder for the current habit immediately) |
+| App-icon long-press | Static launcher shortcuts **Today widget** / **Now widget** (`res/xml/shortcuts.xml`) open the app and show the system "add widget" dialog |
+
+### 4b. UI polish (latest)
+
+| Item | Implementation |
+|---|---|
+| Portrait only | `android:screenOrientation="portrait"` on `MainActivity` |
+| Arc filter tab | Discover: **Templates / Arc / Mine** tabs (category chips only on Templates). Onboarding template step: **Templates / Arc** |
+| Glass bottom nav | Same material as TelepMaster's `GlassBar`: live blur of the screen behind (Android 12+, via a recorded `GraphicsLayer` + `BlurEffect`), translucent tint, sheen along the top edge, hairline border, 28 dp radius, selected tab on its own pill. Android 11 and older: same look with a more opaque tint |
+| Less text | Helper paragraphs removed or cut to a few words across Home, onboarding, template detail/customize, Discover, Calendar, Report, Profile, habit editor, My routine and builder; snackbars shortened ("Skipped", "Snoozed 15 min", "Saved"). Destructive confirmations stay explicit but short |
+| Smoother | Report and Calendar only recompute while visible (`whileVisible()` in `MviViewModel`), so a check-in no longer triggers 400-day analytics in the background; remaining screen states marked `@Immutable`; faster tab fades (180 / 120 ms) |
 
 ### Screens
 
@@ -202,7 +214,8 @@ Reminder receiver / notification actions ▶ RoutineManager / repositories
 | `MainActivity` | Edge-to-edge; status-bar icons follow the in-app theme; Storage Access Framework export ("save as" JSON); POST_NOTIFICATIONS request; handles rotation without recreating (`configChanges`) |
 | Reminders | `HabitReminderScheduler` keeps exactly one alarm per habit (stable request codes, obsolete ones cancelled, snoozed/moved times honoured). `ReminderReceiver` posts the notification (privacy: full / generic / hidden) with **Done** and **Snooze 15 min** actions, and reschedules after boot, app update and time/time-zone changes |
 | Widgets (Jetpack Glance 1.2.0) | `widget/GlanceWidgets.kt`: `TodayGlanceWidget` (responsive list; compact layout under 170 dp height) and `NowGlanceWidget`, receivers `TodayWidgetReceiver` / `NowWidgetReceiver`, `HabitWidgetAction` (toggle / done / +1 / snooze through `RoutineManager`). Data is a live `Flow` from the repositories (`widget/WidgetData.kt`), so the widget never stores its own copy; `GlanceWidgetController` refreshes both after any change in the app, a notification action or a widget tap. Light/dark colours, hidden-names privacy option |
-| Manifest | `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`; no network permission needed |
+| Launcher shortcuts | `res/xml/shortcuts.xml` → `MainActivity` actions `ADD_WIDGET_TODAY` / `ADD_WIDGET_NOW` → `requestPinAppWidget` (toast with manual steps if the launcher can't pin) |
+| Manifest | `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`; WorkManager (used by Glance) adds `WAKE_LOCK`, `FOREGROUND_SERVICE`, `ACCESS_NETWORK_STATE` |
 | Themes | `Theme.VajraX` (light/dark, Android 12+ splash background) matching the Compose splash |
 
 ---
@@ -261,12 +274,18 @@ stale-notification snooze overwriting a completion; weekly-target edits re-scori
 | 7 | Stale notification cleanup | Post a reminder, then complete the habit in the app | Notification disappears |
 | 8 | Real reminder | Enable a reminder 2 min ahead on a habit | Notification fires at that time |
 | 9 | Dark mode | Profile → Appearance → Dark | All screens readable; status-bar icons light |
-| 10 | Landscape | Rotate device on Home, Calendar, builder | No overlap with the nav bar; builder draft and timer keep their state |
+| 10 | Landscape | (App is now portrait-locked) | — |
 | 11 | Export | Profile → Export my data → Export → pick a folder | JSON file saved (habits, logs, goals, reflections) |
 | 12 | Delete all data | Profile → Delete all data → confirm | Returns to onboarding; library still available; old reminders cancelled |
 | 13 | Daily loop | Complete NOW habit | Snackbar "Next: …", Home scrolls to the next NOW |
 | 14 | Focus timer persistence | Start timer on a timer habit, kill the app, reopen | Timer still running with the correct elapsed time |
 | 15 | Weekly review | On Saturday evening / Sunday with check-ins this week | "Weekly review" card → Report reflection sheet opens |
+| 16 | Home layout | Scroll the task list; complete the NOW habit | Dashboard stays fixed; list scrolls under it only; new NOW habit centred |
+| 17 | Status bar | Scroll Home, Discover, Profile | Nothing shows under the clock/icons; icons readable in light and dark |
+| 18 | App shortcuts | Long-press the VAJRAX icon → Today widget / Now widget | App opens and shows the system add-widget dialog |
+| 19 | Glass nav | Scroll any tab under the bottom bar (Android 12+ and older) | Content frosted behind the bar; labels crisp; selected pill visible in light and dark |
+| 20 | Portrait lock | Rotate the device | App stays portrait |
+| 21 | Arc tab | Discover → Arc; onboarding → Arc | Only Arc templates listed |
 
 ---
 
@@ -310,7 +329,7 @@ stale-notification snooze overwriting a completion; weekly-target edits re-scori
 - Domain/core: `core/time/AppClock.kt`, `core/time/TimeFormat.kt`, `domain/habit/{HabitModels,ScheduleRules,HabitIconResolver}.kt`, `domain/analytics/HabitAnalytics.kt`, `domain/usecase/RoutineManager.kt`, `domain/template/{TemplateCatalog,TemplateHabitMapping}.kt`, `domain/repository/HabitFlowRepositories.kt`
 - Data: `data/local/Mappers.kt`, `data/repository/HabitFlowRepositoriesImpl.kt`, `sqldelight/.../1.sqm`
 - UI: `ui/designsystem/{VxIcons,Components,HabitEditorSheet,Brand,Snackbar}.kt`, `ui/features/today/FocusTimerOverlay.kt`, `ui/features/splash/SplashScreen.kt`, `ui/features/templates/{ActivationViewModel,TemplateScreens,TemplateCard}.kt`, `ui/features/today/HabitActionSheet.kt`, `ui/features/report/{ReportContract,ReportViewModel,ReportScreen}.kt`, `ui/features/builder/{TemplateBuilderViewModel,TemplateBuilderScreen}.kt`, `ui/features/routine/{RoutineViewModels,RoutineScreens}.kt`, `ui/utils/PlatformBackHandler.kt` (+ android/ios actuals), `platform/PlatformActions.kt`
-- Android: `VajraApplication.kt`, `reminders/{HabitReminderScheduler,ReminderReceiver}.kt`, `widget/{GlanceWidgets,WidgetData}.kt` (Jetpack Glance), `res/xml/vajra_widget_list_info.xml`, themes/colours (`values`, `values-night`, `values-v31`, `values-night-v31`), widget and notification drawables
+- Android: `VajraApplication.kt`, `reminders/{HabitReminderScheduler,ReminderReceiver}.kt`, `widget/{GlanceWidgets,WidgetData}.kt` (Jetpack Glance), `res/xml/vajra_widget_list_info.xml`, `res/xml/shortcuts.xml` + shortcut icons, themes/colours (`values`, `values-night`, `values-v31`, `values-night-v31`), widget and notification drawables
 - Tests: `commonTest/.../{TestFixtures,ScheduleRulesTest,HabitAnalyticsTest}.kt`, `androidUnitTest/.../HabitFlowIntegrationTest.kt`, `androidUnitTest/resources/schema_v1.sql`
 
 **Rewritten / modified**

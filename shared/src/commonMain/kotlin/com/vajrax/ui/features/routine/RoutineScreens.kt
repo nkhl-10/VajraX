@@ -73,7 +73,7 @@ fun RoutineScreen(
                     )
                     Spacer(Modifier.height(VxSpace.sm))
                     Text(
-                        "This is your personal copy — editing it never changes the original template. Changes apply from today; past days keep their records.",
+                        "Changes apply from today.",
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.onSurfaceVariant
                     )
@@ -85,7 +85,7 @@ fun RoutineScreen(
                         Spacer(Modifier.height(VxSpace.sm))
                     }
                     Spacer(Modifier.height(VxSpace.sm))
-                    DashedAddBox("Add a habit", "It starts today and appears in Today's plan.", "Add habit", onClick = { adding = true })
+                    DashedAddBox("Add a habit", "Starts today", "Add habit", onClick = { adding = true })
                     Spacer(Modifier.height(VxSpace.xl))
                     VxCard(contentPadding = PaddingValues(vertical = VxSpace.xs)) {
                         ListRow("Save as a reusable template", onClick = { onIntent(RoutineIntent.SaveAsTemplate) }, icon = VxIcons.Copy)
@@ -107,7 +107,7 @@ fun RoutineScreen(
                                     )
                                 }
                             }
-                            Text("History from past routines is included in your reports.", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                            Text("Included in reports", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
                         }
                     }
                 }
