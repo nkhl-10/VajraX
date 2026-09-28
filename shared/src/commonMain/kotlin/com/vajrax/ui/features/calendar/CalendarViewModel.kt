@@ -16,6 +16,39 @@ class CalendarViewModel(
     private val _uiState = MutableStateFlow(CalendarUiState())
     val uiState: StateFlow<CalendarUiState> = _uiState.asStateFlow()
 
+    init {
+        loadPractices()
+    }
+
+    private fun loadPractices() {
+        if (practiceRepository == null) return
+        viewModelScope.launch {
+            try {
+                val practices = practiceRepository.getActivePractices()
+                val mappedRows = practices.map { practice ->
+                    CalendarMatrixRow(
+                        id = practice.id,
+                        title = practice.title,
+                        timeSubtitle = practice.preferredTime ?: "",
+                        iconEmoji = "✓",
+                        mondayCompleted = false,
+                        tuesdayCompleted = false,
+                        wednesdayCompleted = false,
+                        thursdayCompleted = false,
+                        fridayCompleted = false
+                    )
+                }
+                
+                // If practices are loaded, overwrite the default mock rows
+                if (mappedRows.isNotEmpty()) {
+                    _uiState.update { it.copy(tasks = mappedRows) }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     fun sendIntent(intent: CalendarIntent) {
         when (intent) {
             is CalendarIntent.SelectDay -> {

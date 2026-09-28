@@ -34,8 +34,6 @@ import com.vajrax.ui.features.learn.LearnViewModel
 import com.vajrax.ui.features.path.PathViewModel
 import com.vajrax.ui.features.review.ReviewViewModel
 import com.vajrax.ui.features.today.TodayViewModel
-import com.vajrax.ui.features.discover.DiscoverRepository
-import com.vajrax.ui.features.discover.DiscoverRepositoryImpl
 import com.vajrax.ui.features.discover.DiscoverViewModel
 import org.koin.dsl.module
 
@@ -63,7 +61,7 @@ fun dataModule() = module {
     single<LearnRepository> { LearnRepositoryImpl(get()) }
     single<GrowRepository> { GrowRepositoryImpl(get()) }
     single<ReviewRepository> { ReviewRepositoryImpl(get()) }
-    single<DiscoverRepository> { DiscoverRepositoryImpl() }
+    
 
     // 3. Behavioral Intervention Engine (Phase 12)
     single { SamaEngine() }
@@ -95,7 +93,7 @@ fun dataModule() = module {
     single { TodayViewModel(get(), getOrNull()) }
     single { CalendarViewModel(get()) }
     single { PathViewModel(get(), get(), get()) }
-    single { DiscoverViewModel(get()) }
+    single { DiscoverViewModel(get(), get()) }
     single { LearnViewModel(get()) }
     single { GrowViewModel(get()) }
     single { ReviewViewModel(get()) }

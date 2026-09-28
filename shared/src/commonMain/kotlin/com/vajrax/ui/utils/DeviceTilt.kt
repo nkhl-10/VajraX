@@ -21,25 +21,9 @@ expect fun rememberDeviceTilt(): State<DeviceTilt>
  * A custom modifier that applies a heavy, elegant box-shadow (approximating 0px 5px 50px -5px #000000)
  * and uses gyro sensor data to slightly tilt the card on the X and Y axes, creating a 3D parallax effect.
  */
-fun Modifier.gyroShadowCard(
-    elevation: Dp = 24.dp
-): Modifier = composed {
-    val tilt = LocalDeviceTilt.current
-    
-    // Scale the tilt (which is roughly -1.5 to 1.5 radians) to a subtle degree rotation
-    // We reverse pitch and roll directions for natural "look around" parallax feeling
-    val maxRotation = 8f
-    val rotationX = (tilt.pitch * -15f).coerceIn(-maxRotation, maxRotation)
-    val rotationY = (tilt.roll * 15f).coerceIn(-maxRotation, maxRotation)
+@Composable
+expect fun Modifier.gyroShadowCard(
+    elevation: Dp = 24.dp,
+    cornerRadius: Dp = 24.dp
+): Modifier
 
-    this.graphicsLayer {
-        this.rotationX = rotationX
-        this.rotationY = rotationY
-        this.shadowElevation = elevation.toPx()
-        this.spotShadowColor = Color.Black
-        this.ambientShadowColor = Color.Black
-        this.cameraDistance = 8 * density
-        this.shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
-        this.clip = false // let the card itself clip if needed, or shadow will clip contents if true. Actually, shadow requires a shape.
-    }
-}

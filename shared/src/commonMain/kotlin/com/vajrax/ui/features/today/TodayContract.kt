@@ -31,6 +31,7 @@ data class TodayUiState(
     val todayTotalCount: Int = 5,
     val focusHoursSummary: String = "12h",
     val activePathName: String = "High Performance",
+    val allTimelineItems: List<ActionTimelineItem> = emptyList(),
     val completedItems: List<ActionTimelineItem> = emptyList(),
     val currentFocus: ActionTimelineItem? = null,
     val nextItems: List<ActionTimelineItem> = emptyList(),

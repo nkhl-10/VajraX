@@ -23,7 +23,7 @@ class AppViewModel(
             if (activePath != null) {
                 _startDestination.value = "home"
             } else {
-                _startDestination.value = "onboarding"
+                _startDestination.value = "discover"
             }
         }
     }

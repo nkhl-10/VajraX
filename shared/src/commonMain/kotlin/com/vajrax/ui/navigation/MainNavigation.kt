@@ -122,7 +122,21 @@ fun MainNavigation() {
                 )
             }
             composable("discover") {
-                DiscoverScreen()
+                val discoverViewModel = koinInject<com.vajrax.ui.features.discover.DiscoverViewModel>()
+                androidx.compose.runtime.LaunchedEffect(Unit) {
+                    discoverViewModel.effect.collect { effect ->
+                        when (effect) {
+                            is com.vajrax.ui.features.discover.DiscoverEffect.NavigateToHome -> {
+                                navController.navigate("home") {
+                                    popUpTo("home") { inclusive = true }
+                                }
+                            }
+                            
+                            
+                        }
+                    }
+                }
+                DiscoverScreen(viewModel = discoverViewModel)
             }
             composable("report") {
                 val state by growViewModel.uiState.collectAsState()

@@ -106,6 +106,21 @@ class TodayViewModel(
                 )
             } else emptyList()
 
+            
+            val allMapped = timeline.map {
+                ActionTimelineItem(
+                    id = it.id,
+                    practiceId = it.practiceId,
+                    title = it.title,
+                    scheduledTime = it.scheduledTime,
+                    targetDurationMinutes = it.targetDurationMinutes,
+                    minimumDurationMinutes = it.minimumDurationMinutes,
+                    status = it.status,
+                    trackingMode = it.trackingMode,
+                    durationMinutes = it.durationMinutes
+                )
+            }
+
             val totalCount = timeline.size
             val completedCount = completed.size
 
@@ -135,6 +150,7 @@ class TodayViewModel(
                     targetPercentage = targetPercent,
                     pacePercentage = pace,
                     consistencyPercentage = consistency,
+                    allTimelineItems = allMapped,
                     completedItems = completed,
                     currentFocus = nowItem,
                     nextItems = nextItems,

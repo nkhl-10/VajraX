@@ -66,7 +66,7 @@ fun DiscoverScreen(
             TemplateUi(
                 title = it.title,
                 subtitle = it.subtitle,
-                tasksLabel = "${state.practices.count { p -> p.pathId == it.id }.takeIf { n -> n > 0 } ?: 4} tasks",
+                tasksLabel = "${it.practices.size} tasks",
                 freqLabel = "Daily"
             )
         }
@@ -130,7 +130,7 @@ fun DiscoverScreen(
                     freqLabel = t.freqLabel,
                     onUse = {
                         if (state.paths.isNotEmpty()) {
-                            viewModel.onIntent(DiscoverIntent.SelectPath(idx.coerceIn(0, state.paths.size - 1)))
+                            viewModel.onIntent(DiscoverIntent.UseTemplate(state.paths[idx]))
                         }
                     }
                 )
