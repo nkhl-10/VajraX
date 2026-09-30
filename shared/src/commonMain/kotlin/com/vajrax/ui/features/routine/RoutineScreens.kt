@@ -166,7 +166,7 @@ private fun RoutineHabitRow(habit: Habit, onEdit: () -> Unit, onDetails: () -> U
     Row(
         Modifier.fillMaxWidth().clip(VxShape.medium).background(colors.surface)
             .border(1.dp, colors.outlineVariant.copy(alpha = 0.8f), VxShape.medium)
-            .clickable(role = Role.Button, onClick = onEdit)
+            .hapticClickable(onClick = onEdit)
             .padding(start = VxSpace.md, top = VxSpace.xs, bottom = VxSpace.xs),
         verticalAlignment = Alignment.CenterVertically
     ) {

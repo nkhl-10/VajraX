@@ -29,6 +29,8 @@ class MainActivity : ComponentActivity() {
     private var exportCallback: ((Boolean) -> Unit)? = null
     private var permissionCallback: ((Boolean) -> Unit)? = null
     private var barsDark: Boolean? = null
+    private val tilt = com.vajrax.platform.DeviceTilt()
+    private val tiltSensor by lazy { TiltSensor(this, tilt) }
 
     private val createDocument = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
         val content = pendingExport
@@ -76,6 +78,8 @@ class MainActivity : ComponentActivity() {
 
         override val supportsBackdropBlur: Boolean get() = Build.VERSION.SDK_INT >= 31
 
+        override val deviceTilt get() = tilt
+
         override fun canPinWidget(): Boolean =
             AppWidgetManager.getInstance(this@MainActivity).isRequestPinAppWidgetSupported
 
@@ -114,6 +118,12 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         // The 12/24-hour setting can change while the app is in the background.
         TimeFormat.use24Hour = DateFormat.is24HourFormat(this)
+        tiltSensor.start()
+    }
+
+    override fun onPause() {
+        tiltSensor.stop()
+        super.onPause()
     }
 
     override fun onNewIntent(intent: Intent) {

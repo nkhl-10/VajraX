@@ -271,7 +271,7 @@ private fun ReorderableHabits(habits: List<Habit>, onMove: (Int, Int) -> Unit, o
                     .clip(VxShape.medium)
                     .background(colors.surface)
                     .border(1.dp, colors.outlineVariant.copy(alpha = 0.8f), VxShape.medium)
-                    .clickable(role = Role.Button) { onEdit(index) }
+                    .hapticClickable { onEdit(index) }
                     .semantics {
                         customActions = listOfNotNull(
                             if (index > 0) CustomAccessibilityAction("Move up") { onMove(index, index - 1); true } else null,

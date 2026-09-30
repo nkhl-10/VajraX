@@ -1,9 +1,16 @@
-@file:OptIn(ExperimentalUuidApi::class)
+@file:OptIn(ExperimentalUuidApi::class, kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 
 package com.vajrax.ui.features.profile
 
 import com.vajrax.core.time.AppClock
+import com.vajrax.core.time.Dates
 import com.vajrax.core.time.minuteTicks
+import com.vajrax.domain.analytics.HabitAnalytics
+import com.vajrax.domain.repository.PracticeRepository
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.minus
 import com.vajrax.domain.habit.Tracker
 import com.vajrax.domain.repository.DataRepository
 import com.vajrax.domain.repository.ProfileRepository
@@ -38,7 +45,11 @@ data class ProfileUiState(
     val remindersEnabled: Boolean = false,
     val privacy: String = "GENERIC",
     val widgetHideNames: Boolean = false,
-    val isExporting: Boolean = false
+    val isExporting: Boolean = false,
+    /** Days in a row with 80 %+ of habits done. */
+    val streakDays: Int = 0,
+    /** Completion this week, or null before anything was due. */
+    val weekRate: Int? = null
 )
 
 sealed interface ProfileIntent {
@@ -67,6 +78,7 @@ class ProfileViewModel(
     private val settings: SettingsRepository,
     private val data: DataRepository,
     private val clock: AppClock,
+    private val practices: PracticeRepository,
     private val hooks: AppHooks? = null
 ) : MviViewModel<ProfileUiState, ProfileIntent, ProfileEffect>(ProfileUiState()) {
 
@@ -90,6 +102,19 @@ class ProfileViewModel(
                     )
                 }
             }.collect { }
+        }
+        // Header stats, from the same analytics as Home and Report.
+        viewModelScope.launch {
+            today.flatMapLatest { day ->
+                val from = Dates.startOfWeek(day.minus(60, DateTimeUnit.DAY))
+                combine(practices.observeAllTrackedHabits(), practices.observeRange(from, day)) { habits, records ->
+                    val analytics = HabitAnalytics(habits, records, day, from..day)
+                    analytics.dayStreak().current to analytics.period(Dates.startOfWeek(day), day).rate
+                }
+            }
+                .flowOn(Dispatchers.Default)
+                .whileVisible()
+                .collect { (streak, week) -> updateState { copy(streakDays = streak, weekRate = week) } }
         }
         viewModelScope.launch {
             combine(

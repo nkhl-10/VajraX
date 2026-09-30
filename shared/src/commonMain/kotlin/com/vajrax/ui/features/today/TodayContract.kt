@@ -60,6 +60,8 @@ data class TodayUiState(
     val startsLabel: String? = null,
     /** First habit of the not-yet-started routine, e.g. "Wake up · 6:30 AM". */
     val firstUp: String? = null,
+    /** Home shows today's habits on the rotary dial (default) or as a list. */
+    val dialView: Boolean = true,
     val error: String? = null
 ) {
     val todayFraction: Float get() = if (totalCount > 0) doneCount.toFloat() / totalCount else 0f
@@ -86,6 +88,7 @@ sealed interface TodayIntent {
     data object CancelTimer : TodayIntent
     /** The routine was set to start on a later day; begin it today instead. */
     data object StartToday : TodayIntent
+    data class SetDialView(val dial: Boolean) : TodayIntent
 }
 
 sealed interface TodayEffect {

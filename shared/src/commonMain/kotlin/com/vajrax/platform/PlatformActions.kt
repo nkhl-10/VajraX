@@ -21,6 +21,8 @@ interface PlatformActions {
     fun requestPinWidget(list: Boolean) {}
     /** Opens the system notification settings for this app (after the permission was denied). */
     fun openNotificationSettings() {}
+    /** Live gyroscope tilt for shadows; null where the platform has none. */
+    val deviceTilt: DeviceTilt? get() = null
     /** Posts a reminder for the current habit right away so the user can check how reminders look. */
     fun sendTestReminder() {}
     val appVersion: String

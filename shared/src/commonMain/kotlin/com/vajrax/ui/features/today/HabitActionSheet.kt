@@ -177,8 +177,9 @@ fun HabitActionSheet(
 @Composable
 private fun SheetAction(icon: ImageVector, label: String, tint: Color? = null, onClick: () -> Unit) {
     val colors = LuminaTheme.colors
+    val haptics = rememberHaptics()
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 52.dp).clickable(role = Role.Button, onClick = onClick),
+        Modifier.fillMaxWidth().heightIn(min = 52.dp).clickable(role = Role.Button) { haptics(VxHaptic.Tap); onClick() },
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, null, tint = tint ?: colors.onSurfaceVariant, modifier = Modifier.size(20.dp))

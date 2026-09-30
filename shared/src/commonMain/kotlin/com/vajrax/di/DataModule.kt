@@ -125,7 +125,7 @@ fun dataModule() = module {
     single { DiscoverViewModel(get(), get()) }
     single { com.vajrax.ui.features.templates.ActivationViewModel(get(), get(), get(), get(), get()) }
     single { ReportViewModel(get(), get(), get(), get(), get()) }
-    single { ProfileViewModel(get(), get(), get(), get(), get(), get(), getOrNull<AppHooks>()) }
+    single { ProfileViewModel(get(), get(), get(), get(), get(), get(), get(), getOrNull<AppHooks>()) }
     single { PathViewModel(get(), get(), get()) }
     single { LearnViewModel(get()) }
     single { GrowViewModel(get()) }

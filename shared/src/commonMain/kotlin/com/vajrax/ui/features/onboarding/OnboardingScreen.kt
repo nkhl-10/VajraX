@@ -234,7 +234,7 @@ private fun RoutineStep(state: OnboardingUiState, onIntent: (OnboardingIntent) -
                     Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(VxShape.medium)
                         .background(if (selected) colors.primaryContainer else colors.surface)
                         .border(if (selected) 1.5.dp else 1.dp, if (selected) colors.primary else colors.outlineVariant, VxShape.medium)
-                        .selectable(selected, role = Role.RadioButton) { onIntent(OnboardingIntent.SetReminderStyle(style)) }
+                        .hapticSelectable(selected, role = Role.RadioButton) { onIntent(OnboardingIntent.SetReminderStyle(style)) }
                         .padding(VxSpace.lg),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -342,7 +342,7 @@ private fun BlankTrackerCard(onClick: () -> Unit) {
     Row(
         Modifier.fillMaxWidth().clip(VxShape.medium).background(colors.surface)
             .border(1.5.dp, colors.primary.copy(alpha = 0.3f), VxShape.medium)
-            .clickable(role = Role.Button, onClick = onClick).padding(VxSpace.lg),
+            .hapticClickable(onClick = onClick).padding(VxSpace.lg),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(Modifier.size(44.dp).clip(CircleShape).background(colors.primaryContainer), contentAlignment = Alignment.Center) {

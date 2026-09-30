@@ -45,6 +45,7 @@ interface SettingsRepository {
         const val LAST_MATERIALIZED = "last_materialized_date"
         const val LIBRARY_VERSION = "template_library_version"
         const val ONBOARDING_DONE = "onboarding_done"
+        const val HOME_VIEW = "home_view" // DIAL | LIST
     }
 }
 

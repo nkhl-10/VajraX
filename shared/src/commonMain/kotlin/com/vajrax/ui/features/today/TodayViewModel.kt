@@ -88,9 +88,18 @@ class TodayViewModel(
                     val restored = if (currentState().timer == null) restoreTimer(built.items) else null
                     updateState {
                         val current = timer ?: restored
-                        built.copy(timer = current?.let { t -> built.items.firstOrNull { it.id == t.item.id }?.let { t.copy(item = it) } ?: t })
+                        built.copy(
+                            timer = current?.let { t -> built.items.firstOrNull { it.id == t.item.id }?.let { t.copy(item = it) } ?: t },
+                            dialView = dialView
+                        )
                     }
                 }
+        }
+    }
+
+    init {
+        viewModelScope.launch {
+            settings.observe(SettingsRepository.HOME_VIEW).collect { v -> updateState { copy(dialView = v != "LIST") } }
         }
     }
 
@@ -325,6 +334,12 @@ class TodayViewModel(
             TodayIntent.CancelTimer -> {
                 updateState { copy(timer = null) }
                 saveTimer(null)
+            }
+            is TodayIntent.SetDialView -> {
+                updateState { copy(dialView = intent.dial) }
+                viewModelScope.launch(Dispatchers.IO) {
+                    runCatching { settings.put(SettingsRepository.HOME_VIEW, if (intent.dial) "DIAL" else "LIST") }
+                }
             }
             TodayIntent.StartToday -> perform {
                 routineManager.startToday()

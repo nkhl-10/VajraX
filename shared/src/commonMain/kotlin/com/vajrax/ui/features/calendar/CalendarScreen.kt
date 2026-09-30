@@ -157,7 +157,7 @@ private fun WeekMatrix(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     modifier = Modifier.width(40.dp).clip(RoundedCornerShape(12.dp))
-                        .clickable(role = Role.Button) { onIntent(CalendarIntent.Select(d.date)) }
+                        .hapticClickable(kind = VxHaptic.Select) { onIntent(CalendarIntent.Select(d.date)) }
                         .semantics { contentDescription = "${d.dayName} ${d.dayNumber}${if (d.isToday) ", today" else ""}" }
                 ) {
                     Box(
@@ -348,7 +348,7 @@ private fun HeatCell(cell: MonthCell, modifier: Modifier, onClick: () -> Unit) {
         Box(
             Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp)).background(bg)
                 .then(if (cell.isSelected) Modifier.border(2.dp, colors.onSurface, RoundedCornerShape(10.dp)) else if (cell.isToday) Modifier.border(1.5.dp, colors.primary, RoundedCornerShape(10.dp)) else Modifier)
-                .clickable(role = Role.Button, onClick = onClick)
+                .hapticClickable(onClick = onClick)
                 .semantics { contentDescription = description },
             contentAlignment = Alignment.Center
         ) {

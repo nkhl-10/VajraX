@@ -62,13 +62,16 @@ fun VxCard(
 ) {
     val colors = LuminaTheme.colors
     val shape = RoundedCornerShape(20.dp)
+    val tilt = com.vajrax.platform.LocalDeviceTilt.current
+    val haptics = rememberHaptics()
     Column(
         modifier = modifier
-            .then(if (elevated) Modifier.shadow(if (colors.isDark) 0.dp else 14.dp, shape, ambientColor = Color(0x22000000), spotColor = Color(0x22000000)) else Modifier)
+            // Every card casts a shadow that follows the phone's movement; raised cards cast more.
+            .tiltShadow(shape, tilt, elevation = if (elevated) 16.dp else 9.dp, dark = colors.isDark)
             .clip(shape)
             .background(colors.surface)
             .border(1.dp, colors.outlineVariant.copy(alpha = if (elevated) 0.5f else 0.8f), shape)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(if (onClick != null) Modifier.clickable { haptics(VxHaptic.Tap); onClick() } else Modifier)
             .padding(contentPadding),
         content = content
     )
@@ -158,13 +161,14 @@ fun LinearBar(
 @Composable
 fun StatPod(title: String, value: String, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
     val colors = LuminaTheme.colors
+    val haptics = rememberHaptics()
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .clip(VxShape.medium)
             .background(colors.background)
             .border(1.dp, colors.outlineVariant.copy(alpha = 0.8f), VxShape.medium)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(if (onClick != null) Modifier.clickable { haptics(VxHaptic.Tap); onClick() } else Modifier)
             .padding(vertical = VxSpace.md)
             .semantics(mergeDescendants = true) {}
     ) {
@@ -228,16 +232,23 @@ fun CheckCircle(
         CheckState.OPEN -> "Not done"
     }
     val interactive = onClick != null && state != CheckState.DISABLED
+    val haptics = rememberHaptics()
+    val checked = state == CheckState.DONE || state == CheckState.DONE_MUTED
+    val feel: () -> Unit = { haptics(if (checked || state == CheckState.SKIPPED) VxHaptic.ToggleOff else VxHaptic.ToggleOn) }
     Box(
         modifier = modifier
             .width(touchWidth)
             .height(48.dp)
             .then(
-                if (onLongClick != null) Modifier.combinedClickable(onClick = { onClick?.invoke() }, onLongClick = onLongClick, role = Role.Button)
+                if (onLongClick != null) Modifier.combinedClickable(
+                    onClick = { if (onClick != null) { feel(); onClick() } },
+                    onLongClick = { haptics(VxHaptic.Tap); onLongClick() },
+                    role = Role.Button
+                )
                 else if (interactive) Modifier.toggleable(
-                    value = state == CheckState.DONE || state == CheckState.DONE_MUTED,
+                    value = checked,
                     role = Role.Checkbox,
-                    onValueChange = { onClick() }
+                    onValueChange = { feel(); onClick() }
                 ) else Modifier
             )
             .semantics {
@@ -280,10 +291,12 @@ fun PrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     loading: Boolean = false,
-    icon: ImageVector? = null
+    icon: ImageVector? = null,
+    haptic: VxHaptic = VxHaptic.Tap
 ) {
+    val haptics = rememberHaptics()
     Button(
-        onClick = onClick,
+        onClick = { haptics(haptic); onClick() },
         enabled = enabled && !loading,
         modifier = modifier.heightIn(min = 52.dp),
         shape = RoundedCornerShape(14.dp),
@@ -311,9 +324,10 @@ fun SecondaryButton(
     destructive: Boolean = false
 ) {
     val colors = LuminaTheme.colors
+    val haptics = rememberHaptics()
     val tint = if (destructive) colors.statusError else colors.primary
     OutlinedButton(
-        onClick = onClick,
+        onClick = { haptics(VxHaptic.Tap); onClick() },
         enabled = enabled,
         modifier = modifier.heightIn(min = 52.dp),
         shape = RoundedCornerShape(14.dp),
@@ -330,15 +344,23 @@ fun SecondaryButton(
 
 /** Small pill action used on the NOW card ("Mark done", "Notes"). */
 @Composable
-fun PillAction(text: String, icon: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier, filled: Boolean = false) {
+fun PillAction(
+    text: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    filled: Boolean = false,
+    haptic: VxHaptic = VxHaptic.Tap
+) {
     val colors = LuminaTheme.colors
+    val haptics = rememberHaptics()
     Row(
         modifier = modifier
             .heightIn(min = 40.dp)
             .clip(VxShape.pill)
             .background(if (filled) colors.primary else colors.surface)
             .border(1.dp, if (filled) colors.primary else colors.primary.copy(alpha = 0.25f), VxShape.pill)
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickable(role = Role.Button) { haptics(haptic); onClick() }
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -352,8 +374,9 @@ fun PillAction(text: String, icon: ImageVector, onClick: () -> Unit, modifier: M
 @Composable
 fun RoundIconButton(icon: ImageVector, contentDescription: String, onClick: () -> Unit, modifier: Modifier = Modifier, tint: Color? = null) {
     val colors = LuminaTheme.colors
+    val haptics = rememberHaptics()
     Box(
-        modifier = modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button, onClick = onClick)
+        modifier = modifier.size(48.dp).clip(CircleShape).clickable(role = Role.Button) { haptics(VxHaptic.Tap); onClick() }
             .semantics { this.contentDescription = contentDescription },
         contentAlignment = Alignment.Center
     ) {
@@ -366,9 +389,10 @@ fun RoundIconButton(icon: ImageVector, contentDescription: String, onClick: () -
 @Composable
 fun UsePill(text: String = "Use", onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = LuminaTheme.colors
+    val haptics = rememberHaptics()
     Box(
         modifier = modifier.heightIn(min = 40.dp).clip(VxShape.pill).background(colors.primary)
-            .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 22.dp),
+            .clickable(role = Role.Button) { haptics(VxHaptic.Tap); onClick() }.padding(horizontal = 22.dp),
         contentAlignment = Alignment.Center
     ) {
         Text(text, style = MaterialTheme.typography.labelLarge, color = colors.onPrimary)
@@ -380,6 +404,7 @@ fun UsePill(text: String = "Use", onClick: () -> Unit, modifier: Modifier = Modi
 @Composable
 fun SegmentedToggle(options: List<String>, selectedIndex: Int, onSelect: (Int) -> Unit, modifier: Modifier = Modifier) {
     val colors = LuminaTheme.colors
+    val haptics = rememberHaptics()
     Row(
         modifier = modifier.clip(VxShape.pill).background(colors.surfaceDim).padding(4.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -391,7 +416,7 @@ fun SegmentedToggle(options: List<String>, selectedIndex: Int, onSelect: (Int) -
                     .heightIn(min = 36.dp)
                     .clip(VxShape.pill)
                     .background(if (selected) colors.surface else Color.Transparent)
-                    .selectable(selected = selected, role = Role.Tab, onClick = { onSelect(index) })
+                    .selectable(selected = selected, role = Role.Tab, onClick = { if (!selected) haptics(VxHaptic.Select); onSelect(index) })
                     .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.Center
             ) {
@@ -408,13 +433,14 @@ fun SegmentedToggle(options: List<String>, selectedIndex: Int, onSelect: (Int) -
 @Composable
 fun CategoryChip(text: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = LuminaTheme.colors
+    val haptics = rememberHaptics()
     Box(
         modifier = modifier
             .heightIn(min = 40.dp)
             .clip(VxShape.pill)
             .background(if (selected) colors.primaryContainer else colors.surface)
             .border(if (selected) 1.5.dp else 1.dp, if (selected) colors.primary else colors.outlineVariant, VxShape.pill)
-            .selectable(selected = selected, role = Role.Checkbox, onClick = onClick)
+            .selectable(selected = selected, role = Role.Checkbox, onClick = { haptics(VxHaptic.Select); onClick() })
             .padding(horizontal = 16.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -486,13 +512,14 @@ fun VxTextField(
 @Composable
 fun TimeField(label: String, time: String?, onPick: () -> Unit, modifier: Modifier = Modifier, placeholder: String = "Anytime") {
     val colors = LuminaTheme.colors
+    val haptics = rememberHaptics()
     Column(modifier) {
         Text(label, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium), color = colors.onSurface)
         Spacer(Modifier.height(6.dp))
         Row(
             modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).clip(RoundedCornerShape(14.dp))
                 .border(1.dp, colors.outlineVariant, RoundedCornerShape(14.dp)).background(colors.surface)
-                .clickable(role = Role.Button, onClick = onPick).padding(horizontal = VxSpace.lg),
+                .clickable(role = Role.Button) { haptics(VxHaptic.Tap); onPick() }.padding(horizontal = VxSpace.lg),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(VxIcons.Clock, null, tint = colors.onSurfaceVariant, modifier = Modifier.size(18.dp))
@@ -536,16 +563,17 @@ fun ConfirmDialog(
     dismissLabel: String = "Cancel"
 ) {
     val colors = LuminaTheme.colors
+    val haptics = rememberHaptics()
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title, style = MaterialTheme.typography.titleLarge) },
         text = { Text(message, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant) },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
+            TextButton(onClick = { haptics(if (destructive) VxHaptic.Reject else VxHaptic.Confirm); onConfirm() }) {
                 Text(confirmLabel, color = if (destructive) colors.statusError else colors.primary, style = MaterialTheme.typography.labelLarge)
             }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(dismissLabel) } },
+        dismissButton = { TextButton(onClick = { haptics(VxHaptic.Tap); onDismiss() }) { Text(dismissLabel) } },
         containerColor = colors.surface
     )
 }
@@ -619,13 +647,14 @@ fun VxTopBar(
     trailing: (@Composable RowScope.() -> Unit)? = null
 ) {
     val colors = LuminaTheme.colors
+    val haptics = rememberHaptics()
     Row(
         modifier = modifier.fillMaxWidth().background(colors.surface).statusBarsPadding()
             .padding(horizontal = VxSpace.md, vertical = VxSpace.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button, onClick = onBack)
+            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button) { haptics(VxHaptic.Tap); onBack() }
                 .semantics { contentDescription = "Back" },
             contentAlignment = Alignment.Center
         ) {
@@ -650,9 +679,10 @@ fun VxTopBar(
 @Composable
 fun TonalAction(text: String, icon: ImageVector, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val colors = LuminaTheme.colors
+    val haptics = rememberHaptics()
     Row(
         modifier = modifier.heightIn(min = 40.dp).clip(VxShape.pill).background(colors.primaryContainer)
-            .clickable(role = Role.Button, onClick = onClick).padding(horizontal = 14.dp),
+            .clickable(role = Role.Button) { haptics(VxHaptic.Tap); onClick() }.padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(icon, null, tint = colors.accentOnContainer, modifier = Modifier.size(16.dp))
@@ -673,8 +703,9 @@ fun ListRow(
     showChevron: Boolean = true
 ) {
     val colors = LuminaTheme.colors
+    val haptics = rememberHaptics()
     Row(
-        modifier = modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(role = Role.Button, onClick = onClick)
+        modifier = modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(role = Role.Button) { haptics(VxHaptic.Tap); onClick() }
             .padding(horizontal = VxSpace.xl),
         verticalAlignment = Alignment.CenterVertically
     ) {

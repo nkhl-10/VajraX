@@ -183,7 +183,7 @@ fun DashedAddBox(title: String, subtitle: String, buttonLabel: String, onClick: 
         Row(
             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(12.dp))
                 .background(colors.surface).border(1.dp, colors.primary.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
-                .clickable(role = Role.Button, onClick = onClick),
+                .hapticClickable(onClick = onClick),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -376,7 +376,7 @@ private fun DraftRow(draft: DraftHabit, onToggle: () -> Unit, onEdit: () -> Unit
     Row(
         modifier = Modifier.fillMaxWidth().clip(VxShape.medium).background(colors.surface)
             .border(1.dp, colors.outlineVariant.copy(alpha = 0.8f), VxShape.medium)
-            .clickable(role = Role.Button, onClick = onEdit)
+            .hapticClickable(onClick = onEdit)
             .padding(start = VxSpace.xs, end = VxSpace.md, top = VxSpace.xs, bottom = VxSpace.xs),
         verticalAlignment = Alignment.CenterVertically
     ) {

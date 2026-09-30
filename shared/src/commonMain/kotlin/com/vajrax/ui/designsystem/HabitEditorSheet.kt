@@ -47,6 +47,7 @@ fun HabitEditorSheet(
     errorMessage: String? = null
 ) {
     val colors = LuminaTheme.colors
+    val haptics = rememberHaptics()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var draft by remember(initial.id) { mutableStateOf(initial) }
     var targetText by remember(initial.id) { mutableStateOf(formatValue(initial.targetValue)) }
@@ -87,7 +88,7 @@ fun HabitEditorSheet(
                         modifier = Modifier.size(48.dp).clip(VxShape.small)
                             .background(if (selected) accent.copy(alpha = 0.16f) else colors.surfaceDim)
                             .border(if (selected) 1.5.dp else 0.dp, if (selected) accent else colors.surfaceDim, VxShape.small)
-                            .selectable(selected, role = Role.RadioButton) { draft = draft.copy(icon = key) }
+                            .selectable(selected, role = Role.RadioButton) { haptics(VxHaptic.Select); draft = draft.copy(icon = key) }
                             .semantics { contentDescription = "Icon $key" },
                         contentAlignment = Alignment.Center
                     ) {
@@ -104,7 +105,7 @@ fun HabitEditorSheet(
                         modifier = Modifier.size(36.dp).clip(CircleShape)
                             .border(if (selected) 2.dp else 0.dp, if (selected) colors.onSurface else c, CircleShape)
                             .padding(4.dp).clip(CircleShape).background(c)
-                            .selectable(selected, role = Role.RadioButton) { draft = draft.copy(color = key) }
+                            .selectable(selected, role = Role.RadioButton) { haptics(VxHaptic.Select); draft = draft.copy(color = key) }
                             .semantics { contentDescription = "Color $key" }
                     )
                 }
@@ -306,16 +307,17 @@ fun HabitEditorSheet(
 @Composable
 fun Stepper(value: String, onMinus: () -> Unit, onPlus: () -> Unit, label: String, modifier: Modifier = Modifier) {
     val colors = LuminaTheme.colors
+    val haptics = rememberHaptics()
     Row(
         modifier = modifier.fillMaxWidth().clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
             .border(1.dp, colors.outlineVariant, androidx.compose.foundation.shape.RoundedCornerShape(14.dp)),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = onMinus, modifier = Modifier.semantics { contentDescription = "Decrease $label" }) {
+        IconButton(onClick = { haptics(VxHaptic.Tick); onMinus() }, modifier = Modifier.semantics { contentDescription = "Decrease $label" }) {
             Icon(VxIcons.Minus, null, tint = colors.primary)
         }
         Text(value, style = MaterialTheme.typography.titleSmall, color = colors.onSurface, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
-        IconButton(onClick = onPlus, modifier = Modifier.semantics { contentDescription = "Increase $label" }) {
+        IconButton(onClick = { haptics(VxHaptic.Tick); onPlus() }, modifier = Modifier.semantics { contentDescription = "Increase $label" }) {
             Icon(VxIcons.Plus, null, tint = colors.primary)
         }
     }
@@ -324,6 +326,7 @@ fun Stepper(value: String, onMinus: () -> Unit, onPlus: () -> Unit, label: Strin
 @Composable
 fun DayPicker(days: Set<Int>, onChange: (Set<Int>) -> Unit) {
     val colors = LuminaTheme.colors
+    val haptics = rememberHaptics()
     val names = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         (1..7).forEach { d ->
@@ -333,7 +336,10 @@ fun DayPicker(days: Set<Int>, onChange: (Set<Int>) -> Unit) {
                     .background(if (selected) colors.primary else colors.surfaceDim)
                     .selectable(selected, role = Role.Checkbox) {
                         val next = if (selected) days - d else days + d
-                        if (next.isNotEmpty()) onChange(next)
+                        if (next.isNotEmpty()) {
+                            haptics(VxHaptic.Select)
+                            onChange(next)
+                        }
                     }
                     .semantics { contentDescription = names[d - 1] },
                 contentAlignment = Alignment.Center
@@ -347,9 +353,13 @@ fun DayPicker(days: Set<Int>, onChange: (Set<Int>) -> Unit) {
 @Composable
 fun SwitchRow(title: String, subtitle: String?, checked: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     val colors = LuminaTheme.colors
+    val haptics = rememberHaptics()
     Row(
         modifier = modifier.fillMaxWidth().heightIn(min = 56.dp)
-            .selectable(checked, role = Role.Switch) { onChange(!checked) },
+            .selectable(checked, role = Role.Switch) {
+                haptics(if (checked) VxHaptic.ToggleOff else VxHaptic.ToggleOn)
+                onChange(!checked)
+            },
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {

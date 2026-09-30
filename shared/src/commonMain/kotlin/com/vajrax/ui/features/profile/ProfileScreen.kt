@@ -1,6 +1,8 @@
 package com.vajrax.ui.features.profile
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -11,6 +13,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import com.vajrax.ui.theme.VxShape
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
@@ -81,22 +88,7 @@ fun ProfileScreen(
         ScreenTitle("Profile")
         Spacer(Modifier.height(VxSpace.xl))
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier.size(72.dp).clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(colors.primary, Color(0xFF7C3AED)))),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(state.initials, style = MaterialTheme.typography.headlineSmall, color = Color.White)
-            }
-            Spacer(Modifier.width(VxSpace.lg))
-            Column(Modifier.weight(1f)) {
-                Text(state.displayName, style = MaterialTheme.typography.titleLarge, color = colors.onSurface)
-                Text(state.email.ifBlank { "On this device" }, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
-            }
-        }
-        Spacer(Modifier.height(VxSpace.md))
-        SecondaryButton("Edit Profile", onClick = { editProfile = true }, modifier = Modifier.widthIn(min = 150.dp))
+        ProfileHero(state, onEdit = { editProfile = true })
 
         Spacer(Modifier.height(VxSpace.xxl))
         SectionLabel("Current template")
@@ -260,7 +252,7 @@ fun ProfileScreen(
                 Spacer(Modifier.height(VxSpace.sm))
                 listOf("FULL" to "Show habit names", "GENERIC" to "Generic: “You have a habit due”", "HIDDEN" to "No details").forEach { (key, label) ->
                     Row(
-                        Modifier.fillMaxWidth().heightIn(min = 48.dp).selectable(state.privacy == key, role = Role.RadioButton) { onIntent(ProfileIntent.SetPrivacy(key)) },
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp).hapticSelectable(state.privacy == key, role = Role.RadioButton) { onIntent(ProfileIntent.SetPrivacy(key)) },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(selected = state.privacy == key, onClick = null)
@@ -351,6 +343,74 @@ fun ProfileScreen(
     }
 }
 
+/**
+ * Top of Profile: a gradient band with the avatar overlapping its edge, name and email, an edit
+ * button, and three stats (day of the routine, day streak, this week's completion).
+ */
+@Composable
+private fun ProfileHero(state: ProfileUiState, onEdit: () -> Unit) {
+    val colors = LuminaTheme.colors
+    val gradient = Brush.linearGradient(listOf(colors.primary, Color(0xFF7C3AED)))
+    val overlap = 36.dp
+    VxCard(elevated = true, contentPadding = PaddingValues(0.dp)) {
+        Box(Modifier.fillMaxWidth().height(88.dp).background(gradient)) {
+            // Soft rings on the band, echoing the Home dial.
+            Canvas(Modifier.matchParentSize()) {
+                drawCircle(Color.White.copy(alpha = 0.10f), radius = size.height * 0.95f, center = Offset(size.width - 28.dp.toPx(), 4.dp.toPx()))
+                drawCircle(Color.White.copy(alpha = 0.07f), radius = size.height * 0.55f, center = Offset(size.width * 0.66f, size.height))
+            }
+            Box(
+                Modifier.align(Alignment.TopEnd).padding(8.dp).size(44.dp).clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.18f))
+                    .hapticClickable(onClickLabel = "Edit profile", onClick = onEdit)
+                    .semantics { contentDescription = "Edit profile" },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(VxIcons.Pencil, null, tint = Color.White, modifier = Modifier.size(18.dp))
+            }
+        }
+        Row(
+            Modifier.padding(horizontal = VxSpace.xl)
+                // Pull the row up so the avatar straddles the band's edge.
+                .layout { measurable, constraints ->
+                    val p = measurable.measure(constraints)
+                    val up = overlap.roundToPx()
+                    layout(p.width, p.height - up) { p.place(0, -up) }
+                },
+            verticalAlignment = Alignment.Bottom
+        ) {
+            Box(
+                Modifier.size(80.dp).clip(CircleShape).background(colors.surface).padding(4.dp)
+                    .clip(CircleShape).background(gradient),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(state.initials, style = MaterialTheme.typography.headlineSmall, color = Color.White)
+            }
+            Spacer(Modifier.width(VxSpace.md))
+            Column(
+                Modifier.weight(1f).padding(bottom = 2.dp).clip(VxShape.small).hapticClickable(onClickLabel = "Edit profile", onClick = onEdit)
+            ) {
+                Text(state.displayName, style = MaterialTheme.typography.titleLarge, color = colors.onSurface, maxLines = 1)
+                Text(
+                    state.email.ifBlank { "On this device · offline" },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant,
+                    maxLines = 1
+                )
+            }
+        }
+        Row(
+            Modifier.fillMaxWidth().padding(start = VxSpace.xl, end = VxSpace.xl, top = VxSpace.lg, bottom = VxSpace.xl),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            val t = state.tracker
+            StatPod("Day", if (t != null) "${state.dayNumber}/${t.totalDays}" else "—", Modifier.weight(1f))
+            StatPod("Streak", "${state.streakDays}d", Modifier.weight(1f))
+            StatPod("This week", state.weekRate?.let { "$it%" } ?: "—", Modifier.weight(1f))
+        }
+    }
+}
+
 @Composable
 private fun EditProfileDialog(state: ProfileUiState, onDismiss: () -> Unit, onSave: (String, String) -> Unit) {
     val colors = LuminaTheme.colors
@@ -382,7 +442,7 @@ private fun <T> OptionDialog(title: String, options: List<Pair<T, String>>, sele
             Column {
                 options.forEach { (value, label) ->
                     Row(
-                        Modifier.fillMaxWidth().heightIn(min = 48.dp).selectable(value == selected, role = Role.RadioButton) { onSelect(value) },
+                        Modifier.fillMaxWidth().heightIn(min = 48.dp).hapticSelectable(value == selected, role = Role.RadioButton) { onSelect(value) },
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(selected = value == selected, onClick = null)

@@ -23,7 +23,8 @@ fun VajraApp(platform: PlatformActions = NoopPlatformActions) {
     VajraTheme(themeMode = state.themeMode) {
         val dark = LuminaTheme.colors.isDark
         LaunchedEffect(dark) { platform.setSystemBarsDark(dark) }
-        CompositionLocalProvider(LocalPlatformActions provides platform) {
+        val tilt = platform.deviceTilt ?: androidx.compose.runtime.remember { com.vajrax.platform.DeviceTilt() }
+        CompositionLocalProvider(LocalPlatformActions provides platform, com.vajrax.platform.LocalDeviceTilt provides tilt) {
             MainNavigation(appViewModel)
         }
     }

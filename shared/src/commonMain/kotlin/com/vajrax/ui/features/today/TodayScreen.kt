@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
@@ -23,8 +25,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -55,7 +55,6 @@ fun TodayScreen(
     val colors = LuminaTheme.colors
     val snackbar = LocalVxSnackbar.current
     val listState = rememberLazyListState()
-    val haptics = LocalHapticFeedback.current
     val scope = rememberCoroutineScope()
     var sheetFor by remember { mutableStateOf<String?>(null) }
 
@@ -77,9 +76,17 @@ fun TodayScreen(
         }
     }
 
-    val complete: (TodayItem) -> Unit = { item ->
-        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-        onIntent(TodayIntent.Toggle(item.id))
+    // Haptics come from the control that was pressed (check circle, Done button), not from here.
+    val complete: (TodayItem) -> Unit = { item -> onIntent(TodayIntent.Toggle(item.id)) }
+    // The main check-in for a habit: +1 for counts, a focus session for timers, the value sheet
+    // for measured habits, otherwise done.
+    val primary: (TodayItem) -> Unit = { item ->
+        when {
+            item.habit.type == HabitType.COUNT -> onIntent(TodayIntent.Increment(item.id))
+            item.habit.trackingMode == TrackingMode.TIMER -> onIntent(TodayIntent.StartTimer(item.id))
+            item.habit.type != HabitType.BOOLEAN -> sheetFor = item.id
+            else -> complete(item)
+        }
     }
 
     BoxWithConstraints(Modifier.fillMaxSize().background(colors.background)) {
@@ -103,9 +110,10 @@ fun TodayScreen(
 
         // Keep the active habit in the centre of the visible list area (between the dashboard and
         // the nav bar): on open and whenever focus moves on to the next habit.
-        LaunchedEffect(state.nowId, state.isLoading, listHeightPx) {
+        val dialActive = pinDashboard && state.dialView && state.hasTracker && state.items.isNotEmpty()
+        LaunchedEffect(state.nowId, state.isLoading, listHeightPx, dialActive) {
             val nowId = state.nowId ?: return@LaunchedEffect
-            if (state.isLoading || listHeightPx == 0) return@LaunchedEffect
+            if (dialActive || state.isLoading || listHeightPx == 0) return@LaunchedEffect
             val index = listKeys.indexOf(nowId).takeIf { it >= 0 } ?: return@LaunchedEffect
             fun centreDelta(): Float? {
                 val info = listState.layoutInfo
@@ -129,7 +137,19 @@ fun TodayScreen(
                     DashboardCard(state, onWeeklyReview, onOpenReport)
                 }
             }
-            Box(
+            if (dialActive && !state.isLoading) {
+                DialSection(
+                    state = state,
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    onToggleView = { onIntent(TodayIntent.SetDialView(false)) },
+                    onOpenRoutine = onOpenRoutine,
+                    onPrimary = primary,
+                    onUndo = { item -> onIntent(TodayIntent.Reopen(item.id)) },
+                    onSnooze = { item -> onIntent(TodayIntent.Snooze(item.id)) },
+                    onSkip = { item -> onIntent(TodayIntent.Skip(item.id, null)) },
+                    onOpen = { item -> sheetFor = item.id }
+                )
+            } else Box(
                 Modifier.weight(1f).fillMaxWidth().clipToBounds()
                     .onSizeChanged { listHeightPx = it.height }
             ) {
@@ -166,16 +186,11 @@ fun TodayScreen(
                         return@LazyColumn
                     }
                     item(key = "header") {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text(state.trackerName, style = MaterialTheme.typography.titleLarge, color = colors.onSurface)
-                                val left = state.totalCount - state.doneCount
-                                if (state.totalCount > 0) {
-                                    Text(if (left > 0) "$left left" else "All done", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
-                                }
-                            }
-                            RoundIconButton(VxIcons.Pencil, "Edit routine", onClick = onOpenRoutine)
-                        }
+                        RoutineHeader(
+                            state,
+                            onToggleView = { onIntent(TodayIntent.SetDialView(!state.dialView)) },
+                            onOpenRoutine = onOpenRoutine
+                        )
                         Spacer(Modifier.height(VxSpace.md))
                     }
                     if (state.items.isEmpty() && state.startsLabel != null) {
@@ -204,14 +219,7 @@ fun TodayScreen(
                             if (item.phase == TodayPhase.NOW) {
                                 NowCard(
                                     item = item,
-                                    onDone = {
-                                        when {
-                                            item.habit.type == HabitType.COUNT -> onIntent(TodayIntent.Increment(item.id))
-                                            item.habit.trackingMode == TrackingMode.TIMER -> onIntent(TodayIntent.StartTimer(item.id))
-                                            item.habit.type != HabitType.BOOLEAN -> sheetFor = item.id
-                                            else -> complete(item)
-                                        }
-                                    },
+                                    onDone = { primary(item) },
                                     onNotes = { sheetFor = item.id },
                                     onSnooze = { onIntent(TodayIntent.Snooze(item.id)) },
                                     onSkip = { onIntent(TodayIntent.Skip(item.id, null)) },
@@ -259,6 +267,74 @@ fun TodayScreen(
                     onOpenHabit(item.habit.id)
                 }
             )
+        }
+    }
+}
+
+/** Tracker name, what's left, and the dial/list switch. */
+@Composable
+private fun RoutineHeader(state: TodayUiState, onToggleView: () -> Unit, onOpenRoutine: () -> Unit) {
+    val colors = LuminaTheme.colors
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(state.trackerName, style = MaterialTheme.typography.titleLarge, color = colors.onSurface, maxLines = 1)
+            val left = state.totalCount - state.doneCount
+            if (state.totalCount > 0) {
+                Text(if (left > 0) "$left left" else "All done", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            }
+        }
+        if (state.items.isNotEmpty()) {
+            RoundIconButton(
+                if (state.dialView) VxIcons.ListChecks else VxIcons.Gauge,
+                if (state.dialView) "Show as list" else "Show as dial",
+                onClick = onToggleView
+            )
+        }
+        RoundIconButton(VxIcons.Pencil, "Edit routine", onClick = onOpenRoutine)
+    }
+}
+
+/** Home's habit area as a rotary dial, centred between the progress card and the nav bar. */
+@Composable
+private fun DialSection(
+    state: TodayUiState,
+    modifier: Modifier,
+    onToggleView: () -> Unit,
+    onOpenRoutine: () -> Unit,
+    onPrimary: (TodayItem) -> Unit,
+    onUndo: (TodayItem) -> Unit,
+    onSnooze: (TodayItem) -> Unit,
+    onSkip: (TodayItem) -> Unit,
+    onOpen: (TodayItem) -> Unit
+) {
+    BoxWithConstraints(modifier.padding(horizontal = VxSpace.gutter).padding(bottom = VxSpace.navClearance)) {
+        val dial = @Composable {
+            HabitDial(
+                items = state.items,
+                nowId = state.nowId,
+                onPrimary = onPrimary,
+                onUndo = onUndo,
+                onSnooze = onSnooze,
+                onSkip = onSkip,
+                onOpen = onOpen
+            )
+        }
+        // Short screens scroll instead of squeezing the dial.
+        if (maxHeight >= 380.dp) {
+            Column(Modifier.fillMaxSize()) {
+                Spacer(Modifier.height(VxSpace.sm))
+                RoutineHeader(state, onToggleView, onOpenRoutine)
+                Spacer(Modifier.weight(0.8f))
+                dial()
+                Spacer(Modifier.weight(1.2f))
+            }
+        } else {
+            Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+                Spacer(Modifier.height(VxSpace.sm))
+                RoutineHeader(state, onToggleView, onOpenRoutine)
+                Spacer(Modifier.height(VxSpace.md))
+                dial()
+            }
         }
     }
 }
@@ -320,7 +396,7 @@ private fun PromptStrip(icon: androidx.compose.ui.graphics.vector.ImageVector, t
     Row(
         Modifier.fillMaxWidth().heightIn(min = 52.dp).clip(RoundedCornerShape(14.dp))
             .background(colors.primaryContainer)
-            .clickable(role = Role.Button, onClickLabel = title, onClick = onClick)
+            .hapticClickable(onClickLabel = title, onClick = onClick)
             .padding(horizontal = VxSpace.md, vertical = VxSpace.sm),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -386,7 +462,12 @@ private fun NowCard(
                 item.habit.type != HabitType.BOOLEAN -> "Log" to VxIcons.Pencil
                 else -> "Mark done" to VxIcons.Check
             }
-            PillAction(label, icon, onDone, filled = true)
+            val feel = when {
+                item.habit.type == HabitType.COUNT -> VxHaptic.Tick
+                item.habit.type == HabitType.BOOLEAN && item.habit.trackingMode != TrackingMode.TIMER -> VxHaptic.Confirm
+                else -> VxHaptic.Tap
+            }
+            PillAction(label, icon, onDone, filled = true, haptic = feel)
             PillAction("Snooze", VxIcons.Alarm, onSnooze)
             PillAction("Skip", VxIcons.SkipForward, onSkip)
             PillAction("Notes", VxIcons.Pencil, onNotes)
@@ -411,7 +492,7 @@ private fun HabitRow(item: TodayItem, onCheck: () -> Unit, onOpen: () -> Unit) {
     }
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-            .clickable(role = Role.Button, onClick = onOpen)
+            .hapticClickable(onClick = onOpen)
             .padding(end = VxSpace.md),
         verticalAlignment = Alignment.CenterVertically
     ) {

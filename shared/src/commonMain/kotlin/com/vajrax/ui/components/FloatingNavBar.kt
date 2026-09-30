@@ -32,6 +32,9 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.vajrax.ui.designsystem.tiltShadow
+import com.vajrax.ui.designsystem.VxHaptic
+import com.vajrax.ui.designsystem.rememberHaptics
 import com.vajrax.ui.designsystem.VxIcons
 import com.vajrax.ui.navigation.NavTabItem
 import com.vajrax.ui.navigation.NavTabType
@@ -76,7 +79,7 @@ fun FloatingPillNavBar(
                 .fillMaxWidth()
                 .height(64.dp)
                 .onGloballyPositioned { barOrigin = it.positionInRoot() }
-                .shadow(12.dp, shape, ambientColor = Color(0x14000000), spotColor = Color(0x1F000000))
+                .tiltShadow(shape, com.vajrax.platform.LocalDeviceTilt.current, elevation = 14.dp, dark = dark)
                 .clip(shape)
                 .drawBehind {
                     if (backdrop != null) {
@@ -117,6 +120,7 @@ private fun NavItem(tab: NavTabItem, selected: Boolean, onClick: () -> Unit, mod
         tween(180, easing = FastOutSlowInEasing),
         label = "tab"
     )
+    val haptics = rememberHaptics()
     val pill by animateColorAsState(
         if (selected) (if (colors.isDark) Color.White.copy(alpha = 0.10f) else colors.primary.copy(alpha = 0.10f)) else Color.Transparent,
         tween(180, easing = FastOutSlowInEasing),
@@ -128,7 +132,7 @@ private fun NavItem(tab: NavTabItem, selected: Boolean, onClick: () -> Unit, mod
             .padding(horizontal = 2.dp)
             .clip(RoundedCornerShape(18.dp))
             .background(pill)
-            .selectable(selected = selected, role = Role.Tab, onClick = onClick),
+            .selectable(selected = selected, role = Role.Tab, onClick = { if (!selected) haptics(VxHaptic.Select); onClick() }),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
