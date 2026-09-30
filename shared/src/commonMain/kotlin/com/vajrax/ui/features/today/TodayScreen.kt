@@ -184,8 +184,8 @@ fun TodayScreen(
                                 icon = VxIcons.Sunrise,
                                 title = "Starts ${state.startsLabel}",
                                 message = state.firstUp?.let { "First up: $it" } ?: "Your routine is ready.",
-                                actionLabel = "Edit routine",
-                                onAction = onOpenRoutine
+                                actionLabel = "Start today",
+                                onAction = { onIntent(TodayIntent.StartToday) }
                             )
                         }
                     } else if (state.items.isEmpty()) {

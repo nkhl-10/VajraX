@@ -348,6 +348,13 @@ UPDATE UserTemplateEntity SET isActive = 0, status = 'ARCHIVED', endedAt = ? WHE
 renameTracker:
 UPDATE UserTemplateEntity SET name = ? WHERE id = ?;
 
+moveTrackerStart:
+UPDATE UserTemplateEntity SET startDate = ? WHERE id = ?;
+
+-- Habits of a routine that hasn't started yet begin with it; habits already running keep their date.
+moveTrackerHabitsStart:
+UPDATE PracticeEntity SET startDate = :date WHERE trackerId = :trackerId AND startDate > :date;
+
 insertOrUpdateUserTemplate:
 INSERT OR REPLACE INTO UserTemplateEntity(id, userId, templateId, currentDay, totalDays, progressPercent, isActive)
 VALUES (?, ?, ?, ?, ?, ?, ?);

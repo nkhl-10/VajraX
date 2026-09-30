@@ -84,6 +84,8 @@ sealed interface TodayIntent {
     data object ResumeTimer : TodayIntent
     data object FinishTimer : TodayIntent
     data object CancelTimer : TodayIntent
+    /** The routine was set to start on a later day; begin it today instead. */
+    data object StartToday : TodayIntent
 }
 
 sealed interface TodayEffect {

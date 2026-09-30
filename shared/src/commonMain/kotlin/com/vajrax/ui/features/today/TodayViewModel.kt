@@ -9,6 +9,8 @@ import com.vajrax.core.time.minuteTicks
 import com.vajrax.domain.analytics.HabitAnalytics
 import com.vajrax.domain.habit.Habit
 import com.vajrax.domain.habit.HabitType
+import com.vajrax.domain.habit.NowPicker
+import com.vajrax.domain.model.ActionStatus
 import com.vajrax.domain.habit.Occurrence
 import com.vajrax.domain.habit.ScheduleType
 import com.vajrax.domain.habit.Tracker
@@ -156,7 +158,7 @@ class TodayViewModel(
             )
         }.sortedWith(compareBy<TodayItem> { TimeFormat.toMinutes(it.occurrence.scheduledTime ?: it.habit.time) ?: Int.MAX_VALUE }.thenBy { it.habit.sortOrder })
 
-        val nowId = pickNow(items, now)
+        val nowId = NowPicker.pick(candidates(items), now)
         val finalItems = items.map { if (it.id == nowId) it.copy(phase = TodayPhase.NOW) else it }
 
         val counted = finalItems.filter { it.phase != TodayPhase.SKIPPED && !(it.phase == TodayPhase.WEEKLY_MET) }
@@ -229,19 +231,15 @@ class TodayViewModel(
         )
     }
 
-    /**
-     * The single current habit: one whose time window contains now; otherwise the next one due
-     * within the hour; otherwise the most recent still-open one; otherwise the next upcoming.
-     */
-    private fun pickNow(items: List<TodayItem>, now: Int): String? {
-        val open = items.filter { it.phase == TodayPhase.UPCOMING || it.phase == TodayPhase.OPEN_EARLIER }
-        fun start(i: TodayItem) = TimeFormat.toMinutes(i.occurrence.scheduledTime ?: i.habit.time)
-        open.filter { i -> start(i)?.let { it <= now && now < it + i.habit.durationMinutes } == true }
-            .maxByOrNull { start(it) ?: 0 }?.let { return it.id }
-        open.filter { i -> start(i)?.let { it > now && it - now <= 60 } == true }
-            .minByOrNull { start(it) ?: 0 }?.let { return it.id }
-        open.filter { it.phase == TodayPhase.OPEN_EARLIER }.maxByOrNull { start(it) ?: 0 }?.let { return it.id }
-        return open.minByOrNull { start(it) ?: Int.MAX_VALUE }?.id
+    private fun candidates(items: List<TodayItem>) = items.map { i ->
+        NowPicker.Candidate(
+            id = i.id,
+            start = TimeFormat.toMinutes(i.occurrence.scheduledTime ?: i.habit.time),
+            durationMinutes = i.habit.durationMinutes,
+            open = i.phase == TodayPhase.UPCOMING || i.phase == TodayPhase.OPEN_EARLIER || i.phase == TodayPhase.NOW,
+            snoozed = i.occurrence.status == ActionStatus.SNOOZED,
+            completedAt = i.occurrence.completedAt?.takeIf { i.occurrence.isDone }
+        )
     }
 
     override fun sendIntent(intent: TodayIntent) {
@@ -328,6 +326,10 @@ class TodayViewModel(
                 updateState { copy(timer = null) }
                 saveTimer(null)
             }
+            TodayIntent.StartToday -> perform {
+                routineManager.startToday()
+                "Started today" to null
+            }
         }
     }
 
@@ -335,14 +337,12 @@ class TodayViewModel(
 
     private fun snapshot(id: String): Occurrence? = currentState().items.firstOrNull { it.id == id }?.occurrence
 
-    /** "✓ Wake up · Next: Drink water, 6:35 AM" — keeps the loop moving to the next habit. */
+    /** "✓ Wake up · Next: Drink water, 6:35 AM", naming the habit that becomes current next. */
     private fun doneMessage(id: String): String {
         val items = currentState().items
         val current = items.firstOrNull { it.id == id } ?: return "✓ Done"
-        val open = items.filter { it.id != id && (it.phase == TodayPhase.UPCOMING || it.phase == TodayPhase.OPEN_EARLIER || it.phase == TodayPhase.NOW) }
-        val start = TimeFormat.toMinutes(current.occurrence.scheduledTime ?: current.habit.time) ?: -1
-        val next = open.firstOrNull { (TimeFormat.toMinutes(it.occurrence.scheduledTime ?: it.habit.time) ?: Int.MAX_VALUE) >= start }
-            ?: open.firstOrNull()
+        val nextId = NowPicker.next(candidates(items), clock.minuteOfDay(), id, clock.nowIso())
+        val next = items.firstOrNull { it.id == nextId }
         return if (next == null) "✓ ${current.habit.title} · All done"
         else "✓ ${current.habit.title} · Next: ${next.habit.title}, ${next.timeLabel}"
     }

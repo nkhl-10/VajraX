@@ -5,6 +5,9 @@ import com.vajrax.core.time.TimeFormat
 import com.vajrax.core.time.minuteTicks
 import com.vajrax.domain.habit.Habit
 import com.vajrax.domain.habit.HabitType
+import com.vajrax.domain.habit.NowPicker
+import com.vajrax.domain.model.ActionStatus
+import kotlinx.datetime.LocalDate
 import com.vajrax.domain.habit.Occurrence
 import com.vajrax.domain.habit.Tracker
 import com.vajrax.domain.habit.formatValue
@@ -49,7 +52,11 @@ data class WidgetToday(
     val trackerName: String?,
     val rows: List<WidgetRow>,
     val hideNames: Boolean,
-    val nowMinute: Int = 0
+    val nowMinute: Int = 0,
+    /** Habit that becomes current once the current one is done (same rule as the app). */
+    val nextId: String? = null,
+    /** The routine was set to start on a later day. */
+    val startsLater: Boolean = false
 ) {
     private val counted get() = rows.filter { !it.occurrence.isSkipped }
     val done: Int get() = counted.count { it.occurrence.isDone }
@@ -57,7 +64,29 @@ data class WidgetToday(
     val percent: Int get() = if (total > 0) done * 100 / total else 0
     val fraction: Float get() = if (total > 0) done.toFloat() / total else 0f
     val current: WidgetRow? get() = rows.firstOrNull { it.isCurrent }
+    val next: WidgetRow? get() = rows.firstOrNull { it.id == nextId }
     val hasTracker: Boolean get() = trackerName != null
+
+    /**
+     * Widgets can't scroll to a row, so the list puts what matters first: the current habit,
+     * then the rest still to do, then what's already done or skipped.
+     */
+    val ordered: List<WidgetRow> get() {
+        val current = current
+        val open = rows.filter { it.occurrence.isOpen && it != current }
+        val resolved = rows.filter { !it.occurrence.isOpen }
+        return listOfNotNull(current) + open + resolved
+    }
+
+    /** "Now", "Next", "Still open" or "Anytime" for [row], from its time window. */
+    fun label(row: WidgetRow): String {
+        val start = TimeFormat.toMinutes(row.occurrence.scheduledTime ?: row.habit.time) ?: return "Anytime"
+        return when {
+            nowMinute < start -> "Next"
+            nowMinute < start + row.habit.durationMinutes -> "Now"
+            else -> "Still open"
+        }
+    }
 
     companion object {
         val Empty = WidgetToday(null, emptyList(), false)
@@ -86,28 +115,46 @@ object WidgetData {
                     practices.observeAllTrackedHabits(),
                     practices.observeDay(day),
                     settings.observe(SettingsRepository.WIDGET_HIDE_NAMES)
-                ) { tracker, habits, records, hide -> build(tracker, habits, records, hide == "true", minute) }
+                ) { tracker, habits, records, hide ->
+                    build(tracker, habits, records, hide == "true", minute, day, clock.nowIso())
+                }
             }
             .onStart { runCatching { routine.materialize() } }
             .distinctUntilChanged()
     }
 
-    private fun build(tracker: Tracker?, habits: List<Habit>, records: List<Occurrence>, hideNames: Boolean, now: Int): WidgetToday {
+    fun build(
+        tracker: Tracker?,
+        habits: List<Habit>,
+        records: List<Occurrence>,
+        hideNames: Boolean,
+        now: Int,
+        day: LocalDate,
+        nowIso: String
+    ): WidgetToday {
         if (tracker == null) return WidgetToday.Empty
         val byId = habits.associateBy { it.id }
         val pairs = records
             .mapNotNull { occ -> byId[occ.habitId]?.let { it to occ } }
             .sortedWith(compareBy<Pair<Habit, Occurrence>> { TimeFormat.toMinutes(it.second.scheduledTime ?: it.first.time) ?: Int.MAX_VALUE }.thenBy { it.first.sortOrder })
-        fun start(p: Pair<Habit, Occurrence>) = TimeFormat.toMinutes(p.second.scheduledTime ?: p.first.time)
-        val open = pairs.filter { it.second.isOpen }
-        val current = open.firstOrNull { p -> start(p)?.let { it <= now && now < it + p.first.durationMinutes } == true }
-            ?: open.firstOrNull { p -> (start(p) ?: 0) > now }
-            ?: open.firstOrNull()
+        val candidates = pairs.map { (h, o) ->
+            NowPicker.Candidate(
+                id = o.id,
+                start = TimeFormat.toMinutes(o.scheduledTime ?: h.time),
+                durationMinutes = h.durationMinutes,
+                open = o.isOpen,
+                snoozed = o.status == ActionStatus.SNOOZED,
+                completedAt = o.completedAt?.takeIf { o.isDone }
+            )
+        }
+        val currentId = NowPicker.pick(candidates, now)
         return WidgetToday(
             trackerName = tracker.name,
-            rows = pairs.map { (h, o) -> WidgetRow(h, o, isCurrent = current?.second?.id == o.id) },
+            rows = pairs.map { (h, o) -> WidgetRow(h, o, isCurrent = currentId == o.id) },
             hideNames = hideNames,
-            nowMinute = now
+            nowMinute = now,
+            nextId = currentId?.let { NowPicker.next(candidates, now, it, nowIso) },
+            startsLater = tracker.startDate > day
         )
     }
 }

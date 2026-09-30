@@ -134,6 +134,20 @@ class RoutineManager(
         return tracker
     }
 
+    /**
+     * Starts a routine that was set to begin on a later day today instead: moves its start date
+     * and plans today's habits, so Home shows them right away.
+     */
+    suspend fun startToday() {
+        val tracker = trackers.getActiveTracker() ?: throw RoutineException("Choose a routine first.")
+        val today = clock.today()
+        if (tracker.startDate <= today) return
+        materialize()
+        trackers.moveStart(tracker.id, today)
+        planToday(practices.getTrackerHabits(tracker.id).filter { it.archivedAt == null })
+        hooks.onRoutineChanged()
+    }
+
     /** Editable habit drafts for a template, times shifted so the first habit starts at [wakeTime]. */
     fun draftHabits(template: DefaultTemplate, wakeTime: String? = null): List<Habit> {
         val drafts = template.habits.sortedBy { it.sortOrder }.mapIndexed { i, h -> h.toHabitCopy("draft_$i", null, i) }

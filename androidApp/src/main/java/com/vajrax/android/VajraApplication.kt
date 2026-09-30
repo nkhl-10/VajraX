@@ -13,6 +13,8 @@ import com.vajrax.domain.usecase.AppHooks
 import com.vajrax.domain.usecase.RoutineManager
 import com.vajrax.platform.WidgetController
 import com.vajrax.android.widget.GlanceWidgetController
+import com.vajrax.android.widget.VajraWidgets
+import com.vajrax.domain.repository.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -51,7 +53,20 @@ class VajraApplication : Application() {
                 koin.get<HabitReminderScheduler>().sync()
                 koin.get<WidgetController>().refresh()
             }
+            runCatching { publishWidgetPreviews() }
         }
+    }
+
+    /** Widget-picker previews (Android 15+) are rate-limited, so publish once per install or update. */
+    private suspend fun publishWidgetPreviews() {
+        val settings = GlobalContext.get().get<SettingsRepository>()
+        val stamp = packageManager.getPackageInfo(packageName, 0).lastUpdateTime.toString()
+        val done = settings.get(KEY_WIDGET_PREVIEWS) == stamp
+        if (VajraWidgets.publishPreviews(this, alreadyPublished = done) && !done) settings.put(KEY_WIDGET_PREVIEWS, stamp)
+    }
+
+    private companion object {
+        const val KEY_WIDGET_PREVIEWS = "widget_previews_published"
     }
 }
 

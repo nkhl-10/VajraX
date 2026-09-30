@@ -24,6 +24,8 @@ interface TrackerRepository {
         nowIso: String
     )
     suspend fun renameTracker(id: String, name: String)
+    /** Moves a not-yet-started tracker (and its habits) to begin on [date]. */
+    suspend fun moveStart(id: String, date: LocalDate)
 }
 
 /** Key/value preferences stored in SettingEntity. */

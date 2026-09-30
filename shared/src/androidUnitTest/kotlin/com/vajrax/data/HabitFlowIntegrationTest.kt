@@ -74,6 +74,26 @@ class HabitFlowIntegrationTest {
     }
 
     @Test
+    fun routineSetForTomorrowCanStartToday() = runTest {
+        val env = Env("2026-09-28")
+        env.routine.startup()
+        val template = assertNotNull(env.templates.getTemplateWithHabits("morning_discipline"))
+        val today = LocalDate.parse("2026-09-28")
+        env.routine.activateTemplate(template, env.routine.draftHabits(template), startDate = LocalDate.parse("2026-09-29"))
+        assertTrue(env.practices.getRange(today, today).isEmpty())
+
+        env.routine.startToday()
+
+        val tracker = assertNotNull(env.trackers.getActiveTracker())
+        assertEquals(today, tracker.startDate)
+        assertTrue(env.practices.getTrackerHabits(tracker.id).all { it.startDate == today })
+        assertEquals(6, env.practices.getRange(today, today).size)
+        // Running it again (already started) changes nothing and creates no duplicates.
+        env.routine.startToday()
+        assertEquals(6, env.practices.getRange(today, today).size)
+    }
+
+    @Test
     fun checkInsPersistAndCanBeUndone() = runTest {
         val env = Env("2026-09-28")
         env.activate()

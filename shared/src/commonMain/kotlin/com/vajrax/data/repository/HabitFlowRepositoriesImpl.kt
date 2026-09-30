@@ -83,6 +83,13 @@ class TrackerRepositoryImpl(
     }
 
     override suspend fun renameTracker(id: String, name: String): Unit = io { queries.renameTracker(name.trim(), id) }
+
+    override suspend fun moveStart(id: String, date: LocalDate): Unit = io {
+        database.transaction {
+            queries.moveTrackerStart(date.toString(), id)
+            queries.moveTrackerHabitsStart(date.toString(), id)
+        }
+    }
 }
 
 class SettingsRepositoryImpl(private val database: VajraDatabase) : SettingsRepository {

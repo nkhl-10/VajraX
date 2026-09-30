@@ -16,7 +16,7 @@ _Last updated: 2026-09-30 (storyboard pass + global-release readiness) · Branch
 | Home-screen widgets (Jetpack Glance): Today list + Now card | ✅ Implemented, builds · ⏳ not yet verified on device |
 | Dark mode / landscape | ✅ Implemented · ⏳ not yet verified on device |
 | Daily-loop & "less effort" polish (section 4a) | ✅ Implemented, builds · ⏳ not yet verified on device (device busy) |
-| Automated tests | ✅ 33 tests, 0 failures (`:shared:testDebugUnitTest`) |
+| Automated tests | ✅ 40 tests, 0 failures (`:shared:testDebugUnitTest`) |
 | Debug APK | ✅ `:androidApp:assembleDebug` BUILD SUCCESSFUL |
 | Release APK (R8) | ✅ `:androidApp:assembleRelease` BUILD SUCCESSFUL, unsigned · ⚠ R8 Kotlin-metadata warnings (AGP 8.5.2 predates Kotlin 2.4) |
 | Global release readiness | ✅ In-app items done · ⏳ Play Console + signing + device QA open — see `doc/release/global-release.md` |
@@ -127,6 +127,14 @@ Flows were drawn as UX storyboards (one frame per step: action → next destinat
 ### 4d. Global release items
 
 Privacy policy, terms, health notice and open-source licenses in Profile › About (and Privacy/Terms links on Welcome); public copies in `doc/legal/`. `INTERNET` and `FOREGROUND_SERVICE` removed from the merged manifest; explicit backup rules; times follow the device 12/24-hour setting; directional icons mirror in RTL; content capped at 640 dp on tablets/foldables (API 36 ignores the portrait lock there); denied notifications offer a Settings shortcut; bundled templates no longer credit invented community authors ("Featured templates"). Full rule-by-rule status: `doc/release/global-release.md`.
+
+### 4e. Current habit, Start today, widget
+
+| Item | Implementation |
+|---|---|
+| One rule for "current habit" | `domain/habit/NowPicker`: in its time window → pending and starting within 30 min → first open habit after the one completed most recently → first open habit. Snoozed habits return only when their new time arrives. Used by Home, both widgets and the "Next: …" toast, so Done always moves to the same next habit everywhere |
+| Start today | A routine set to start tomorrow shows **Start today** on Home; `RoutineManager.startToday()` moves the tracker and its habits to today and plans today's occurrences |
+| Widgets | Current habit first, then what's still to do, then a "Done" group (widgets can't scroll to a row). Current card: "NOW / NEXT / STILL OPEN · time", Snooze + Done (icon, not a glyph), "Then · next habit" on taller Now widgets. Only the circle ticks a habit; tapping text opens the app. Launcher corner radius and `appWidgetBackground()` on Android 12+. Generated picker previews with sample habits on Android 15+ (published once per install/update). "Starts tomorrow" and "Day complete" states |
 
 ### Screens
 
