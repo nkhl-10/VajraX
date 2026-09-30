@@ -11,7 +11,8 @@ import com.vajrax.domain.model.TrackingMode
  */
 object TemplateCatalog {
 
-    const val VERSION = "3"
+    // 4: bundled "community" templates no longer credit invented authors.
+    const val VERSION = "4"
     const val BLANK_ID = "blank_custom_template"
 
     /** Category chips shown in the template library, in display order. */
@@ -166,7 +167,6 @@ object TemplateCatalog {
             difficulty = "Easy",
             estimatedDuration = "Daily",
             isCommunity = true,
-            author = "sarah",
             recommendedFor = "Better sleep and a calmer evening",
             habits = listOf(
                 h("Digital sunset", "21:00", 5, 1),
@@ -183,7 +183,6 @@ object TemplateCatalog {
             difficulty = "Medium",
             estimatedDuration = "Daily",
             isCommunity = true,
-            author = "mike",
             recommendedFor = "Getting fit without overthinking it",
             habits = listOf(
                 h("20-minute workout", "07:00", 20, 1, TrackingMode.TIMER),

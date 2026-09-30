@@ -3,6 +3,7 @@ package com.vajrax.android
 import android.app.Application
 import android.app.NotificationManager
 import com.vajrax.core.time.AppClock
+import com.vajrax.core.time.TimeFormat
 import com.vajrax.domain.repository.PracticeRepository
 import com.vajrax.android.reminders.HabitReminderScheduler
 import com.vajrax.android.reminders.ReminderReceiver
@@ -41,6 +42,7 @@ class VajraApplication : Application() {
                 )
             }
         }
+        TimeFormat.use24Hour = android.text.format.DateFormat.is24HourFormat(this)
         ReminderReceiver.ensureChannel(this)
         appScope.launch {
             runCatching {

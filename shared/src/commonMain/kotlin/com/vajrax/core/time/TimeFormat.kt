@@ -6,6 +6,13 @@ package com.vajrax.core.time
  */
 object TimeFormat {
 
+    /**
+     * Follows the device's 12/24-hour setting; the platform updates it at start-up and whenever
+     * the setting may have changed. Stored values are always 24h "HH:mm", only display changes.
+     */
+    @kotlin.concurrent.Volatile
+    var use24Hour: Boolean = false
+
     /** Parses "HH:mm", "H:mm", "hh:mm AM", or the start of a range into minutes since midnight. */
     fun toMinutes(raw: String?): Int? {
         if (raw.isNullOrBlank()) return null
@@ -38,7 +45,7 @@ object TimeFormat {
 
     fun normalize(raw: String?): String? = toMinutes(raw)?.let { fromMinutes(it) }
 
-    /** "6:30 AM" */
+    /** "6:30 AM", or "06:30" on 24-hour devices */
     fun display(hhmm: String?): String {
         val minutes = toMinutes(hhmm) ?: return ""
         return displayMinutes(minutes)
@@ -46,6 +53,7 @@ object TimeFormat {
 
     fun displayMinutes(minutes: Int): String {
         val m = ((minutes % 1440) + 1440) % 1440
+        if (use24Hour) return fromMinutes(m)
         val h24 = m / 60
         val mm = m % 60
         val suffix = if (h24 < 12) "AM" else "PM"
@@ -60,6 +68,7 @@ object TimeFormat {
     /** "09:00 AM" style used by the calendar matrix. */
     fun displayPadded(hhmm: String?): String {
         val minutes = toMinutes(hhmm) ?: return ""
+        if (use24Hour) return fromMinutes(minutes)
         val h24 = minutes / 60
         val mm = minutes % 60
         val suffix = if (h24 < 12) "AM" else "PM"
@@ -78,6 +87,7 @@ object TimeFormat {
         val end = start + durationMinutes
         val startText = displayPadded(fromMinutes(start))
         val endText = displayPadded(fromMinutes(end))
+        if (use24Hour) return "$startText - $endText"
         val sameMeridiem = startText.takeLast(2) == endText.takeLast(2)
         return if (sameMeridiem) "${startText.dropLast(3)} - $endText" else "$startText - $endText"
     }

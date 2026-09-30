@@ -1,6 +1,6 @@
 # VAJRAX / HabitFlow — App Progress & Context
 
-_Last updated: 2026-09-28 (daily-loop polish added) · Branch `main` (base commit `0db6da6`) · All work below is **uncommitted** in the working tree._
+_Last updated: 2026-09-30 (storyboard pass + global-release readiness) · Branch `feature/habitflow-offline-mvp` (on `main` `0db6da6`; commits `33ff222`, `e3572d5`; later work uncommitted)._
 
 ---
 
@@ -16,8 +16,10 @@ _Last updated: 2026-09-28 (daily-loop polish added) · Branch `main` (base commi
 | Home-screen widgets (Jetpack Glance): Today list + Now card | ✅ Implemented, builds · ⏳ not yet verified on device |
 | Dark mode / landscape | ✅ Implemented · ⏳ not yet verified on device |
 | Daily-loop & "less effort" polish (section 4a) | ✅ Implemented, builds · ⏳ not yet verified on device (device busy) |
-| Automated tests | ✅ 28 tests, 0 failures (`:shared:testDebugUnitTest`) |
+| Automated tests | ✅ 33 tests, 0 failures (`:shared:testDebugUnitTest`) |
 | Debug APK | ✅ `:androidApp:assembleDebug` BUILD SUCCESSFUL |
+| Release APK (R8) | ✅ `:androidApp:assembleRelease` BUILD SUCCESSFUL, unsigned · ⚠ R8 Kotlin-metadata warnings (AGP 8.5.2 predates Kotlin 2.4) |
+| Global release readiness | ✅ In-app items done · ⏳ Play Console + signing + device QA open — see `doc/release/global-release.md` |
 | Online / Supabase sync | ⏸ Out of scope for this phase (code untouched) |
 | iOS | ⏸ Not built or verified (the iOS entry point `MainViewController` was already missing) |
 
@@ -108,6 +110,23 @@ Open app → Home scrolls to NOW → one tap Done ("✓ Wake up · Next: Drink w
 | Glass bottom nav | Same material as TelepMaster's `GlassBar`: live blur of the screen behind (Android 12+, via a recorded `GraphicsLayer` + `BlurEffect`), translucent tint, sheen along the top edge, hairline border, 28 dp radius, selected tab on its own pill. Android 11 and older: same look with a more opaque tint |
 | Less text | Helper paragraphs removed or cut to a few words across Home, onboarding, template detail/customize, Discover, Calendar, Report, Profile, habit editor, My routine and builder; snackbars shortened ("Skipped", "Snoozed 15 min", "Saved"). Destructive confirmations stay explicit but short |
 | Smoother | Report and Calendar only recompute while visible (`whileVisible()` in `MviViewModel`), so a check-in no longer triggers 400-day analytics in the background; remaining screen states marked `@Immutable`; faster tab fades (180 / 120 ms) |
+
+### 4c. Storyboard pass
+
+Flows were drawn as UX storyboards (one frame per step: action → next destination), which surfaced these stall points:
+
+| Stall | Fix |
+|---|---|
+| "Blank tracker" card pushed recommendations below the fold | Blank tracker moved to the end of the template list |
+| Starting a routine late in the day opened day one with most habits "still open" | Customize preselects **Tomorrow** when fewer than half the habits are still ahead; chip reads "Today · N left" |
+| A routine starting tomorrow showed "Rest day" | Home shows "Starts tomorrow" + "First up: habit · time" |
+| Day-wrap / weekly-review cards scrolled away when the current habit was centred | Now a compact strip inside the pinned progress card (weekly review wins) |
+| Drill-in screens faded like tabs | Template, Customize, Builder, Routine, Habit and legal pages push in from the right (260 ms) and pop back right; tabs keep the crossfade |
+| "Complete daily routine" filler under the tracker name | Replaced with "N left" / "All done" |
+
+### 4d. Global release items
+
+Privacy policy, terms, health notice and open-source licenses in Profile › About (and Privacy/Terms links on Welcome); public copies in `doc/legal/`. `INTERNET` and `FOREGROUND_SERVICE` removed from the merged manifest; explicit backup rules; times follow the device 12/24-hour setting; directional icons mirror in RTL; content capped at 640 dp on tablets/foldables (API 36 ignores the portrait lock there); denied notifications offer a Settings shortcut; bundled templates no longer credit invented community authors ("Featured templates"). Full rule-by-rule status: `doc/release/global-release.md`.
 
 ### Screens
 
@@ -305,7 +324,8 @@ stale-notification snooze overwriting a completion; weekly-target edits re-scori
 
 - Backup **import/restore** not implemented (export only).
 - Goals can be created and removed, not edited.
-- Notification permission is requested during onboarding and when reminders are switched on; if denied, reminders stay off.
+- Notification permission is requested during onboarding and when reminders are switched on; if denied, reminders stay off and Profile offers a shortcut to the system notification settings.
+- English UI only; dates use English names and weeks start on Monday for everyone.
 - Reminders use inexact alarms (`setAndAllowWhileIdle`) and may be delayed a few minutes by Doze.
 - iOS target not built; the pre-existing iOS app lacks its `MainViewController`.
 - Legacy screens (Learn, Path, Grow, Review) and engines still use their old placeholder data but are unreachable.

@@ -2,6 +2,9 @@ package com.vajrax.ui.navigation
 
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -11,7 +14,10 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Snackbar
@@ -28,6 +34,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import com.vajrax.platform.LocalPlatformActions
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -50,6 +57,8 @@ import com.vajrax.ui.features.calendar.CalendarScreen
 import com.vajrax.ui.features.calendar.CalendarViewModel
 import com.vajrax.ui.features.discover.DiscoverScreen
 import com.vajrax.ui.features.discover.DiscoverViewModel
+import com.vajrax.ui.features.legal.LegalDoc
+import com.vajrax.ui.features.legal.LegalScreen
 import com.vajrax.ui.features.onboarding.OnboardingIntent
 import com.vajrax.ui.features.onboarding.OnboardingScreen
 import com.vajrax.ui.features.onboarding.OnboardingStep
@@ -93,6 +102,7 @@ data class NavTabItem(val label: String, val type: NavTabType, val route: Any)
 @Serializable data class BuilderRoute(val id: String? = null)
 @Serializable object RoutineRoute
 @Serializable data class HabitRoute(val id: String)
+@Serializable data class LegalRoute(val doc: String)
 
 private val tabs = listOf(
     NavTabItem("Home", NavTabType.HOME, HomeRoute),
@@ -109,6 +119,24 @@ private fun <T : MviViewModel<*, *, *>> rememberScreenViewModel(key: Any?, facto
     DisposableEffect(vm) { onDispose { vm.onCleared() } }
     return vm
 }
+
+/**
+ * Screens you drill into from a tab (template, customize, builder, routine, habit). They push in
+ * from the right and pop back to the right, so the direction of travel shows depth; switching
+ * between peer tabs stays a quick crossfade.
+ */
+private fun NavDestination.isDrillIn(): Boolean =
+    hasRoute(TemplateRoute::class) || hasRoute(CustomizeRoute::class) || hasRoute(BuilderRoute::class) ||
+        hasRoute(RoutineRoute::class) || hasRoute(HabitRoute::class) || hasRoute(LegalRoute::class)
+
+/**
+ * Apps targeting API 36 can't lock orientation on tablets and unfolded foldables, so wide
+ * windows get a centred phone-width column instead of stretched cards and lists.
+ */
+private val MaxContentWidth = 640.dp
+
+private const val PUSH_MS = 260
+private const val LEAVE_MS = 180
 
 private fun NavHostController.switchTab(route: Any) {
     navigate(route) {
@@ -166,17 +194,33 @@ fun MainNavigation(appViewModel: AppViewModel) {
             NavHost(
                 navController = navController,
                 startDestination = SplashRoute,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.align(Alignment.TopCenter).fillMaxHeight().widthIn(max = MaxContentWidth).fillMaxWidth()
                     .onGloballyPositioned { contentOrigin = it.positionInRoot() }
                     // Record the screen so the glass nav bar can frost what is behind it.
                     .drawWithContent {
                         backdrop.record { this@drawWithContent.drawContent() }
                         drawLayer(backdrop)
                     },
-                enterTransition = { fadeIn(tween(180)) },
-                exitTransition = { fadeOut(tween(120)) },
-                popEnterTransition = { fadeIn(tween(180)) },
-                popExitTransition = { fadeOut(tween(120)) }
+                enterTransition = {
+                    if (targetState.destination.isDrillIn()) {
+                        slideInHorizontally(tween(PUSH_MS, easing = FastOutSlowInEasing)) { it / 3 } + fadeIn(tween(PUSH_MS))
+                    } else fadeIn(tween(180))
+                },
+                exitTransition = {
+                    if (targetState.destination.isDrillIn()) {
+                        slideOutHorizontally(tween(PUSH_MS, easing = FastOutSlowInEasing)) { -it / 8 } + fadeOut(tween(LEAVE_MS))
+                    } else fadeOut(tween(120))
+                },
+                popEnterTransition = {
+                    if (initialState.destination.isDrillIn()) {
+                        slideInHorizontally(tween(PUSH_MS, easing = FastOutSlowInEasing)) { -it / 8 } + fadeIn(tween(PUSH_MS))
+                    } else fadeIn(tween(180))
+                },
+                popExitTransition = {
+                    if (initialState.destination.isDrillIn()) {
+                        slideOutHorizontally(tween(LEAVE_MS, easing = FastOutSlowInEasing)) { it / 3 } + fadeOut(tween(LEAVE_MS))
+                    } else fadeOut(tween(120))
+                }
             ) {
                 composable<SplashRoute> {
                     SplashScreen(appState.startRoute, appState.startupError) { route ->
@@ -193,7 +237,8 @@ fun MainNavigation(appViewModel: AppViewModel) {
                         recommended = remember(state.templates, state.goals, state.morningMinutes) { onboardingVm.recommended(state) },
                         onIntent = onboardingVm::sendIntent,
                         onOpenTemplate = { id -> navController.navigate(TemplateRoute(id, fromOnboarding = true)) },
-                        onUseTemplate = { id -> navController.navigate(CustomizeRoute(id, fromOnboarding = true)) }
+                        onUseTemplate = { id -> navController.navigate(CustomizeRoute(id, fromOnboarding = true)) },
+                        onOpenLegal = { doc -> navController.navigate(LegalRoute(doc.name)) }
                     )
                 }
                 composable<HomeRoute> {
@@ -241,6 +286,7 @@ fun MainNavigation(appViewModel: AppViewModel) {
                         onCreateTemplate = { navController.navigate(BuilderRoute()) },
                         onEditTemplate = { navController.navigate(BuilderRoute(it)) },
                         onUseTemplate = { navController.navigate(CustomizeRoute(it)) },
+                        onOpenLegal = { doc -> navController.navigate(LegalRoute(doc.name)) },
                         onDataWiped = {
                             appViewModel.resetToOnboarding()
                             onboardingVm.sendIntent(OnboardingIntent.Restart)
@@ -291,6 +337,10 @@ fun MainNavigation(appViewModel: AppViewModel) {
                         onChangeTemplate = { navController.switchTab(DiscoverRoute) }
                     )
                 }
+                composable<LegalRoute> { backStack ->
+                    val route = backStack.toRoute<LegalRoute>()
+                    LegalScreen(LegalDoc.of(route.doc), onBack = { navController.popBackStack() })
+                }
                 composable<HabitRoute> { backStack ->
                     val route = backStack.toRoute<HabitRoute>()
                     val vm = rememberScreenViewModel(route.id) { HabitDetailViewModel(route.id, routineManager, practices, clock) }
@@ -302,7 +352,7 @@ fun MainNavigation(appViewModel: AppViewModel) {
             // The focus timer is a full-screen moment: hide the nav so it never covers its buttons.
             val todayState by todayVm.uiState.collectAsState()
             val timerOpen = currentTab == NavTabType.HOME && todayState.timer != null
-            Column(Modifier.align(Alignment.BottomCenter)) {
+            Column(Modifier.align(Alignment.BottomCenter).widthIn(max = MaxContentWidth)) {
                 SnackbarHost(
                     hostState = snackbarHost,
                     modifier = Modifier.padding(horizontal = 16.dp).then(if (currentTab == null || timerOpen) Modifier.navigationBarsPadding() else Modifier)

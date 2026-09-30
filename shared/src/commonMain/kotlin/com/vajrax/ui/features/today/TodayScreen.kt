@@ -95,10 +95,8 @@ fun TodayScreen(
         val listKeys = buildList {
             if (!pinDashboard) add("dashboard")
             if (state.hasTracker) {
-                if (state.weeklyReviewDue) add("weekly_review")
-                if (state.dayWrap != null) add("day_wrap")
                 add("header")
-                if (state.items.isEmpty()) add("rest_day")
+                if (state.items.isEmpty()) add(if (state.startsLabel != null) "starts_later" else "rest_day")
                 state.items.forEach { add(it.id) }
             } else add("no_routine")
         }
@@ -128,7 +126,7 @@ fun TodayScreen(
             Spacer(Modifier.fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars).background(colors.background))
             if (pinDashboard && !state.isLoading) {
                 Box(Modifier.padding(start = VxSpace.gutter, end = VxSpace.gutter, top = VxSpace.lg, bottom = VxSpace.md)) {
-                    DashboardCard(state)
+                    DashboardCard(state, onWeeklyReview, onOpenReport)
                 }
             }
             Box(
@@ -151,7 +149,7 @@ fun TodayScreen(
                     }
                     if (!pinDashboard) {
                         item(key = "dashboard") {
-                            DashboardCard(state)
+                            DashboardCard(state, onWeeklyReview, onOpenReport)
                             Spacer(Modifier.height(VxSpace.xl))
                         }
                     }
@@ -167,45 +165,30 @@ fun TodayScreen(
                         }
                         return@LazyColumn
                     }
-                    if (state.weeklyReviewDue) {
-                        item(key = "weekly_review") {
-                            PromptCard(
-                                icon = VxIcons.Pen,
-                                title = "Weekly review",
-                                body = "Look back on your week.",
-                                action = "Start review",
-                                onAction = onWeeklyReview
-                            )
-                            Spacer(Modifier.height(VxSpace.lg))
-                        }
-                    }
-                    state.dayWrap?.let { wrap ->
-                        item(key = "day_wrap") {
-                            PromptCard(
-                                icon = if (wrap.allDone) VxIcons.Award else VxIcons.Moon,
-                                title = if (wrap.allDone) "Day complete" else "Wrapping up the day",
-                                body = buildString {
-                                    append("${wrap.done} of ${wrap.total} done")
-                                    if (wrap.skipped > 0) append(" · ${wrap.skipped} skipped")
-                                    append(".")
-                                },
-                                action = "See progress",
-                                onAction = onOpenReport
-                            )
-                            Spacer(Modifier.height(VxSpace.lg))
-                        }
-                    }
                     item(key = "header") {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Column(Modifier.weight(1f)) {
                                 Text(state.trackerName, style = MaterialTheme.typography.titleLarge, color = colors.onSurface)
-                                Text("Complete daily routine", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                                val left = state.totalCount - state.doneCount
+                                if (state.totalCount > 0) {
+                                    Text(if (left > 0) "$left left" else "All done", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                                }
                             }
                             RoundIconButton(VxIcons.Pencil, "Edit routine", onClick = onOpenRoutine)
                         }
                         Spacer(Modifier.height(VxSpace.md))
                     }
-                    if (state.items.isEmpty()) {
+                    if (state.items.isEmpty() && state.startsLabel != null) {
+                        item(key = "starts_later") {
+                            EmptyState(
+                                icon = VxIcons.Sunrise,
+                                title = "Starts ${state.startsLabel}",
+                                message = state.firstUp?.let { "First up: $it" } ?: "Your routine is ready.",
+                                actionLabel = "Edit routine",
+                                onAction = onOpenRoutine
+                            )
+                        }
+                    } else if (state.items.isEmpty()) {
                         item(key = "rest_day") {
                             EmptyState(
                                 icon = VxIcons.Moon,
@@ -281,7 +264,7 @@ fun TodayScreen(
 }
 
 @Composable
-private fun DashboardCard(state: TodayUiState) {
+private fun DashboardCard(state: TodayUiState, onWeeklyReview: () -> Unit, onOpenReport: () -> Unit) {
     val colors = LuminaTheme.colors
     VxCard(elevated = true, contentPadding = PaddingValues(VxSpace.xl)) {
         Text(state.dateLabel, style = MaterialTheme.typography.labelSmall, color = colors.primary)
@@ -312,23 +295,42 @@ private fun DashboardCard(state: TodayUiState) {
             StatPod("Week", state.weekRate?.let { "$it%" } ?: "—", Modifier.weight(1f))
             StatPod("Consistency", state.consistencyRate?.let { "$it%" } ?: "—", Modifier.weight(1f))
         }
+        // End-of-day and end-of-week prompts live in the pinned card, so auto-centring the NOW habit
+        // can never scroll them out of sight.
+        val wrap = state.dayWrap
+        when {
+            state.weeklyReviewDue -> PromptStrip(VxIcons.Pen, "Weekly review", "Look back on your week", onWeeklyReview)
+            wrap != null -> PromptStrip(
+                icon = if (wrap.allDone) VxIcons.Award else VxIcons.Moon,
+                title = if (wrap.allDone) "Day complete" else "Wrapping up",
+                body = buildString {
+                    append("${wrap.done} of ${wrap.total} done")
+                    if (wrap.skipped > 0) append(" · ${wrap.skipped} skipped")
+                },
+                onClick = onOpenReport
+            )
+        }
     }
 }
 
 @Composable
-private fun PromptCard(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, body: String, action: String, onAction: () -> Unit) {
+private fun PromptStrip(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, body: String, onClick: () -> Unit) {
     val colors = LuminaTheme.colors
-    VxCard(onClick = onAction) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconBadge(icon, colors.primary, size = 40.dp)
-            Spacer(Modifier.width(VxSpace.md))
-            Column(Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
-                Text(body, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
-            }
+    Spacer(Modifier.height(VxSpace.lg))
+    Row(
+        Modifier.fillMaxWidth().heightIn(min = 52.dp).clip(RoundedCornerShape(14.dp))
+            .background(colors.primaryContainer)
+            .clickable(role = Role.Button, onClickLabel = title, onClick = onClick)
+            .padding(horizontal = VxSpace.md, vertical = VxSpace.sm),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconBadge(icon, colors.primary, size = 32.dp, iconSize = 16.dp, background = colors.surface)
+        Spacer(Modifier.width(VxSpace.md))
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = colors.accentOnContainer)
+            Text(body, style = MaterialTheme.typography.bodySmall, color = colors.onPrimaryContainer.copy(alpha = 0.8f))
         }
-        Spacer(Modifier.height(VxSpace.md))
-        TonalAction(action, VxIcons.ArrowRight, onAction)
+        Icon(VxIcons.ArrowRight, null, tint = colors.accentOnContainer, modifier = Modifier.size(18.dp))
     }
 }
 

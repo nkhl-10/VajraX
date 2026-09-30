@@ -56,6 +56,10 @@ data class TodayUiState(
     val dayWrap: DayWrap? = null,
     /** True at the end of the week while this week's reflection hasn't been written yet. */
     val weeklyReviewDue: Boolean = false,
+    /** Set while the routine hasn't started yet, e.g. "tomorrow" or "on Oct 5". */
+    val startsLabel: String? = null,
+    /** First habit of the not-yet-started routine, e.g. "Wake up · 6:30 AM". */
+    val firstUp: String? = null,
     val error: String? = null
 ) {
     val todayFraction: Float get() = if (totalCount > 0) doneCount.toFloat() / totalCount else 0f

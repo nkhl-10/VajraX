@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.vajrax.domain.template.TemplateCatalog
 import com.vajrax.platform.LocalPlatformActions
+import com.vajrax.ui.features.legal.LegalDoc
 import com.vajrax.ui.designsystem.*
 import com.vajrax.ui.features.templates.BottomBar
 import com.vajrax.ui.features.templates.TemplateCard
@@ -48,7 +49,8 @@ fun OnboardingScreen(
     recommended: List<com.vajrax.domain.template.DefaultTemplate>,
     onIntent: (OnboardingIntent) -> Unit,
     onOpenTemplate: (String) -> Unit,
-    onUseTemplate: (String) -> Unit
+    onUseTemplate: (String) -> Unit,
+    onOpenLegal: (LegalDoc) -> Unit
 ) {
     val colors = LuminaTheme.colors
     val platform = LocalPlatformActions.current
@@ -83,7 +85,7 @@ fun OnboardingScreen(
             label = "onboarding"
         ) { step ->
             when (step) {
-                OnboardingStep.WELCOME -> WelcomeStep(onStart = { onIntent(OnboardingIntent.Next) })
+                OnboardingStep.WELCOME -> WelcomeStep(onStart = { onIntent(OnboardingIntent.Next) }, onOpenLegal = onOpenLegal)
                 OnboardingStep.ABOUT -> AboutStep(state, onIntent)
                 OnboardingStep.ROUTINE -> RoutineStep(state, onIntent, onPickWake = { pickWake = true }, onContinue = {
                     if (state.reminderStyle != ReminderStyle.OFF && !platform.notificationsPermitted()) {
@@ -125,7 +127,7 @@ private fun StepDots(current: Int, total: Int) {
 }
 
 @Composable
-private fun WelcomeStep(onStart: () -> Unit) {
+private fun WelcomeStep(onStart: () -> Unit, onOpenLegal: (LegalDoc) -> Unit) {
     val colors = LuminaTheme.colors
     Column(Modifier.fillMaxSize()) {
         Column(
@@ -147,7 +149,16 @@ private fun WelcomeStep(onStart: () -> Unit) {
             ValueRow(VxIcons.Check, "One-tap check-ins", "")
             ValueRow(VxIcons.Chart, "Real progress", "")
         }
-        BottomBar { PrimaryButton("Get started", onStart, Modifier.fillMaxWidth()) }
+        BottomBar {
+            PrimaryButton("Get started", onStart, Modifier.fillMaxWidth())
+            Spacer(Modifier.height(VxSpace.xs))
+            // Stated up front: nothing leaves the phone. Links open the full documents.
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                Text("Stays on this device", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                TextButton(onClick = { onOpenLegal(LegalDoc.PRIVACY) }) { Text("Privacy", style = MaterialTheme.typography.labelMedium) }
+                TextButton(onClick = { onOpenLegal(LegalDoc.TERMS) }) { Text("Terms", style = MaterialTheme.typography.labelMedium) }
+            }
+        }
     }
 }
 
@@ -298,8 +309,6 @@ private fun TemplateStep(
                     }
                 }
             }
-            Spacer(Modifier.height(VxSpace.lg))
-            BlankTrackerCard(onClick = { onUseTemplate(TemplateCatalog.BLANK_ID) })
             Spacer(Modifier.height(VxSpace.xl))
         }
         if (!filtering && recommended.isNotEmpty()) {
@@ -317,6 +326,12 @@ private fun TemplateStep(
         items(state.filtered, key = { it.id }) { t ->
             TemplateCard(t, onOpen = { onOpenTemplate(t.id) }, onUse = { onUseTemplate(t.id) })
             Spacer(Modifier.height(VxSpace.md))
+        }
+        // Starting from scratch is the fallback path, so it closes the list instead of pushing
+        // the recommendations below the fold.
+        item(key = "blank") {
+            Spacer(Modifier.height(VxSpace.sm))
+            BlankTrackerCard(onClick = { onUseTemplate(TemplateCatalog.BLANK_ID) })
         }
     }
 }

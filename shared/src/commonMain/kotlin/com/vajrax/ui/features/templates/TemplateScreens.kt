@@ -78,6 +78,18 @@ fun TemplateDetailScreen(
                             Spacer(Modifier.width(VxSpace.sm))
                             Text("Recommended for: ${template.recommendedFor.ifBlank { "Building a steady routine" }}", style = MaterialTheme.typography.bodyMedium, color = colors.onSurface)
                         }
+                        if (template.category in HEALTH_CATEGORIES) {
+                            Spacer(Modifier.height(VxSpace.md))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(VxIcons.Info, null, tint = colors.onSurfaceVariant, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(VxSpace.sm))
+                                Text(
+                                    "General wellness ideas, not medical advice.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = colors.onSurfaceVariant
+                                )
+                            }
+                        }
                         Spacer(Modifier.height(VxSpace.xl))
                         Row(horizontalArrangement = Arrangement.spacedBy(VxSpace.sm)) {
                             StatPod("Habits", "${state.drafts.size}", Modifier.weight(1f))
@@ -100,6 +112,9 @@ fun TemplateDetailScreen(
         }
     }
 }
+
+/** Template categories whose habits touch exercise, diet, fasting or sleep. */
+private val HEALTH_CATEGORIES = setOf("Fitness", "Health", "Detox", "Challenge", "Mind", "Evening", "Morning")
 
 @Composable
 private fun TimelinePreviewRow(habit: Habit) {
@@ -231,7 +246,12 @@ fun CustomizeScreen(
                 Spacer(Modifier.height(VxSpace.sm))
                 val tomorrow = state.startDate != null && state.today != null && state.startDate > state.today
                 Row(horizontalArrangement = Arrangement.spacedBy(VxSpace.sm)) {
-                    CategoryChip("Today", !tomorrow, onClick = { onIntent(ActivationIntent.StartTomorrow(false)) })
+                    val left = state.remainingToday
+                    CategoryChip(
+                        if (state.included.isEmpty()) "Today" else if (left == 0) "Today · none left" else "Today · $left left",
+                        !tomorrow,
+                        onClick = { onIntent(ActivationIntent.StartTomorrow(false)) }
+                    )
                     CategoryChip("Tomorrow", tomorrow, onClick = { onIntent(ActivationIntent.StartTomorrow(true)) })
                 }
                 if (state.wakeTime != null && template.habits.isNotEmpty()) {

@@ -27,6 +27,8 @@ data class ActivationState(
     val trackerName: String = "",
     val startDate: LocalDate? = null,
     val today: LocalDate? = null,
+    /** Minute of day when the session was loaded; used to count what is still ahead today. */
+    val minuteOfDay: Int = 0,
     val wakeTime: String? = null,
     val hasActiveTracker: Boolean = false,
     val isActivating: Boolean = false,
@@ -35,6 +37,10 @@ data class ActivationState(
 ) {
     val included: List<Habit> get() = drafts.filter { it.included }.map { it.habit }
     val dailyMinutes: Int get() = included.sumOf { it.durationMinutes }
+    /** Included habits whose time window hasn't ended yet today (untimed habits always count). */
+    val remainingToday: Int get() = included.count { h ->
+        TimeFormat.toMinutes(h.time)?.let { it + h.durationMinutes > minuteOfDay } ?: true
+    }
 }
 
 sealed interface ActivationIntent {
@@ -103,14 +109,20 @@ class ActivationViewModel(
             }
             val remindersOn = settings.get(SettingsRepository.REMINDERS_ENABLED) == "true"
             val drafts = withDefaultReminders(routineManager.draftHabits(template, wake), remindersOn).map { DraftHabit(it) }
+            val minute = clock.minuteOfDay()
+            // Starting late in the day would open with most habits already "still open"; default
+            // to tomorrow then (the user can still pick Today).
+            val draftState = ActivationState(drafts = drafts, minuteOfDay = minute)
+            val startTomorrow = drafts.isNotEmpty() && draftState.remainingToday * 2 < drafts.size
             updateState {
                 copy(
                     isLoading = false,
                     template = template,
                     drafts = drafts,
                     trackerName = template.name,
-                    startDate = today,
+                    startDate = if (startTomorrow) today.plus(1, DateTimeUnit.DAY) else today,
                     today = today,
+                    minuteOfDay = minute,
                     wakeTime = wake,
                     hasActiveTracker = active,
                     error = null

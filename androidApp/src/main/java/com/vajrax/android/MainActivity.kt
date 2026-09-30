@@ -8,6 +8,8 @@ import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
+import android.text.format.DateFormat
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
@@ -18,6 +20,7 @@ import com.vajrax.android.reminders.ReminderReceiver
 import com.vajrax.android.widget.NowWidgetReceiver
 import com.vajrax.android.widget.TodayWidgetReceiver
 import com.vajrax.app.VajraApp
+import com.vajrax.core.time.TimeFormat
 import com.vajrax.platform.PlatformActions
 
 class MainActivity : ComponentActivity() {
@@ -84,6 +87,14 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        override fun openNotificationSettings() {
+            val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+            runCatching { startActivity(intent) }.onFailure {
+                startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.fromParts("package", packageName, null)))
+            }
+        }
+
         override fun sendTestReminder() {
             sendBroadcast(Intent(this@MainActivity, ReminderReceiver::class.java).setAction(ReminderReceiver.ACTION_TEST))
         }
@@ -97,6 +108,12 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent { VajraApp(platform) }
         if (savedInstanceState == null) handleShortcut(intent)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // The 12/24-hour setting can change while the app is in the background.
+        TimeFormat.use24Hour = DateFormat.is24HourFormat(this)
     }
 
     override fun onNewIntent(intent: Intent) {

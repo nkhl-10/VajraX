@@ -83,7 +83,8 @@ fun DiscoverScreen(
             }
         }
         section(if (state.tab == DiscoverTab.ARC) "Arc templates" else "Provided templates", state.visibleProvided, state.activeTemplateId, onOpenTemplate, onUseTemplate)
-        section("Community templates", state.visibleCommunity, state.activeTemplateId, onOpenTemplate, onUseTemplate)
+        // Bundled picks: there is no user community yet, so they aren't presented as one.
+        section("Featured templates", state.visibleCommunity, state.activeTemplateId, onOpenTemplate, onUseTemplate)
         section("My templates", state.visibleMine, state.activeTemplateId, onOpenTemplate, onUseTemplate)
         item(key = "create") {
             if (!state.isFiltering && state.tab != DiscoverTab.ARC && !(state.tab == DiscoverTab.MINE && nothing)) {

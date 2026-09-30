@@ -19,6 +19,8 @@ interface PlatformActions {
     fun canPinWidget(): Boolean = false
     /** [list] = the "Today" list widget (every habit); otherwise the compact "Now" widget. */
     fun requestPinWidget(list: Boolean) {}
+    /** Opens the system notification settings for this app (after the permission was denied). */
+    fun openNotificationSettings() {}
     /** Posts a reminder for the current habit right away so the user can check how reminders look. */
     fun sendTestReminder() {}
     val appVersion: String

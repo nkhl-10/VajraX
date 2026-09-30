@@ -18,6 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.vajrax.domain.template.DefaultTemplate
+import com.vajrax.ui.features.legal.LegalDoc
 import com.vajrax.platform.LocalPlatformActions
 import com.vajrax.ui.designsystem.*
 import com.vajrax.ui.theme.LuminaTheme
@@ -37,6 +38,7 @@ fun ProfileScreen(
     onCreateTemplate: () -> Unit,
     onEditTemplate: (String) -> Unit,
     onUseTemplate: (String) -> Unit,
+    onOpenLegal: (LegalDoc) -> Unit,
     onDataWiped: () -> Unit
 ) {
     val colors = LuminaTheme.colors
@@ -50,6 +52,13 @@ fun ProfileScreen(
     var confirmDelete by remember { mutableStateOf(false) }
     var templateMenu by remember { mutableStateOf<DefaultTemplate?>(null) }
     var confirmDeleteTemplate by remember { mutableStateOf<DefaultTemplate?>(null) }
+    // After a denial Android stops showing the permission prompt, so offer the settings page.
+    val notificationsBlocked: () -> Unit = {
+        scope.launch {
+            val result = snackbar.showSnackbar("Notifications are off for VAJRAX", actionLabel = "Settings")
+            if (result == SnackbarResult.ActionPerformed) platform.openNotificationSettings()
+        }
+    }
 
     LaunchedEffect(effects) {
         effects.collect { e ->
@@ -185,6 +194,19 @@ fun ProfileScreen(
             RowDivider()
             ListRow("Delete all data", onClick = { confirmDelete = true }, icon = VxIcons.Trash, titleColor = colors.statusError, showChevron = false)
         }
+
+        Spacer(Modifier.height(VxSpace.xxl))
+        SectionLabel("About")
+        Spacer(Modifier.height(VxSpace.sm))
+        VxCard(contentPadding = PaddingValues(vertical = VxSpace.xs)) {
+            ListRow(LegalDoc.PRIVACY.title, onClick = { onOpenLegal(LegalDoc.PRIVACY) }, icon = VxIcons.Shield)
+            RowDivider()
+            ListRow(LegalDoc.TERMS.title, onClick = { onOpenLegal(LegalDoc.TERMS) }, icon = VxIcons.Note)
+            RowDivider()
+            ListRow(LegalDoc.HEALTH.title, onClick = { onOpenLegal(LegalDoc.HEALTH) }, icon = VxIcons.Heart)
+            RowDivider()
+            ListRow(LegalDoc.LICENSES.title, onClick = { onOpenLegal(LegalDoc.LICENSES) }, icon = VxIcons.Info)
+        }
         Spacer(Modifier.height(VxSpace.md))
         Text(
             "Offline · on this device · v${platform.appVersion}",
@@ -226,7 +248,7 @@ fun ProfileScreen(
                         if (enable && !platform.notificationsPermitted()) {
                             platform.requestNotificationPermission { granted ->
                                 onIntent(ProfileIntent.SetReminders(granted))
-                                if (!granted) scope.launch { snackbar.showSnackbar("Turn on notifications in Settings") }
+                                if (!granted) notificationsBlocked()
                             }
                         } else {
                             onIntent(ProfileIntent.SetReminders(enable))
@@ -256,7 +278,7 @@ fun ProfileScreen(
                         }
                         if (platform.notificationsPermitted()) send()
                         else platform.requestNotificationPermission { granted ->
-                            if (granted) send() else scope.launch { snackbar.showSnackbar("Turn on notifications in Settings") }
+                            if (granted) send() else notificationsBlocked()
                         }
                     },
                     modifier = Modifier.fillMaxWidth(),

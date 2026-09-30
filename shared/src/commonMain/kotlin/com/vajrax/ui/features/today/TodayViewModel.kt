@@ -172,8 +172,21 @@ class TodayViewModel(
             in 17..21 -> "Good Evening"
             else -> "Good Night"
         }
+        // A routine started "tomorrow" has no occurrences yet: say when it begins, not "Rest day".
+        val notStarted = input.tracker?.takeIf { it.startDate > day }
+        val startsLabel = notStarted?.let {
+            if (Dates.daysBetween(day, it.startDate) == 1) "tomorrow" else "on ${Dates.shortLabel(it.startDate)}"
+        }
+        val firstUp = notStarted?.let { t ->
+            input.habits
+                .filter { it.trackerId == t.id && it.archivedAt == null }
+                .minByOrNull { TimeFormat.toMinutes(it.time) ?: Int.MAX_VALUE }
+                ?.let { h -> listOf(h.title, TimeFormat.display(h.time)).filter { it.isNotBlank() }.joinToString(" · ") }
+        }
+
         val status = when {
             input.tracker == null -> "Choose a routine."
+            startsLabel != null -> "Starts $startsLabel."
             total == 0 -> "Rest day."
             done == total -> "All done today."
             openEarlier > 0 -> "A few still open."
@@ -200,6 +213,8 @@ class TodayViewModel(
             isLoading = false,
             dayWrap = wrap,
             weeklyReviewDue = reviewDue,
+            startsLabel = startsLabel,
+            firstUp = firstUp,
             hasTracker = input.tracker != null,
             trackerName = input.tracker?.name ?: "",
             greeting = if (name.isBlank()) "$salutation." else "$salutation, $name.",

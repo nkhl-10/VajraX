@@ -24,13 +24,19 @@ object VxIcons {
             "a$rx $rx 0 0 1 ${-rx} ${-rx}v${-ih}a$rx $rx 0 0 1 $rx ${-rx}z"
     }
 
-    private fun icon(name: String, vararg paths: String): ImageVector =
+    private fun icon(name: String, vararg paths: String): ImageVector = build(name, mirror = false, paths)
+
+    /** Directional icons flip in right-to-left layouts (Arabic, Hebrew, Urdu…). */
+    private fun directional(name: String, vararg paths: String): ImageVector = build(name, mirror = true, paths)
+
+    private fun build(name: String, mirror: Boolean, paths: Array<out String>): ImageVector =
         ImageVector.Builder(
             name = name,
             defaultWidth = 24.dp,
             defaultHeight = 24.dp,
             viewportWidth = 24f,
-            viewportHeight = 24f
+            viewportHeight = 24f,
+            autoMirror = mirror
         ).apply {
             paths.forEach { d ->
                 addPath(
@@ -108,10 +114,10 @@ object VxIcons {
         )
     }
     val Smartphone by lazy { icon("smartphone", rect(5f, 2f, 14f, 20f, 2f), "M12 18h.01") }
-    val ArrowLeft by lazy { icon("arrow-left", "m12 19-7-7 7-7", "M19 12H5") }
-    val ArrowRight by lazy { icon("arrow-right", "M5 12h14", "m12 5 7 7-7 7") }
-    val ChevronRight by lazy { icon("chevron-right", "m9 18 6-6-6-6") }
-    val ChevronLeft by lazy { icon("chevron-left", "m15 18-6-6 6-6") }
+    val ArrowLeft by lazy { directional("arrow-left", "m12 19-7-7 7-7", "M19 12H5") }
+    val ArrowRight by lazy { directional("arrow-right", "M5 12h14", "m12 5 7 7-7 7") }
+    val ChevronRight by lazy { directional("chevron-right", "m9 18 6-6-6-6") }
+    val ChevronLeft by lazy { directional("chevron-left", "m15 18-6-6 6-6") }
     val ChevronDown by lazy { icon("chevron-down", "m6 9 6 6 6-6") }
     val Close by lazy { icon("x", "M18 6 6 18", "m6 6 12 12") }
     val Bell by lazy {

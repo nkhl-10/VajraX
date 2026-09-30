@@ -512,7 +512,7 @@ fun TimeField(label: String, time: String?, onPick: () -> Unit, modifier: Modifi
 @Composable
 fun TimePickerDialog(initial: String?, onDismiss: () -> Unit, onConfirm: (String) -> Unit, title: String = "Pick a time") {
     val start = TimeFormat.toMinutes(initial) ?: (9 * 60)
-    val state = rememberTimePickerState(initialHour = start / 60, initialMinute = start % 60, is24Hour = false)
+    val state = rememberTimePickerState(initialHour = start / 60, initialMinute = start % 60, is24Hour = com.vajrax.core.time.TimeFormat.use24Hour)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title, style = MaterialTheme.typography.titleLarge) },

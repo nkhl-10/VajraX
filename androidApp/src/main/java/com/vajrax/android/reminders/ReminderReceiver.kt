@@ -99,8 +99,11 @@ class ReminderReceiver : BroadcastReceiver() {
             }
             Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED,
             Intent.ACTION_TIMEZONE_CHANGED, Intent.ACTION_TIME_CHANGED -> {
+                // TIME_SET also fires when the user switches between 12- and 24-hour time.
+                TimeFormat.use24Hour = android.text.format.DateFormat.is24HourFormat(context)
                 routine.materialize()
                 scheduler.sync()
+                koin.get<com.vajrax.platform.WidgetController>().refresh()
             }
         }
     }

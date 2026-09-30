@@ -30,3 +30,7 @@
 -keep class androidx.compose.** { *; }
 -keep class com.vajrax.ui.** { *; }
 -keep class com.vajrax.android.widget.** { *; }
+
+# 7. Ktor's debugger detector references JVM-only management APIs that Android doesn't ship.
+-dontwarn java.lang.management.ManagementFactory
+-dontwarn java.lang.management.RuntimeMXBean
