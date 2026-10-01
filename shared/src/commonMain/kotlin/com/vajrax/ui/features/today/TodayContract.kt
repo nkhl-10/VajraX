@@ -4,7 +4,8 @@ import androidx.compose.runtime.Immutable
 import com.vajrax.domain.habit.Habit
 import com.vajrax.domain.habit.Occurrence
 
-enum class TodayPhase { DONE, NOW, OPEN_EARLIER, UPCOMING, SKIPPED, WEEKLY_MET }
+/** Same phases as the domain plan, so Home and the widgets can't drift apart. */
+typealias TodayPhase = com.vajrax.domain.today.DayPhase
 
 @Immutable
 data class TodayItem(
@@ -60,6 +61,8 @@ data class TodayUiState(
     val startsLabel: String? = null,
     /** First habit of the not-yet-started routine, e.g. "Wake up · 6:30 AM". */
     val firstUp: String? = null,
+    /** Set once the routine's first cycle is over (e.g. 30 days), until the user dismisses it. */
+    val cycleCompleteDays: Int? = null,
     /** Home shows today's habits on the rotary dial (default) or as a list. */
     val dialView: Boolean = true,
     val error: String? = null
@@ -89,6 +92,8 @@ sealed interface TodayIntent {
     /** The routine was set to start on a later day; begin it today instead. */
     data object StartToday : TodayIntent
     data class SetDialView(val dial: Boolean) : TodayIntent
+    /** "Keep going" on the cycle-complete note. */
+    data object DismissCycleComplete : TodayIntent
 }
 
 sealed interface TodayEffect {

@@ -1,5 +1,7 @@
 package com.vajrax.ui.features.today
 
+import org.jetbrains.compose.resources.stringResource
+import com.vajrax.resources.*
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Canvas
@@ -26,15 +28,17 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.util.VelocityTracker
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.vajrax.domain.habit.HabitType
-import com.vajrax.domain.model.TrackingMode
+import com.vajrax.domain.habit.CheckInAction
 import com.vajrax.ui.designsystem.PillAction
 import com.vajrax.ui.designsystem.VxHaptic
 import com.vajrax.ui.designsystem.hapticClickable
@@ -51,8 +55,12 @@ import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
-/** Angle between neighbouring habits on the dial, in degrees. */
-private const val STEP_DEG = 36f
+/** Angle between neighbouring habits on the dial, in degrees; tighter when there are many. */
+private fun stepFor(count: Int): Float = when {
+    count > 16 -> 24f
+    count > 10 -> 28f
+    else -> 36f
+}
 
 /**
  * Today's habits on a half-circle dial, like the finger wheel of an old rotary telephone.
@@ -115,7 +123,16 @@ fun HabitDial(
     val hubItem = items[hubIndex]
 
     BoxWithConstraints(
-        modifier.fillMaxWidth().semantics { contentDescription = "Habit dial, ${items.size} habits. Drag sideways to turn it." }
+        modifier.fillMaxWidth().semantics {
+            contentDescription = "Habit dial, ${items.size} habits. ${hubItem.habit.title} is selected."
+            // TalkBack can't drag the dial, so it gets the same moves as actions.
+            customActions = buildList {
+                if (hubIndex < items.lastIndex) add(CustomAccessibilityAction("Next habit") { settleTo(hubIndex + 1); true })
+                if (hubIndex > 0) add(CustomAccessibilityAction("Previous habit") { settleTo(hubIndex - 1); true })
+                if (hubItem.occurrence.isOpen) add(CustomAccessibilityAction("Check in ${hubItem.habit.title}") { onPrimary(hubItem); true })
+                else add(CustomAccessibilityAction("Undo ${hubItem.habit.title}") { onUndo(hubItem); true })
+            }
+        }
     ) {
         val hole = 56.dp
         val topRoom = 34.dp
@@ -126,7 +143,8 @@ fun HabitDial(
         val centreXPx = with(density) { maxWidth.toPx() } / 2
         // The hub fits inside the ring, clear of the enlarged top hole.
         val hubTop = minOf(104.dp, radius - hole * 0.75f)
-        val stepRad = STEP_DEG * PI.toFloat() / 180f
+        val step = stepFor(items.size)
+        val stepRad = step * PI.toFloat() / 180f
         val pxPerHabit = radiusPx * stepRad
 
         Box(
@@ -167,11 +185,12 @@ fun HabitDial(
                     radius = radius,
                     centreXPx = centreXPx,
                     centreY = centreY,
-                    angle = { (index - rotation) * STEP_DEG },
+                    angle = { (index - rotation) * step },
+                    step = step,
                     onClick = {
                         if (index == hubIndex && !dragging) {
                             if (item.occurrence.isOpen) {
-                                haptics(checkInFeel(item))
+                                haptics(CheckInAction.of(item.habit).haptic)
                                 onPrimary(item)
                             } else {
                                 haptics(VxHaptic.ToggleOff)
@@ -196,10 +215,11 @@ fun HabitDial(
                 verticalArrangement = Arrangement.Bottom
             ) {
                 Text(
-                    "${hubLabel(hubItem, nowId)} · ${hubItem.timeLabel}",
+                    stringResource(Res.string.today_value_fmt_2, hubLabel(hubItem, nowId), hubItem.timeLabel),
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                     color = colors.primary,
-                    maxLines = 1
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
@@ -227,28 +247,16 @@ fun HabitDial(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 if (hubItem.occurrence.isOpen) {
-                    PillAction("Snooze", VxIcons.Alarm, { onSnooze(hubItem) })
-                    val (label, icon) = when {
-                        hubItem.habit.type == HabitType.COUNT -> "+1" to VxIcons.Plus
-                        hubItem.habit.trackingMode == TrackingMode.TIMER -> "Start" to VxIcons.Play
-                        hubItem.habit.type != HabitType.BOOLEAN -> "Log" to VxIcons.Pencil
-                        else -> "Done" to VxIcons.Check
-                    }
-                    PillAction(label, icon, { onPrimary(hubItem) }, filled = true, haptic = checkInFeel(hubItem))
-                    PillAction("Skip", VxIcons.SkipForward, { onSkip(hubItem) })
+                    PillAction(stringResource(Res.string.today_snooze), VxIcons.Alarm, { onSnooze(hubItem) })
+                    val action = CheckInAction.of(hubItem.habit)
+                    PillAction(action.label, action.icon, { onPrimary(hubItem) }, filled = true, haptic = action.haptic)
+                    PillAction(stringResource(Res.string.today_skip), VxIcons.SkipForward, { onSkip(hubItem) })
                 } else {
-                    PillAction("Undo", VxIcons.Undo, { onUndo(hubItem) }, haptic = VxHaptic.ToggleOff)
+                    PillAction(stringResource(Res.string.today_undo), VxIcons.Undo, { onUndo(hubItem) }, haptic = VxHaptic.ToggleOff)
                 }
             }
         }
     }
-}
-
-/** Done on a plain habit confirms; +1 ticks; starting a timer or logging a value is a tap. */
-private fun checkInFeel(item: TodayItem): VxHaptic = when {
-    item.habit.type == HabitType.COUNT -> VxHaptic.Tick
-    item.habit.type == HabitType.BOOLEAN && item.habit.trackingMode != TrackingMode.TIMER -> VxHaptic.Confirm
-    else -> VxHaptic.Tap
 }
 
 private fun hubLabel(item: TodayItem, nowId: String?): String = when {
@@ -306,6 +314,7 @@ private fun DialHole(
     centreXPx: Float,
     centreY: androidx.compose.ui.unit.Dp,
     angle: () -> Float,
+    step: Float,
     onClick: () -> Unit
 ) {
     val colors = LuminaTheme.colors
@@ -314,6 +323,7 @@ private fun DialHole(
     val done = item.occurrence.isDone
     val skipped = item.occurrence.isSkipped
     val sizePx = with(density) { size.toPx() }
+    val onScreen by remember { derivedStateOf { abs(angle()) < 95f } }
     val radiusPx = with(density) { radius.toPx() }
     val centreYPx = with(density) { centreY.toPx() }
     val labelGapPx = with(density) { (size * 0.62f + 12.dp).toPx() }
@@ -342,8 +352,8 @@ private fun DialHole(
                     // Only the neighbours of the selected habit show a time: the selected one has
                     // it in the hub, and labels further round would run off the screen edge.
                     val a = abs(angle())
-                    val rise = (a / (STEP_DEG * 0.7f)).coerceIn(0f, 1f)
-                    val fall = ((STEP_DEG * 1.5f - a) / (STEP_DEG * 0.4f)).coerceIn(0f, 1f)
+                    val rise = (a / (step * 0.7f)).coerceIn(0f, 1f)
+                    val fall = ((step * 1.5f - a) / (step * 0.4f)).coerceIn(0f, 1f)
                     alpha = rise * fall
                 },
             textAlign = TextAlign.Center
@@ -357,7 +367,7 @@ private fun DialHole(
                 }
                 .size(size)
                 .graphicsLayer {
-                    val closeness = 1f - (abs(angle()) / STEP_DEG).coerceIn(0f, 1f)
+                    val closeness = 1f - (abs(angle()) / step).coerceIn(0f, 1f)
                     val s = 1f + 0.2f * closeness - 0.1f * (abs(angle()) / 90f).coerceIn(0f, 1f)
                     scaleX = s
                     scaleY = s
@@ -380,7 +390,8 @@ private fun DialHole(
                     },
                     shape = CircleShape
                 )
-                .clickable(role = Role.Button, onClick = onClick)
+                // Holes turned out of sight are skipped by TalkBack (and can't be tapped).
+                .then(if (onScreen) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier.clearAndSetSemantics { })
                 .semantics {
                     contentDescription = buildString {
                         append(item.habit.title).append(", ").append(item.timeLabel).append(", ")

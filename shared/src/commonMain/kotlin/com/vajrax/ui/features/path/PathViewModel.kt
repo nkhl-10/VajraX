@@ -1,13 +1,12 @@
 package com.vajrax.ui.features.path
 
+import com.vajrax.core.coroutines.AppDispatchers
 import com.vajrax.domain.model.LifePath
 import com.vajrax.domain.model.Practice
 import com.vajrax.domain.repository.LifePathRepository
 import com.vajrax.domain.repository.PracticeRepository
 import com.vajrax.domain.repository.TemplateRepository
 import com.vajrax.presentation.mvi.MviViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -31,7 +30,7 @@ class PathViewModel(
     }
 
     private fun loadPathData() {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(AppDispatchers.IO) {
             updateState { copy(isLoading = true, error = null) }
             try {
                 val allTemplates = templateRepository.getAllTemplates()
@@ -54,7 +53,7 @@ class PathViewModel(
 
     @OptIn(ExperimentalUuidApi::class)
     private fun selectTemplate(templateId: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(AppDispatchers.IO) {
             try {
                 val template = templateRepository.getTemplateWithHabits(templateId)
                 if (template != null) {

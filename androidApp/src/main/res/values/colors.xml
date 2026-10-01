@@ -7,4 +7,9 @@
     <color name="vx_primary">#4F46E5</color>
     <color name="vx_primary_container">#EEF2FF</color>
     <color name="vx_outline">#E5E7EB</color>
+    <!-- Widget text/accents (the widget can't read the Compose theme). -->
+    <color name="vx_widget_accent">#4F46E5</color>
+    <color name="vx_on_primary">#FFFFFF</color>
+    <color name="vx_widget_on_container">#4338CA</color>
+    <color name="vx_track">#E5E7EB</color>
 </resources>

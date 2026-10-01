@@ -5,7 +5,6 @@ import android.os.Build
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -14,6 +13,7 @@ import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.LocalContext
 import androidx.glance.LocalSize
 import androidx.glance.action.Action
 import androidx.glance.action.ActionParameters
@@ -53,6 +53,8 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import com.vajrax.android.MainActivity
 import com.vajrax.android.R
+import com.vajrax.core.coroutines.runCatchingCancellable
+import com.vajrax.domain.habit.CheckInAction
 import com.vajrax.domain.habit.Habit
 import com.vajrax.domain.habit.HabitType
 import com.vajrax.domain.habit.Occurrence
@@ -81,14 +83,15 @@ import org.koin.core.context.GlobalContext
 
 // ---------------------------------------------------------------- colours (light / dark)
 
+/** Widget palette from res/values(-night)/colors.xml, the same place as the widget drawables. */
 private object WColors {
-    val onSurface = ColorProvider(day = Color(0xFF111827), night = Color(0xFFF9FAFB))
-    val onSurfaceVariant = ColorProvider(day = Color(0xFF6B7280), night = Color(0xFF94A3B8))
-    val primary = ColorProvider(day = Color(0xFF4F46E5), night = Color(0xFFA5B4FC))
+    val onSurface = androidx.glance.unit.ColorProvider(R.color.vx_on_surface)
+    val onSurfaceVariant = androidx.glance.unit.ColorProvider(R.color.vx_on_surface_variant)
+    val primary = androidx.glance.unit.ColorProvider(R.color.vx_widget_accent)
     // White keeps 4.5:1 on the indigo button in both themes.
-    val onPrimary = ColorProvider(day = Color(0xFFFFFFFF), night = Color(0xFFFFFFFF))
-    val onPrimaryContainer = ColorProvider(day = Color(0xFF4338CA), night = Color(0xFFE0E7FF))
-    val track = ColorProvider(day = Color(0xFFE5E7EB), night = Color(0xFF262B38))
+    val onPrimary = androidx.glance.unit.ColorProvider(R.color.vx_on_primary)
+    val onPrimaryContainer = androidx.glance.unit.ColorProvider(R.color.vx_widget_on_container)
+    val track = androidx.glance.unit.ColorProvider(R.color.vx_track)
 }
 
 // ---------------------------------------------------------------- actions
@@ -98,14 +101,14 @@ class HabitWidgetAction : ActionCallback {
     override suspend fun onAction(context: Context, glanceId: GlanceId, parameters: ActionParameters) {
         val occurrenceId = parameters[OCCURRENCE] ?: return
         val routine = GlobalContext.getOrNull()?.get<RoutineManager>() ?: return
-        runCatching {
+        runCatchingCancellable {
             when (parameters[OP]) {
                 OP_INCREMENT -> routine.increment(occurrenceId)
-                OP_SNOOZE -> routine.snooze(occurrenceId, 15)
+                OP_SNOOZE -> routine.snooze(occurrenceId, com.vajrax.domain.BusinessRules.SNOOZE_MINUTES)
                 OP_DONE -> routine.complete(occurrenceId)
                 else -> routine.toggle(occurrenceId)
             }
-        }
+        }.onFailure { com.vajrax.core.log.VxLog.w("Widget", "Widget action failed", it) }
         VajraWidgets.updateAll(context)
     }
 
@@ -125,6 +128,12 @@ private fun habitAction(occurrenceId: String, op: String) =
     actionRunCallback<HabitWidgetAction>(HabitWidgetAction.params(occurrenceId, op))
 
 private val openApp: Action get() = actionStartActivity<MainActivity>()
+
+private val OPEN_OCCURRENCE = ActionParameters.Key<String>(MainActivity.EXTRA_OPEN_OCCURRENCE)
+
+/** Opens the app on Home with this occurrence's timer or value entry. */
+private fun openHabit(occurrenceId: String): Action =
+    actionStartActivity<MainActivity>(actionParametersOf(OPEN_OCCURRENCE to occurrenceId))
 
 // ---------------------------------------------------------------- widgets & receivers
 
@@ -173,8 +182,8 @@ class NowWidgetReceiver : GlanceAppWidgetReceiver() {
 
 object VajraWidgets {
     suspend fun updateAll(context: Context) {
-        runCatching { TodayGlanceWidget().updateAll(context) }
-        runCatching { NowGlanceWidget().updateAll(context) }
+        runCatchingCancellable { TodayGlanceWidget().updateAll(context) }.onFailure { com.vajrax.core.log.VxLog.w("Widget", "Today widget refresh failed", it) }
+        runCatchingCancellable { NowGlanceWidget().updateAll(context) }.onFailure { com.vajrax.core.log.VxLog.w("Widget", "Now widget refresh failed", it) }
     }
 
     /**
@@ -185,8 +194,8 @@ object VajraWidgets {
         if (Build.VERSION.SDK_INT < 35 || alreadyPublished) return alreadyPublished
         val manager = GlanceAppWidgetManager(context)
         val results = listOf(
-            runCatching { manager.setWidgetPreviews(TodayWidgetReceiver::class) }.getOrNull(),
-            runCatching { manager.setWidgetPreviews(NowWidgetReceiver::class) }.getOrNull()
+            runCatchingCancellable { manager.setWidgetPreviews(TodayWidgetReceiver::class) }.getOrNull(),
+            runCatchingCancellable { manager.setWidgetPreviews(NowWidgetReceiver::class) }.getOrNull()
         )
         return results.all { it == GlanceAppWidgetManager.SET_WIDGET_PREVIEWS_RESULT_SUCCESS }
     }
@@ -244,14 +253,14 @@ private fun Header(today: WidgetToday) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            (today.trackerName ?: "VAJRAX").uppercase().take(26),
+            (today.trackerName ?: LocalContext.current.getString(R.string.brand_wordmark)).uppercase().take(26),
             style = TextStyle(color = WColors.primary, fontSize = 11.sp, fontWeight = FontWeight.Bold),
             maxLines = 1,
             modifier = GlanceModifier.defaultWeight()
         )
         if (today.total > 0) {
             Text(
-                "${today.done} of ${today.total}",
+                LocalContext.current.getString(R.string.widget_count, today.done, today.total),
                 style = TextStyle(color = WColors.onSurface, fontSize = 12.sp, fontWeight = FontWeight.Bold)
             )
         }
@@ -267,11 +276,13 @@ private fun Header(today: WidgetToday) {
 
 @Composable
 private fun EmptyMessage(today: WidgetToday) {
+    val context = LocalContext.current
     val (title, body) = when {
-        !today.hasTracker -> "Choose a routine" to "Tap to pick a template"
-        today.startsLater -> "Starts tomorrow" to "Tap to start today instead"
-        today.rows.isEmpty() -> "Rest day" to "Nothing scheduled today"
-        else -> "Day complete" to "${today.done} of ${today.total} done"
+        !today.hasTracker -> context.getString(R.string.widget_empty_choose_title) to context.getString(R.string.widget_empty_choose_body)
+        today.startsLater -> context.getString(R.string.widget_empty_later_title) to context.getString(R.string.widget_empty_later_body)
+        today.rows.isEmpty() -> context.getString(R.string.widget_empty_rest_title) to context.getString(R.string.widget_empty_rest_body)
+        else -> context.getString(R.string.widget_empty_complete_title) to
+            context.getString(R.string.widget_empty_complete_body, today.done, today.total)
     }
     val finished = today.hasTracker && !today.startsLater && today.rows.isNotEmpty()
     Row(modifier = GlanceModifier.fillMaxWidth().clickable(openApp), verticalAlignment = Alignment.CenterVertically) {
@@ -294,7 +305,7 @@ private fun EmptyMessage(today: WidgetToday) {
 @Composable
 private fun PhaseLabel(today: WidgetToday, row: WidgetRow) {
     Text(
-        "${today.label(row).uppercase()} · ${row.time()}",
+        LocalContext.current.let { "${today.label(it, row).uppercase()} · ${row.time(it)}" },
         style = TextStyle(color = WColors.primary, fontSize = 11.sp, fontWeight = FontWeight.Bold),
         maxLines = 1
     )
@@ -302,22 +313,46 @@ private fun PhaseLabel(today: WidgetToday, row: WidgetRow) {
 
 @Composable
 private fun ActionButtons(row: WidgetRow, title: String) {
-    val counts = row.habit.type == HabitType.COUNT
+    val action = CheckInAction.of(row.habit)
+    val context = LocalContext.current
     Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Chip(
-            text = "Snooze",
+            text = context.getString(R.string.widget_snooze),
             filled = false,
             onClick = habitAction(row.id, HabitWidgetAction.OP_SNOOZE),
-            description = "Snooze $title 15 minutes",
+            description = com.vajrax.domain.BusinessRules.SNOOZE_MINUTES.let {
+                context.resources.getQuantityString(R.plurals.widget_snooze_description, it, title, it)
+            },
             modifier = GlanceModifier.defaultWeight()
         )
         Spacer(GlanceModifier.width(8.dp))
+        // Timed and measured habits need the app (a focus session, a value), so the widget opens
+        // it on that habit rather than logging the full target as if it were done.
         Chip(
-            text = if (counts) "+1" else "Done",
+            text = context.getString(
+                when (action) {
+                    CheckInAction.Done -> R.string.widget_action_done
+                    CheckInAction.PlusOne -> R.string.widget_action_plus_one
+                    CheckInAction.StartTimer -> R.string.widget_action_start
+                    CheckInAction.LogValue -> R.string.widget_action_log
+                }
+            ),
             filled = true,
-            icon = if (counts) null else R.drawable.ic_action_check,
-            onClick = habitAction(row.id, if (counts) HabitWidgetAction.OP_INCREMENT else HabitWidgetAction.OP_DONE),
-            description = if (counts) "Add one to $title" else "Mark $title done",
+            icon = if (action == CheckInAction.Done) R.drawable.ic_action_check else null,
+            onClick = when (action) {
+                CheckInAction.Done -> habitAction(row.id, HabitWidgetAction.OP_DONE)
+                CheckInAction.PlusOne -> habitAction(row.id, HabitWidgetAction.OP_INCREMENT)
+                CheckInAction.StartTimer, CheckInAction.LogValue -> openHabit(row.id)
+            },
+            description = context.getString(
+                when (action) {
+                    CheckInAction.Done -> R.string.widget_mark_done_description
+                    CheckInAction.PlusOne -> R.string.widget_plus_one_description
+                    CheckInAction.StartTimer -> R.string.widget_start_description
+                    CheckInAction.LogValue -> R.string.widget_log_description
+                },
+                title
+            ),
             modifier = GlanceModifier.defaultWeight()
         )
     }
@@ -333,7 +368,8 @@ private fun NowContent(today: WidgetToday) {
             EmptyMessage(today)
             return@Column
         }
-        val title = row.title(today.hideNames)
+        val context = LocalContext.current
+        val title = row.title(context, today.hideNames)
         val roomy = LocalSize.current.height >= 150.dp
         Column(modifier = GlanceModifier.fillMaxWidth().clickable(openApp)) {
             PhaseLabel(today, row)
@@ -343,7 +379,7 @@ private fun NowContent(today: WidgetToday) {
                 maxLines = if (roomy) 2 else 1
             )
             if (row.habit.type != HabitType.BOOLEAN) {
-                Text(row.subtitle(), style = TextStyle(color = WColors.onSurfaceVariant, fontSize = 12.sp), maxLines = 1)
+                Text(row.subtitle(LocalContext.current), style = TextStyle(color = WColors.onSurfaceVariant, fontSize = 12.sp), maxLines = 1)
             }
         }
         Spacer(GlanceModifier.defaultWeight())
@@ -352,7 +388,7 @@ private fun NowContent(today: WidgetToday) {
         if (roomy && next != null) {
             Spacer(GlanceModifier.height(8.dp))
             Text(
-                "Then · ${next.title(today.hideNames)}, ${next.time()}",
+                context.getString(R.string.widget_then, next.title(context, today.hideNames), next.time(context)),
                 style = TextStyle(color = WColors.onSurfaceVariant, fontSize = 12.sp),
                 maxLines = 1,
                 modifier = GlanceModifier.clickable(openApp)
@@ -383,7 +419,7 @@ private fun ListContent(today: WidgetToday) {
             }
             items(rest, itemId = { it.id.hashCode().toLong() }) { row ->
                 Column(modifier = GlanceModifier.fillMaxWidth()) {
-                    if (row.id == firstResolved && current != null) SectionLabel("Done")
+                    if (row.id == firstResolved && current != null) SectionLabel(LocalContext.current.getString(R.string.widget_section_done))
                     HabitListRow(row, today.hideNames)
                 }
             }
@@ -393,7 +429,8 @@ private fun ListContent(today: WidgetToday) {
 
 @Composable
 private fun CurrentCard(today: WidgetToday, row: WidgetRow) {
-    val title = row.title(today.hideNames)
+    val context = LocalContext.current
+    val title = row.title(context, today.hideNames)
     Column(modifier = GlanceModifier.fillMaxWidth().padding(bottom = 6.dp)) {
         Column(
             modifier = GlanceModifier.fillMaxWidth()
@@ -409,7 +446,7 @@ private fun CurrentCard(today: WidgetToday, row: WidgetRow) {
                     maxLines = 2
                 )
                 if (row.habit.type != HabitType.BOOLEAN) {
-                    Text(row.subtitle(), style = TextStyle(color = WColors.onSurfaceVariant, fontSize = 12.sp), maxLines = 1)
+                    Text(row.subtitle(LocalContext.current), style = TextStyle(color = WColors.onSurfaceVariant, fontSize = 12.sp), maxLines = 1)
                 }
             }
             Spacer(GlanceModifier.height(10.dp))
@@ -430,7 +467,8 @@ private fun SectionLabel(text: String) {
 @Composable
 private fun HabitListRow(row: WidgetRow, hideNames: Boolean) {
     val occ = row.occurrence
-    val title = row.title(hideNames)
+    val context = LocalContext.current
+    val title = row.title(context, hideNames)
     Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         // The circle is the only tap that changes data; the rest of the row opens the app,
         // so a stray tap never ticks a habit off.
@@ -442,7 +480,10 @@ private fun HabitListRow(row: WidgetRow, hideNames: Boolean) {
                     else -> R.drawable.ic_widget_check_open
                 }
             ),
-            contentDescription = if (occ.isDone || occ.isSkipped) "Undo $title" else "Mark $title done",
+            contentDescription = context.getString(
+                if (occ.isDone || occ.isSkipped) R.string.widget_undo_description else R.string.widget_mark_done_description,
+                title
+            ),
             modifier = GlanceModifier.size(44.dp).padding(10.dp).clickable(habitAction(row.id, HabitWidgetAction.OP_TOGGLE))
         )
         Column(modifier = GlanceModifier.defaultWeight().clickable(openApp)) {
@@ -455,10 +496,10 @@ private fun HabitListRow(row: WidgetRow, hideNames: Boolean) {
                 ),
                 maxLines = 1
             )
-            Text(row.subtitle(), style = TextStyle(color = WColors.onSurfaceVariant, fontSize = 12.sp), maxLines = 1)
+            Text(row.subtitle(LocalContext.current), style = TextStyle(color = WColors.onSurfaceVariant, fontSize = 12.sp), maxLines = 1)
         }
-        if (occ.isOpen && row.habit.type == HabitType.COUNT) {
-            Chip("+1", filled = false, onClick = habitAction(row.id, HabitWidgetAction.OP_INCREMENT), description = "Add one to $title")
+        if (occ.isOpen && CheckInAction.of(row.habit) == CheckInAction.PlusOne) {
+            Chip("+1", filled = false, onClick = habitAction(row.id, HabitWidgetAction.OP_INCREMENT), description = context.getString(R.string.widget_plus_one_description, title))
         }
     }
 }

@@ -1,0 +1,442 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<issues format="6" by="lint 8.5.2" type="baseline" client="gradle" dependencies="false" name="AGP (8.5.2)" variant="all" version="8.5.2">
+
+    <issue
+        id="ObsoleteLintCustomCheck"
+        message="Lint found an issue registry (`androidx.compose.foundation.lint.FoundationIssueRegistry`) which requires a newer API level. That means that the custom lint checks are intended for a newer lint version; please upgrade.">
+        <location
+            file="$GRADLE_USER_HOME/caches/9.1.0/transforms/3c3f266c244282af972d9f62aa31a547/transformed/foundation/jars/lint.jar"/>
+    </issue>
+
+    <issue
+        id="ObsoleteLintCustomCheck"
+        message="Lint found an issue registry (`androidx.compose.runtime.lint.RuntimeIssueRegistry`) which requires a newer API level. That means that the custom lint checks are intended for a newer lint version; please upgrade.">
+        <location
+            file="$GRADLE_USER_HOME/caches/9.1.0/transforms/1730fa8507cd18eb32917a1f9722d8df/transformed/runtime/jars/lint.jar"/>
+    </issue>
+
+    <issue
+        id="ObsoleteLintCustomCheck"
+        message="Lint found an issue registry (`androidx.compose.runtime.retain.lint.RetainIssueRegistry`) which requires a newer API level. That means that the custom lint checks are intended for a newer lint version; please upgrade.">
+        <location
+            file="$GRADLE_USER_HOME/caches/9.1.0/transforms/3405bf99cd6d48a38d660409f9aa5a69/transformed/runtime-retain/jars/lint.jar"/>
+    </issue>
+
+    <issue
+        id="ObsoleteLintCustomCheck"
+        message="Lint found an issue registry (`androidx.compose.ui.lint.UiIssueRegistry`) which requires a newer API level. That means that the custom lint checks are intended for a newer lint version; please upgrade.">
+        <location
+            file="$GRADLE_USER_HOME/caches/9.1.0/transforms/ea987992f74b9a7151d1891939fc9b0c/transformed/ui/jars/lint.jar"/>
+    </issue>
+
+    <issue
+        id="ObsoleteLintCustomCheck"
+        message="Lint found an issue registry (`androidx.lifecycle.lint.LiveDataCoreIssueRegistry`) which requires a newer API level. That means that the custom lint checks are intended for a newer lint version; please upgrade.">
+        <location
+            file="$GRADLE_USER_HOME/caches/9.1.0/transforms/13bad6389676b1c4b6ae1e65afb25d4d/transformed/lifecycle-livedata-core-2.11.0-beta01/jars/lint.jar"/>
+    </issue>
+
+    <issue
+        id="ObsoleteLintCustomCheck"
+        message="Requires newer lint; these checks **will be skipped**!&#xA;&#xA;Lint found an issue registry (`androidx.compose.animation.core.lint.AnimationCoreIssueRegistry`)&#xA;which was compiled against a newer version of lint&#xA;than this one. This is usually fine, but not in this&#xA;case; some basic verification shows that the lint&#xA;check jar references (for example) the following API&#xA;which is not valid in the version of lint which is running:&#xA;org.jetbrains.kotlin.analysis.api.session.KaSessionProvider: void afterLeavingAnalysis(org.jetbrains.kotlin.analysis.api.KaSession,org.jetbrains.kotlin.psi.KtElement)&#xA;(Referenced from androidx/compose/lint/ComposableUtilsKt.class)&#xA;&#xA;Therefore, this lint check library is **not** included&#xA;in analysis. This affects the following lint checks:&#xA;`UnusedTransitionTargetStateParameter`,`ArcAnimationSpecTypeIssue`&#xA;&#xA;To use this lint check, upgrade to a more recent version&#xA;of lint.&#xA;&#xA;Version of Lint API this lint check is using is 16.&#xA;The Lint API version currently running is 14 (8.0 and 8.1).">
+        <location
+            file="$GRADLE_USER_HOME/caches/9.1.0/transforms/7a69d38fc730f98e60d19c125edd0374/transformed/animation-core/jars/lint.jar"/>
+    </issue>
+
+    <issue
+        id="ObsoleteLintCustomCheck"
+        message="Requires newer lint; these checks **will be skipped**!&#xA;&#xA;Lint found an issue registry (`androidx.compose.animation.lint.AnimationIssueRegistry`)&#xA;which was compiled against a newer version of lint&#xA;than this one. This is usually fine, but not in this&#xA;case; some basic verification shows that the lint&#xA;check jar references (for example) the following API&#xA;which is not valid in the version of lint which is running:&#xA;org.jetbrains.kotlin.analysis.api.session.KaSessionProvider: void afterLeavingAnalysis(org.jetbrains.kotlin.analysis.api.KaSession,org.jetbrains.kotlin.psi.KtElement)&#xA;(Referenced from androidx/compose/lint/ComposableUtilsKt.class)&#xA;&#xA;Therefore, this lint check library is **not** included&#xA;in analysis. This affects the following lint checks:&#xA;`UnusedCrossfadeTargetStateParameter`&#xA;`UnusedContentLambdaTargetStateParameter`&#xA;`UnusedTargetStateInContentKeyLambda`&#xA;`UnusedSharedTransitionModifierParameter`&#xA;`ConstantContentStateKeyInItemsCall`&#xA;`DisallowLookaheadAnimationVisualDebug`&#xA;&#xA;To use this lint check, upgrade to a more recent version&#xA;of lint.&#xA;&#xA;Version of Lint API this lint check is using is 16.&#xA;The Lint API version currently running is 14 (8.0 and 8.1).">
+        <location
+            file="$GRADLE_USER_HOME/caches/9.1.0/transforms/8df38f94319e7daffe2f0e92b40b659e/transformed/animation/jars/lint.jar"/>
+    </issue>
+
+    <issue
+        id="ObsoleteLintCustomCheck"
+        message="Requires newer lint; these checks **will be skipped**!&#xA;&#xA;Lint found an issue registry (`androidx.compose.material3.lint.Material3IssueRegistry`)&#xA;which was compiled against a newer version of lint&#xA;than this one. This is usually fine, but not in this&#xA;case; some basic verification shows that the lint&#xA;check jar references (for example) the following API&#xA;which is not valid in the version of lint which is running:&#xA;org.jetbrains.kotlin.analysis.api.session.KaSessionProvider: void afterLeavingAnalysis(org.jetbrains.kotlin.analysis.api.KaSession,org.jetbrains.kotlin.psi.KtElement)&#xA;(Referenced from androidx/compose/lint/ComposableUtilsKt.class)&#xA;&#xA;Therefore, this lint check library is **not** included&#xA;in analysis. This affects the following lint checks:&#xA;`UsingMaterialAndMaterial3Libraries`,`UnusedMaterial3ScaffoldPaddingParameter`&#xA;&#xA;To use this lint check, upgrade to a more recent version&#xA;of lint.&#xA;&#xA;Version of Lint API this lint check is using is 16.&#xA;The Lint API version currently running is 14 (8.0 and 8.1).">
+        <location
+            file="$GRADLE_USER_HOME/caches/9.1.0/transforms/90a1dbe36313cfc13a9a5fda62b0de71/transformed/material3/jars/lint.jar"/>
+    </issue>
+
+    <issue
+        id="ObsoleteLintCustomCheck"
+        message="Requires newer lint; these checks **will be skipped**!&#xA;&#xA;Lint found an issue registry (`androidx.compose.runtime.saveable.lint.RuntimeSaveableIssueRegistry`)&#xA;which was compiled against a newer version of lint&#xA;than this one. This is usually fine, but not in this&#xA;case; some basic verification shows that the lint&#xA;check jar references (for example) the following API&#xA;which is not valid in the version of lint which is running:&#xA;org.jetbrains.kotlin.analysis.api.session.KaSessionProvider: void afterLeavingAnalysis(org.jetbrains.kotlin.analysis.api.KaSession,org.jetbrains.kotlin.psi.KtElement)&#xA;(Referenced from androidx/compose/lint/ComposableUtilsKt.class)&#xA;&#xA;Therefore, this lint check library is **not** included&#xA;in analysis. This affects the following lint checks:&#xA;`RememberSaveableSaverParameter`&#xA;&#xA;To use this lint check, upgrade to a more recent version&#xA;of lint.&#xA;&#xA;Version of Lint API this lint check is using is 16.&#xA;The Lint API version currently running is 14 (8.0 and 8.1).">
+        <location
+            file="$GRADLE_USER_HOME/caches/9.1.0/transforms/f963f3dc4f6f3435f81172c2a2d33193/transformed/runtime-saveable/jars/lint.jar"/>
+    </issue>
+
+    <issue
+        id="ObsoleteLintCustomCheck"
+        message="Requires newer lint; these checks **will be skipped**!&#xA;&#xA;Lint found an issue registry (`androidx.compose.ui.graphics.lint.UiGraphicsIssueRegistry`)&#xA;which was compiled against a newer version of lint&#xA;than this one. This is usually fine, but not in this&#xA;case; some basic verification shows that the lint&#xA;check jar references (for example) the following API&#xA;which is not valid in the version of lint which is running:&#xA;org.jetbrains.kotlin.analysis.api.session.KaSessionProvider: void afterLeavingAnalysis(org.jetbrains.kotlin.analysis.api.KaSession,org.jetbrains.kotlin.psi.KtElement)&#xA;(Referenced from androidx/compose/lint/ComposableUtilsKt.class)&#xA;&#xA;Therefore, this lint check library is **not** included&#xA;in analysis. This affects the following lint checks:&#xA;`MissingColorAlphaChannel`,`InvalidColorHexValue`&#xA;&#xA;To use this lint check, upgrade to a more recent version&#xA;of lint.&#xA;&#xA;Version of Lint API this lint check is using is 16.&#xA;The Lint API version currently running is 14 (8.0 and 8.1).">
+        <location
+            file="$GRADLE_USER_HOME/caches/9.1.0/transforms/aa72864eb7452c7287057cb32cee181b/transformed/ui-graphics/jars/lint.jar"/>
+    </issue>
+
+    <issue
+        id="ObsoleteLintCustomCheck"
+        message="Requires newer lint; these checks **will be skipped**!&#xA;&#xA;Lint found an issue registry (`androidx.lifecycle.lint.LifecycleViewModelComposeIssueRegistry`)&#xA;which was compiled against a newer version of lint&#xA;than this one. This is usually fine, but not in this&#xA;case; some basic verification shows that the lint&#xA;check jar references (for example) the following API&#xA;which is not valid in the version of lint which is running:&#xA;org.jetbrains.kotlin.analysis.api.session.KaSessionProvider: void afterLeavingAnalysis(org.jetbrains.kotlin.analysis.api.KaSession,org.jetbrains.kotlin.psi.KtElement)&#xA;(Referenced from androidx/compose/lint/ComposableUtilsKt.class)&#xA;&#xA;Therefore, this lint check library is **not** included&#xA;in analysis. This affects the following lint checks:&#xA;`ViewModelConstructorInComposable`&#xA;&#xA;To use this lint check, upgrade to a more recent version&#xA;of lint.&#xA;&#xA;Version of Lint API this lint check is using is 16.&#xA;The Lint API version currently running is 14 (8.0 and 8.1).">
+        <location
+            file="$GRADLE_USER_HOME/caches/9.1.0/transforms/b7f0e0eef61a1bdf70e17ed3d1ece666/transformed/lifecycle-viewmodel-compose/jars/lint.jar"/>
+    </issue>
+
+    <issue
+        id="ObsoleteLintCustomCheck"
+        message="Requires newer lint; these checks **will be skipped**!&#xA;&#xA;Lint found an issue registry (`androidx.lifecycle.runtime.compose.lint.LifecycleRuntimeComposeIssueRegistry`)&#xA;which was compiled against a newer version of lint&#xA;than this one. This is usually fine, but not in this&#xA;case; some basic verification shows that the lint&#xA;check jar references (for example) the following API&#xA;which is not valid in the version of lint which is running:&#xA;org.jetbrains.kotlin.analysis.api.session.KaSessionProvider: void afterLeavingAnalysis(org.jetbrains.kotlin.analysis.api.KaSession,org.jetbrains.kotlin.psi.KtElement)&#xA;(Referenced from androidx/compose/lint/ComposableUtilsKt.class)&#xA;&#xA;Therefore, this lint check library is **not** included&#xA;in analysis. This affects the following lint checks:&#xA;`LifecycleCurrentStateInComposition`&#xA;&#xA;To use this lint check, upgrade to a more recent version&#xA;of lint.&#xA;&#xA;Version of Lint API this lint check is using is 16.&#xA;The Lint API version currently running is 14 (8.0 and 8.1).">
+        <location
+            file="$GRADLE_USER_HOME/caches/9.1.0/transforms/27b46d83e2ba761c41a5802a08a24b4a/transformed/lifecycle-runtime-compose/jars/lint.jar"/>
+    </issue>
+
+    <issue
+        id="ObsoleteLintCustomCheck"
+        message="Requires newer lint; these checks **will be skipped**!&#xA;&#xA;Lint found an issue registry (`androidx.navigation.common.lint.NavigationCommonIssueRegistry`)&#xA;which was compiled against a newer version of lint&#xA;than this one. This is usually fine, but not in this&#xA;case; some basic verification shows that the lint&#xA;check jar references (for example) the following API&#xA;which is not valid in the version of lint which is running:&#xA;org.jetbrains.kotlin.analysis.api.session.KaSessionProvider: void afterLeavingAnalysis(org.jetbrains.kotlin.analysis.api.KaSession,org.jetbrains.kotlin.psi.KtElement)&#xA;(Referenced from androidx/navigation/lint/UtilKt.class)&#xA;&#xA;Therefore, this lint check library is **not** included&#xA;in analysis. This affects the following lint checks:&#xA;`EmptyNavDeepLink`,`WrongStartDestinationType`,`MissingSerializableAnnotation`,`MissingKeepAnnotation`&#xA;&#xA;To use this lint check, upgrade to a more recent version&#xA;of lint.&#xA;&#xA;Version of Lint API this lint check is using is 16.&#xA;The Lint API version currently running is 14 (8.0 and 8.1).">
+        <location
+            file="$GRADLE_USER_HOME/caches/9.1.0/transforms/5416d97bab70d84dab32e119f3b58ae4/transformed/navigation-common/jars/lint.jar"/>
+    </issue>
+
+    <issue
+        id="ObsoleteLintCustomCheck"
+        message="Requires newer lint; these checks **will be skipped**!&#xA;&#xA;Lint found an issue registry (`androidx.navigation.compose.lint.NavigationComposeIssueRegistry`)&#xA;which was compiled against a newer version of lint&#xA;than this one. This is usually fine, but not in this&#xA;case; some basic verification shows that the lint&#xA;check jar references (for example) the following API&#xA;which is not valid in the version of lint which is running:&#xA;org.jetbrains.kotlin.analysis.api.session.KaSessionProvider: void afterLeavingAnalysis(org.jetbrains.kotlin.analysis.api.KaSession,org.jetbrains.kotlin.psi.KtElement)&#xA;(Referenced from androidx/compose/lint/ComposableUtilsKt.class)&#xA;&#xA;Therefore, this lint check library is **not** included&#xA;in analysis. This affects the following lint checks:&#xA;`ComposableDestinationInComposeScope`&#xA;`ComposableNavGraphInComposeScope`&#xA;`UnrememberedGetBackStackEntry`&#xA;`WrongStartDestinationType`&#xA;`MissingKeepAnnotation`&#xA;`MissingSerializableAnnotation`&#xA;&#xA;To use this lint check, upgrade to a more recent version&#xA;of lint.&#xA;&#xA;Version of Lint API this lint check is using is 16.&#xA;The Lint API version currently running is 14 (8.0 and 8.1).">
+        <location
+            file="$GRADLE_USER_HOME/caches/9.1.0/transforms/d19567200425b43d74912a1bef296edf/transformed/navigation-compose/jars/lint.jar"/>
+    </issue>
+
+    <issue
+        id="ObsoleteLintCustomCheck"
+        message="Requires newer lint; these checks **will be skipped**!&#xA;&#xA;Lint found an issue registry (`androidx.navigation.runtime.lint.NavigationRuntimeIssueRegistry`)&#xA;which was compiled against a newer version of lint&#xA;than this one. This is usually fine, but not in this&#xA;case; some basic verification shows that the lint&#xA;check jar references (for example) the following API&#xA;which is not valid in the version of lint which is running:&#xA;org.jetbrains.kotlin.analysis.api.session.KaSessionProvider: void afterLeavingAnalysis(org.jetbrains.kotlin.analysis.api.KaSession,org.jetbrains.kotlin.psi.KtElement)&#xA;(Referenced from androidx/navigation/lint/UtilKt.class)&#xA;&#xA;Therefore, this lint check library is **not** included&#xA;in analysis. This affects the following lint checks:&#xA;`DeepLinkInActivityDestination`,`WrongStartDestinationType`,`WrongNavigateRouteType`,`MissingKeepAnnotation`,`MissingSerializableAnnotation`&#xA;&#xA;To use this lint check, upgrade to a more recent version&#xA;of lint.&#xA;&#xA;Version of Lint API this lint check is using is 16.&#xA;The Lint API version currently running is 14 (8.0 and 8.1).">
+        <location
+            file="$GRADLE_USER_HOME/caches/9.1.0/transforms/dacaad47444b931f289864d5158074d2/transformed/navigation-runtime/jars/lint.jar"/>
+    </issue>
+
+    <issue
+        id="InlinedApi"
+        message="Field requires API level 31 (current min is 26): `android.R.dimen#system_app_widget_background_radius`"
+        errorLine1="            .cornerRadius(android.R.dimen.system_app_widget_background_radius)"
+        errorLine2="                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/vajrax/android/widget/GlanceWidgets.kt"
+            line="244"
+            column="27"/>
+    </issue>
+
+    <issue
+        id="UnusedAttribute"
+        message="Attribute `targetCellWidth` is only used in API level 31 and higher (current min is 26)"
+        errorLine1="    android:targetCellWidth=&quot;4&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/xml/vajra_widget_info.xml"
+            line="8"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UnusedAttribute"
+        message="Attribute `targetCellHeight` is only used in API level 31 and higher (current min is 26)"
+        errorLine1="    android:targetCellHeight=&quot;2&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/xml/vajra_widget_info.xml"
+            line="9"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UnusedAttribute"
+        message="Attribute `targetCellWidth` is only used in API level 31 and higher (current min is 26)"
+        errorLine1="    android:targetCellWidth=&quot;4&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/xml/vajra_widget_list_info.xml"
+            line="10"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="UnusedAttribute"
+        message="Attribute `targetCellHeight` is only used in API level 31 and higher (current min is 26)"
+        errorLine1="    android:targetCellHeight=&quot;3&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/xml/vajra_widget_list_info.xml"
+            line="11"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="AndroidGradlePluginVersion"
+        message="A newer version of com.android.application than 8.5.2 is available: 9.4.1"
+        errorLine1="agp = &quot;8.5.2&quot;"
+        errorLine2="      ~~~~~~~">
+        <location
+            file="$HOME/Git/VajraX/gradle/libs.versions.toml"
+            line="10"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="AndroidGradlePluginVersion"
+        message="A newer version of com.android.application than 8.5.2 is available: 9.4.1"
+        errorLine1="agp = &quot;8.5.2&quot;"
+        errorLine2="      ~~~~~~~">
+        <location
+            file="$HOME/Git/VajraX/gradle/libs.versions.toml"
+            line="10"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="AndroidGradlePluginVersion"
+        message="A newer version of com.android.application than 8.5.2 is available: 9.4.1"
+        errorLine1="agp = &quot;8.5.2&quot;"
+        errorLine2="      ~~~~~~~">
+        <location
+            file="$HOME/Git/VajraX/gradle/libs.versions.toml"
+            line="10"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="AndroidGradlePluginVersion"
+        message="A newer version of com.android.library than 8.5.2 is available: 9.4.1"
+        errorLine1="agp = &quot;8.5.2&quot;"
+        errorLine2="      ~~~~~~~">
+        <location
+            file="$HOME/Git/VajraX/gradle/libs.versions.toml"
+            line="10"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="AndroidGradlePluginVersion"
+        message="A newer version of com.android.library than 8.5.2 is available: 9.4.1"
+        errorLine1="agp = &quot;8.5.2&quot;"
+        errorLine2="      ~~~~~~~">
+        <location
+            file="$HOME/Git/VajraX/gradle/libs.versions.toml"
+            line="10"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="AndroidGradlePluginVersion"
+        message="A newer version of com.android.library than 8.5.2 is available: 9.4.1"
+        errorLine1="agp = &quot;8.5.2&quot;"
+        errorLine2="      ~~~~~~~">
+        <location
+            file="$HOME/Git/VajraX/gradle/libs.versions.toml"
+            line="10"
+            column="7"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of org.jetbrains.kotlinx:kotlinx-serialization-json than 1.7.3 is available: 1.11.0"
+        errorLine1="serialization = &quot;1.7.3&quot;"
+        errorLine2="                ~~~~~~~">
+        <location
+            file="$HOME/Git/VajraX/gradle/libs.versions.toml"
+            line="9"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of org.jetbrains.kotlinx:kotlinx-serialization-json than 1.7.3 is available: 1.11.0"
+        errorLine1="serialization = &quot;1.7.3&quot;"
+        errorLine2="                ~~~~~~~">
+        <location
+            file="$HOME/Git/VajraX/gradle/libs.versions.toml"
+            line="9"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of org.jetbrains.kotlinx:kotlinx-serialization-json than 1.7.3 is available: 1.11.0"
+        errorLine1="serialization = &quot;1.7.3&quot;"
+        errorLine2="                ~~~~~~~">
+        <location
+            file="$HOME/Git/VajraX/gradle/libs.versions.toml"
+            line="9"
+            column="17"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.activity:activity-compose than 1.9.1 is available: 1.13.0"
+        errorLine1="androidx-activity-compose = { module = &quot;androidx.activity:activity-compose&quot;, version = &quot;1.9.1&quot; }"
+        errorLine2="                                                                                       ~~~~~~~">
+        <location
+            file="$HOME/Git/VajraX/gradle/libs.versions.toml"
+            line="15"
+            column="88"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.activity:activity-compose than 1.9.1 is available: 1.13.0"
+        errorLine1="androidx-activity-compose = { module = &quot;androidx.activity:activity-compose&quot;, version = &quot;1.9.1&quot; }"
+        errorLine2="                                                                                       ~~~~~~~">
+        <location
+            file="$HOME/Git/VajraX/gradle/libs.versions.toml"
+            line="15"
+            column="88"/>
+    </issue>
+
+    <issue
+        id="GradleDependency"
+        message="A newer version of androidx.activity:activity-compose than 1.9.1 is available: 1.13.0"
+        errorLine1="androidx-activity-compose = { module = &quot;androidx.activity:activity-compose&quot;, version = &quot;1.9.1&quot; }"
+        errorLine2="                                                                                       ~~~~~~~">
+        <location
+            file="$HOME/Git/VajraX/gradle/libs.versions.toml"
+            line="15"
+            column="88"/>
+    </issue>
+
+    <issue
+        id="LockedOrientationActivity"
+        message="Expecting `android:screenOrientation=&quot;unspecified&quot;` or `&quot;fullSensor&quot;` for this activity so the user can use the application in any orientation and provide a great experience on Chrome OS devices"
+        errorLine1="            android:screenOrientation=&quot;portrait&quot;"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/androidMain/AndroidManifest.xml"
+            line="31"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="RestrictedApi"
+        message="ColorProviderKt.ColorProvider can only be called from within the same library group (referenced groupId=`androidx.glance` from groupId=`VajraX`)"
+        errorLine1="    val onSurface = androidx.glance.unit.ColorProvider(R.color.vx_on_surface)"
+        errorLine2="                                         ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/vajrax/android/widget/GlanceWidgets.kt"
+            line="88"
+            column="42"/>
+    </issue>
+
+    <issue
+        id="RestrictedApi"
+        message="ColorProviderKt.ColorProvider can only be called from within the same library group (referenced groupId=`androidx.glance` from groupId=`VajraX`)"
+        errorLine1="    val onSurfaceVariant = androidx.glance.unit.ColorProvider(R.color.vx_on_surface_variant)"
+        errorLine2="                                                ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/vajrax/android/widget/GlanceWidgets.kt"
+            line="89"
+            column="49"/>
+    </issue>
+
+    <issue
+        id="RestrictedApi"
+        message="ColorProviderKt.ColorProvider can only be called from within the same library group (referenced groupId=`androidx.glance` from groupId=`VajraX`)"
+        errorLine1="    val primary = androidx.glance.unit.ColorProvider(R.color.vx_widget_accent)"
+        errorLine2="                                       ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/vajrax/android/widget/GlanceWidgets.kt"
+            line="90"
+            column="40"/>
+    </issue>
+
+    <issue
+        id="RestrictedApi"
+        message="ColorProviderKt.ColorProvider can only be called from within the same library group (referenced groupId=`androidx.glance` from groupId=`VajraX`)"
+        errorLine1="    val onPrimary = androidx.glance.unit.ColorProvider(R.color.vx_on_primary)"
+        errorLine2="                                         ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/vajrax/android/widget/GlanceWidgets.kt"
+            line="92"
+            column="42"/>
+    </issue>
+
+    <issue
+        id="RestrictedApi"
+        message="ColorProviderKt.ColorProvider can only be called from within the same library group (referenced groupId=`androidx.glance` from groupId=`VajraX`)"
+        errorLine1="    val onPrimaryContainer = androidx.glance.unit.ColorProvider(R.color.vx_widget_on_container)"
+        errorLine2="                                                  ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/vajrax/android/widget/GlanceWidgets.kt"
+            line="93"
+            column="51"/>
+    </issue>
+
+    <issue
+        id="RestrictedApi"
+        message="ColorProviderKt.ColorProvider can only be called from within the same library group (referenced groupId=`androidx.glance` from groupId=`VajraX`)"
+        errorLine1="    val track = androidx.glance.unit.ColorProvider(R.color.vx_track)"
+        errorLine2="                                     ~~~~~~~~~~~~~">
+        <location
+            file="src/main/java/com/vajrax/android/widget/GlanceWidgets.kt"
+            line="94"
+            column="38"/>
+    </issue>
+
+    <issue
+        id="DiscouragedApi"
+        message="Should not restrict activity to fixed orientation. This may not be suitable for different form factors, causing the app to be letterboxed."
+        errorLine1="            android:screenOrientation=&quot;portrait&quot;"
+        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/androidMain/AndroidManifest.xml"
+            line="31"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="This folder configuration (`v24`) is unnecessary; `minSdkVersion` is 26. Merge all the resources in this folder into `drawable`.">
+        <location
+            file="src/main/res/drawable-v24"/>
+    </issue>
+
+    <issue
+        id="ObsoleteSdkInt"
+        message="This folder configuration (`v26`) is unnecessary; `minSdkVersion` is 26. Merge all the resources in this folder into `mipmap-anydpi`.">
+        <location
+            file="src/main/res/mipmap-anydpi-v26"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.string.app_name` appears to be unused"
+        errorLine1="    &lt;string name=&quot;app_name&quot;>VajraX&lt;/string>"
+        errorLine2="            ~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/values/strings.xml"
+            line="2"
+            column="13"/>
+    </issue>
+
+    <issue
+        id="UnusedResources"
+        message="The resource `R.drawable.widget_chip` appears to be unused"
+        errorLine1="&lt;shape xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot; android:shape=&quot;rectangle&quot;>"
+        errorLine2="^">
+        <location
+            file="src/main/res/drawable/widget_chip.xml"
+            line="2"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="MonochromeLauncherIcon"
+        message="The application adaptive icon is missing a monochrome tag"
+        errorLine1="&lt;adaptive-icon xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;>"
+        errorLine2="^">
+        <location
+            file="src/main/res/mipmap-anydpi-v26/ic_launcher.xml"
+            line="2"
+            column="1"/>
+    </issue>
+
+    <issue
+        id="MonochromeLauncherIcon"
+        message="The application adaptive roundIcon is missing a monochrome tag"
+        errorLine1="&lt;adaptive-icon xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;>"
+        errorLine2="^">
+        <location
+            file="src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml"
+            line="2"
+            column="1"/>
+    </issue>
+
+</issues>

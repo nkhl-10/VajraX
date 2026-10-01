@@ -1,5 +1,7 @@
 package com.vajrax.ui.features.discover
 
+import org.jetbrains.compose.resources.stringResource
+import com.vajrax.resources.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -34,20 +36,20 @@ fun DiscoverScreen(
         item(key = "header") {
             Spacer(Modifier.height(VxSpace.lg))
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                ScreenTitle("Discover", Modifier.weight(1f))
+                ScreenTitle(stringResource(Res.string.discover_discover), Modifier.weight(1f))
                 RoundIconButton(
                     if (state.searchOpen) VxIcons.Close else VxIcons.Search,
-                    if (state.searchOpen) "Close search" else "Search templates",
+                    if (state.searchOpen) stringResource(Res.string.discover_close_search) else stringResource(Res.string.discover_search_templates),
                     onClick = { onIntent(DiscoverIntent.ToggleSearch) }
                 )
             }
             if (state.searchOpen) {
                 Spacer(Modifier.height(VxSpace.md))
                 VxTextField(
-                    label = "Search templates",
+                    label = stringResource(Res.string.discover_search_templates),
                     value = state.query,
                     onValueChange = { onIntent(DiscoverIntent.Search(it)) },
-                    placeholder = "Name, habit or goal"
+                    placeholder = stringResource(Res.string.discover_name_habit_or_goal)
                 )
             }
             Spacer(Modifier.height(VxSpace.md))
@@ -60,7 +62,7 @@ fun DiscoverScreen(
             if (state.visibleCategories.isNotEmpty()) {
                 Spacer(Modifier.height(VxSpace.md))
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(VxSpace.sm)) {
-                    CategoryChip("All", state.category == null, onClick = { onIntent(DiscoverIntent.SelectCategory(null)) })
+                    CategoryChip(stringResource(Res.string.discover_all), state.category == null, onClick = { onIntent(DiscoverIntent.SelectCategory(null)) })
                     state.visibleCategories.forEach { c ->
                         CategoryChip(c, state.category == c, onClick = { onIntent(DiscoverIntent.SelectCategory(if (state.category == c) null else c)) })
                     }
@@ -76,9 +78,9 @@ fun DiscoverScreen(
         if (nothing) {
             item {
                 if (state.tab == DiscoverTab.MINE && !state.isFiltering) {
-                    EmptyState(VxIcons.Pen, "No templates yet", "Build your own in a minute.", actionLabel = "Create template", onAction = onCreateTemplate)
+                    EmptyState(VxIcons.Pen, stringResource(Res.string.discover_no_templates_yet), stringResource(Res.string.discover_build_your_own_in_a), actionLabel = stringResource(Res.string.discover_create_template), onAction = onCreateTemplate)
                 } else {
-                    EmptyState(VxIcons.Search, "No templates found", "Try another word or category.")
+                    EmptyState(VxIcons.Search, stringResource(Res.string.discover_no_templates_found), stringResource(Res.string.discover_try_another_word_or_category))
                 }
             }
         }
@@ -89,14 +91,14 @@ fun DiscoverScreen(
         item(key = "create") {
             if (!state.isFiltering && state.tab != DiscoverTab.ARC && !(state.tab == DiscoverTab.MINE && nothing)) {
                 DashedAddBox(
-                    title = "Build your own template",
-                    subtitle = "Your routine, reusable.",
-                    buttonLabel = "Create template",
+                    title = stringResource(Res.string.discover_build_your_own_template),
+                    subtitle = stringResource(Res.string.discover_your_routine_reusable),
+                    buttonLabel = stringResource(Res.string.discover_create_template),
                     onClick = onCreateTemplate
                 )
                 Spacer(Modifier.height(VxSpace.md))
                 val blank = TemplateCatalog.BLANK_ID
-                ListRow("Start a blank tracker", onClick = { onUseTemplate(blank) }, icon = VxIcons.Plus)
+                ListRow(stringResource(Res.string.discover_start_a_blank_tracker), onClick = { onUseTemplate(blank) }, icon = VxIcons.Plus)
             }
         }
     }
@@ -119,7 +121,7 @@ private fun androidx.compose.foundation.lazy.LazyListScope.section(
             template = t,
             onOpen = { onOpen(t.id) },
             onUse = { onUse(t.id) },
-            badge = if (t.id == activeId) "Active" else null
+            isActive = t.id == activeId
         )
         Spacer(Modifier.height(VxSpace.md))
     }

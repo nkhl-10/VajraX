@@ -1,5 +1,7 @@
 package com.vajrax.data.local
 
+import app.cash.sqldelight.async.coroutines.awaitAsList
+
 /**
  * Seeds only immutable reference data. No demo profile, habits or history are ever inserted:
  * every number the app shows comes from what the user actually recorded.
@@ -10,8 +12,8 @@ class DatabaseSeeder(
 ) {
     private val queries = database.vajraDatabaseQueries
 
-    fun seedInitialDataIfEmpty() {
-        if (queries.getAllLifePaths().executeAsList().isNotEmpty()) return
+    suspend fun seedInitialDataIfEmpty() {
+        if (queries.getAllLifePaths().awaitAsList().isNotEmpty()) return
         database.transaction {
             lifePaths.forEach { (id, name, description) ->
                 queries.insertLifePath(id = id, name = name, description = description, isActive = 0L)

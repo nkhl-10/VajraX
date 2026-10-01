@@ -24,7 +24,7 @@ fun VajraMark(modifier: Modifier = Modifier, size: Dp = 72.dp) {
         val w = this.size.width
         val h = this.size.height
         drawRoundRect(
-            brush = Brush.linearGradient(listOf(Color(0xFF4F46E5), Color(0xFF7C3AED)), Offset(0f, 0f), Offset(w, h)),
+            brush = Brush.linearGradient(listOf(com.vajrax.ui.theme.BrandIndigo, com.vajrax.ui.theme.BrandViolet), Offset(0f, 0f), Offset(w, h)),
             cornerRadius = CornerRadius(w * 0.28f)
         )
         val stroke = w * 0.085f

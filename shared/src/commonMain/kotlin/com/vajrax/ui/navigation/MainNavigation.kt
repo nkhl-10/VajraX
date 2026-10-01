@@ -1,25 +1,26 @@
 package com.vajrax.ui.navigation
 
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -32,8 +33,9 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
-import com.vajrax.platform.LocalPlatformActions
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
@@ -43,14 +45,14 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.vajrax.app.AppViewModel
-import com.vajrax.core.time.AppClock
-import com.vajrax.domain.repository.PracticeRepository
-import com.vajrax.domain.repository.TemplateRepository
-import com.vajrax.domain.repository.TrackerRepository
-import com.vajrax.domain.usecase.RoutineManager
+import com.vajrax.domain.usecase.PreferencesService
+import com.vajrax.platform.LocalPlatformActions
 import com.vajrax.presentation.mvi.MviViewModel
+import com.vajrax.resources.*
 import com.vajrax.ui.components.FloatingPillNavBar
+import com.vajrax.ui.designsystem.LocalReminderAccess
 import com.vajrax.ui.designsystem.LocalVxSnackbar
+import com.vajrax.ui.designsystem.ReminderAccess
 import com.vajrax.ui.features.builder.TemplateBuilderScreen
 import com.vajrax.ui.features.builder.TemplateBuilderViewModel
 import com.vajrax.ui.features.calendar.CalendarScreen
@@ -80,13 +82,20 @@ import com.vajrax.ui.features.templates.TemplateDetailScreen
 import com.vajrax.ui.features.today.TodayScreen
 import com.vajrax.ui.features.today.TodayViewModel
 import com.vajrax.ui.theme.LuminaTheme
+import com.vajrax.ui.theme.VxShape
 import com.vajrax.ui.utils.PlatformBackHandler
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import org.jetbrains.compose.resources.StringResource
+import org.jetbrains.compose.resources.getString
+import org.koin.compose.getKoin
 import org.koin.compose.koinInject
+import org.koin.core.parameter.parametersOf
 
 enum class NavTabType { HOME, CALENDAR, DISCOVER, REPORT, PROFILE }
 
-data class NavTabItem(val label: String, val type: NavTabType, val route: Any)
+/** [label] is the fallback; the nav bar shows [labelRes] so tab names follow the app language. */
+data class NavTabItem(val label: String, val type: NavTabType, val route: Any, val labelRes: StringResource? = null)
 
 // ---------------------------------------------------------------- type-safe routes
 
@@ -105,11 +114,11 @@ data class NavTabItem(val label: String, val type: NavTabType, val route: Any)
 @Serializable data class LegalRoute(val doc: String)
 
 private val tabs = listOf(
-    NavTabItem("Home", NavTabType.HOME, HomeRoute),
-    NavTabItem("Calendar", NavTabType.CALENDAR, CalendarRoute),
-    NavTabItem("Discover", NavTabType.DISCOVER, DiscoverRoute),
-    NavTabItem("Report", NavTabType.REPORT, ReportRoute),
-    NavTabItem("Profile", NavTabType.PROFILE, ProfileRoute)
+    NavTabItem("Home", NavTabType.HOME, HomeRoute, Res.string.nav_home),
+    NavTabItem("Calendar", NavTabType.CALENDAR, CalendarRoute, Res.string.nav_calendar),
+    NavTabItem("Discover", NavTabType.DISCOVER, DiscoverRoute, Res.string.nav_discover),
+    NavTabItem("Report", NavTabType.REPORT, ReportRoute, Res.string.nav_report),
+    NavTabItem("Profile", NavTabType.PROFILE, ProfileRoute, Res.string.nav_profile)
 )
 
 /** Creates a screen-scoped view model that is cleared when the destination leaves composition. */
@@ -138,6 +147,20 @@ private val MaxContentWidth = 640.dp
 private const val PUSH_MS = 260
 private const val LEAVE_MS = 180
 
+/** Shows a screen's load error with Retry in place of the screen; returns true when it did. */
+@Composable
+private fun loadErrorShown(vm: MviViewModel<*, *, *>): Boolean {
+    val error by vm.loadError.collectAsState()
+    val message = error ?: return false
+    Box(
+        Modifier.fillMaxSize().background(LuminaTheme.colors.background).statusBarsPadding(),
+        contentAlignment = Alignment.Center
+    ) {
+        com.vajrax.ui.designsystem.ErrorState(message, onRetry = vm::retryLoad)
+    }
+    return true
+}
+
 private fun NavHostController.switchTab(route: Any) {
     navigate(route) {
         popUpTo(HomeRoute) { saveState = true }
@@ -156,7 +179,7 @@ private fun NavHostController.resetTo(route: Any) {
 @Composable
 fun MainNavigation(appViewModel: AppViewModel) {
     val colors = LuminaTheme.colors
-    val appState by appViewModel.state.collectAsState()
+    val appState by appViewModel.state.collectAsStateWithLifecycle()
     val navController = rememberNavController()
     val entry by navController.currentBackStackEntryAsState()
     val destination = entry?.destination
@@ -164,7 +187,9 @@ fun MainNavigation(appViewModel: AppViewModel) {
     val snackbarHost = remember { SnackbarHostState() }
     val backdrop = rememberGraphicsLayer()
     var contentOrigin by remember { mutableStateOf(Offset.Zero) }
-    val blurSupported = LocalPlatformActions.current.supportsBackdropBlur
+    val platform = LocalPlatformActions.current
+    val blurSupported = platform.supportsBackdropBlur
+    val openHabitRequest by platform.openHabitRequest.collectAsState()
 
     val todayVm = koinInject<TodayViewModel>()
     val calendarVm = koinInject<CalendarViewModel>()
@@ -173,11 +198,14 @@ fun MainNavigation(appViewModel: AppViewModel) {
     val profileVm = koinInject<ProfileViewModel>()
     val onboardingVm = koinInject<OnboardingViewModel>()
     val activationVm = koinInject<ActivationViewModel>()
-    val routineManager = koinInject<RoutineManager>()
-    val practices = koinInject<PracticeRepository>()
-    val trackers = koinInject<TrackerRepository>()
-    val templates = koinInject<TemplateRepository>()
-    val clock = koinInject<AppClock>()
+    val koin = getKoin()
+
+    // A widget asked to open a habit: go to Home (after splash / onboarding), which handles it.
+    LaunchedEffect(openHabitRequest, destination) {
+        val d = destination ?: return@LaunchedEffect
+        if (openHabitRequest == null || d.hasRoute(SplashRoute::class) || d.hasRoute(OnboardingRoute::class)) return@LaunchedEffect
+        if (!d.hasRoute(HomeRoute::class)) navController.switchTab(HomeRoute)
+    }
 
     LaunchedEffect(activationVm) {
         activationVm.effect.collect { e ->
@@ -185,7 +213,35 @@ fun MainNavigation(appViewModel: AppViewModel) {
         }
     }
 
-    CompositionLocalProvider(LocalVxSnackbar provides snackbarHost) {
+    // Reminders work only with the app setting on and notification permission granted; the
+    // permission can change in Android settings, so it is re-read whenever the app resumes.
+    val preferences = koinInject<PreferencesService>()
+    val remindersSetting by remember(preferences) { preferences.observeRemindersEnabled() }.collectAsState(initial = true)
+    var notificationsAllowed by remember { mutableStateOf(platform.notificationsPermitted()) }
+    LifecycleResumeEffect(platform) {
+        notificationsAllowed = platform.notificationsPermitted()
+        onPauseOrDispose { }
+    }
+    val uiScope = rememberCoroutineScope()
+    val reminderAccess = ReminderAccess(
+        on = remindersSetting && notificationsAllowed,
+        turnOn = {
+            val enable: () -> Unit = {
+                notificationsAllowed = true
+                uiScope.launch { runCatching { preferences.setRemindersEnabled(true) } }
+            }
+            if (platform.notificationsPermitted()) enable()
+            else platform.requestNotificationPermission { granted ->
+                if (granted) enable()
+                else uiScope.launch {
+                    val result = snackbarHost.showSnackbar(getString(Res.string.profile_notifications_are_off_for_vajrax), actionLabel = getString(Res.string.profile_settings))
+                    if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) platform.openNotificationSettings()
+                }
+            }
+        }
+    )
+
+    CompositionLocalProvider(LocalVxSnackbar provides snackbarHost, LocalReminderAccess provides reminderAccess) {
         // Horizontal safe area (landscape navigation bar, display cutouts); vertical insets are per screen.
         Box(
             Modifier.fillMaxSize().background(colors.background)
@@ -223,12 +279,12 @@ fun MainNavigation(appViewModel: AppViewModel) {
                 }
             ) {
                 composable<SplashRoute> {
-                    SplashScreen(appState.startRoute, appState.startupError) { route ->
+                    SplashScreen(appState.startRoute, appState.startupError, onRetry = appViewModel::retryStart) { route ->
                         navController.resetTo(if (route == "home") HomeRoute else OnboardingRoute)
                     }
                 }
                 composable<OnboardingRoute> {
-                    val state by onboardingVm.uiState.collectAsState()
+                    val state by onboardingVm.uiState.collectAsStateWithLifecycle()
                     PlatformBackHandler(enabled = state.step != OnboardingStep.WELCOME) {
                         onboardingVm.sendIntent(OnboardingIntent.Back)
                     }
@@ -242,7 +298,8 @@ fun MainNavigation(appViewModel: AppViewModel) {
                     )
                 }
                 composable<HomeRoute> {
-                    val state by todayVm.uiState.collectAsState()
+                    if (loadErrorShown(todayVm)) return@composable
+                    val state by todayVm.uiState.collectAsStateWithLifecycle()
                     TodayScreen(
                         state = state,
                         effects = todayVm.effect,
@@ -254,15 +311,19 @@ fun MainNavigation(appViewModel: AppViewModel) {
                         onWeeklyReview = {
                             reportVm.sendIntent(com.vajrax.ui.features.report.ReportIntent.StartWeeklyReview)
                             navController.switchTab(ReportRoute)
-                        }
+                        },
+                        openRequest = openHabitRequest,
+                        onOpenRequestHandled = platform::consumeOpenHabitRequest
                     )
                 }
                 composable<CalendarRoute> {
-                    val state by calendarVm.uiState.collectAsState()
+                    if (loadErrorShown(calendarVm)) return@composable
+                    val state by calendarVm.uiState.collectAsStateWithLifecycle()
                     CalendarScreen(state, calendarVm.effect, calendarVm::sendIntent, onOpenDiscover = { navController.switchTab(DiscoverRoute) })
                 }
                 composable<DiscoverRoute> {
-                    val state by discoverVm.uiState.collectAsState()
+                    if (loadErrorShown(discoverVm)) return@composable
+                    val state by discoverVm.uiState.collectAsStateWithLifecycle()
                     DiscoverScreen(
                         state = state,
                         onIntent = discoverVm::sendIntent,
@@ -272,11 +333,13 @@ fun MainNavigation(appViewModel: AppViewModel) {
                     )
                 }
                 composable<ReportRoute> {
-                    val state by reportVm.uiState.collectAsState()
+                    if (loadErrorShown(reportVm)) return@composable
+                    val state by reportVm.uiState.collectAsStateWithLifecycle()
                     ReportScreen(state, reportVm.effect, reportVm::sendIntent, onOpenDiscover = { navController.switchTab(DiscoverRoute) })
                 }
                 composable<ProfileRoute> {
-                    val state by profileVm.uiState.collectAsState()
+                    if (loadErrorShown(profileVm)) return@composable
+                    val state by profileVm.uiState.collectAsStateWithLifecycle()
                     ProfileScreen(
                         state = state,
                         effects = profileVm.effect,
@@ -297,7 +360,7 @@ fun MainNavigation(appViewModel: AppViewModel) {
                 composable<TemplateRoute> { backStack ->
                     val route = backStack.toRoute<TemplateRoute>()
                     LaunchedEffect(route.id) { activationVm.sendIntent(ActivationIntent.Load(route.id)) }
-                    val state by activationVm.uiState.collectAsState()
+                    val state by activationVm.uiState.collectAsStateWithLifecycle()
                     TemplateDetailScreen(
                         state = state,
                         onBack = { navController.popBackStack() },
@@ -307,13 +370,19 @@ fun MainNavigation(appViewModel: AppViewModel) {
                 composable<CustomizeRoute> { backStack ->
                     val route = backStack.toRoute<CustomizeRoute>()
                     LaunchedEffect(route.id) { activationVm.sendIntent(ActivationIntent.Load(route.id)) }
-                    val state by activationVm.uiState.collectAsState()
-                    CustomizeScreen(state, activationVm::sendIntent, onBack = { navController.popBackStack() })
+                    val state by activationVm.uiState.collectAsStateWithLifecycle()
+                    CustomizeScreen(
+                        state,
+                        activationVm::sendIntent,
+                        onBack = { navController.popBackStack() },
+                        onRetry = { activationVm.sendIntent(ActivationIntent.Load(route.id)) }
+                    )
                 }
                 composable<BuilderRoute> { backStack ->
                     val route = backStack.toRoute<BuilderRoute>()
-                    val vm = rememberScreenViewModel(route.id) { TemplateBuilderViewModel(templates, route.id) }
-                    val state by vm.uiState.collectAsState()
+                    val vm = rememberScreenViewModel(route.id) { koin.get<TemplateBuilderViewModel> { parametersOf(route.id) } }
+                    if (loadErrorShown(vm)) return@composable
+                    val state by vm.uiState.collectAsStateWithLifecycle()
                     TemplateBuilderScreen(
                         state = state,
                         effects = vm.effect,
@@ -326,8 +395,8 @@ fun MainNavigation(appViewModel: AppViewModel) {
                     )
                 }
                 composable<RoutineRoute> {
-                    val vm = rememberScreenViewModel(Unit) { RoutineViewModel(routineManager, practices, trackers, templates) }
-                    val state by vm.uiState.collectAsState()
+                    val vm = rememberScreenViewModel(Unit) { koin.get<RoutineViewModel>() }
+                    val state by vm.uiState.collectAsStateWithLifecycle()
                     RoutineScreen(
                         state = state,
                         effects = vm.effect,
@@ -343,14 +412,14 @@ fun MainNavigation(appViewModel: AppViewModel) {
                 }
                 composable<HabitRoute> { backStack ->
                     val route = backStack.toRoute<HabitRoute>()
-                    val vm = rememberScreenViewModel(route.id) { HabitDetailViewModel(route.id, routineManager, practices, clock) }
-                    val state by vm.uiState.collectAsState()
+                    val vm = rememberScreenViewModel(route.id) { koin.get<HabitDetailViewModel> { parametersOf(route.id) } }
+                    val state by vm.uiState.collectAsStateWithLifecycle()
                     HabitDetailScreen(state, vm.effect, vm::sendIntent, onBack = { navController.popBackStack() })
                 }
             }
 
             // The focus timer is a full-screen moment: hide the nav so it never covers its buttons.
-            val todayState by todayVm.uiState.collectAsState()
+            val todayState by todayVm.uiState.collectAsStateWithLifecycle()
             val timerOpen = currentTab == NavTabType.HOME && todayState.timer != null
             Column(Modifier.align(Alignment.BottomCenter).widthIn(max = MaxContentWidth)) {
                 SnackbarHost(
@@ -362,7 +431,7 @@ fun MainNavigation(appViewModel: AppViewModel) {
                         containerColor = colors.onSurface,
                         contentColor = colors.surface,
                         actionColor = colors.primaryContainer,
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp)
+                        shape = VxShape.control
                     )
                 }
                 if (currentTab != null && !timerOpen) {

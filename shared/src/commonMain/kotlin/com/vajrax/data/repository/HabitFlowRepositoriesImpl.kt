@@ -1,5 +1,7 @@
 package com.vajrax.data.repository
 
+import app.cash.sqldelight.async.coroutines.awaitAsList
+import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import app.cash.sqldelight.coroutines.mapToOneOrNull
@@ -7,7 +9,6 @@ import com.vajrax.core.time.Dates
 import com.vajrax.data.local.DbDispatcher
 import com.vajrax.data.local.VajraDatabase
 import com.vajrax.data.local.io
-import com.vajrax.data.local.toDb
 import com.vajrax.data.local.toHabit
 import com.vajrax.data.local.toOccurrence
 import com.vajrax.data.local.toTracker
@@ -45,11 +46,15 @@ class TrackerRepositoryImpl(
     override fun observeActiveTracker(): Flow<Tracker?> =
         queries.getActiveTracker().asFlow().mapToOneOrNull(DbDispatcher).map { it?.toTracker() }
 
-    override suspend fun getActiveTracker(): Tracker? = io { queries.getActiveTracker().executeAsOneOrNull()?.toTracker() }
+    override suspend fun getActiveTracker(): Tracker? = io { queries.getActiveTracker().awaitAsOneOrNull()?.toTracker() }
 
-    override suspend fun getAllTrackers(): List<Tracker> = io { queries.getAllTrackers().executeAsList().map { it.toTracker() } }
+    override suspend fun getAllTrackers(): List<Tracker> = io {
+        queries.getAllTrackers().awaitAsList().map { it.toTracker() }
+    }
 
-    override suspend fun getTracker(id: String): Tracker? = io { queries.getTrackerById(id).executeAsOneOrNull()?.toTracker() }
+    override suspend fun getTracker(id: String): Tracker? = io {
+        queries.getTrackerById(id).awaitAsOneOrNull()?.toTracker()
+    }
 
     override suspend fun replaceActiveTracker(
         tracker: Tracker,
@@ -59,7 +64,7 @@ class TrackerRepositoryImpl(
         nowIso: String
     ): Unit = io {
         database.transaction {
-            queries.getAllTrackers().executeAsList().filter { it.isActive == 1L }.forEach { old ->
+            queries.getAllTrackers().awaitAsList().filter { it.isActive == 1L }.forEach { old ->
                 // History stays; only today's and future open occurrences of the old routine go away.
                 queries.deletePendingOccurrencesForTracker(today.toString(), old.id)
                 queries.archiveHabitsForTracker(today.toString(), old.id)
@@ -97,7 +102,7 @@ class SettingsRepositoryImpl(private val database: VajraDatabase) : SettingsRepo
 
     override fun observe(key: String): Flow<String?> = queries.getSetting(key).asFlow().mapToOneOrNull(DbDispatcher)
 
-    override suspend fun get(key: String): String? = io { queries.getSetting(key).executeAsOneOrNull() }
+    override suspend fun get(key: String): String? = io { queries.getSetting(key).awaitAsOneOrNull() }
 
     override suspend fun put(key: String, value: String): Unit = io { queries.putSetting(key, value) }
 }
@@ -110,12 +115,12 @@ class ProfileRepositoryImpl(private val database: VajraDatabase) : ProfileReposi
     override fun observeProfile(): Flow<UserProfile?> =
         queries.getCurrentUser().asFlow().mapToOneOrNull(DbDispatcher).map { it?.toProfile() }
 
-    override suspend fun getProfile(): UserProfile? = io { queries.getCurrentUser().executeAsOneOrNull()?.toProfile() }
+    override suspend fun getProfile(): UserProfile? = io { queries.getCurrentUser().awaitAsOneOrNull()?.toProfile() }
 
     override suspend fun saveProfile(displayName: String, email: String, nowIso: String): UserProfile = io {
         val name = displayName.trim().take(40)
         val mail = email.trim().take(80)
-        val existing = queries.getCurrentUser().executeAsOneOrNull()
+        val existing = queries.getCurrentUser().awaitAsOneOrNull()
         if (existing == null) {
             queries.insertOrUpdateUser(LOCAL_USER_ID, mail, name, 0L, null, nowIso)
             UserProfile(LOCAL_USER_ID, name, mail)
@@ -187,7 +192,7 @@ class ReflectionRepositoryImpl(private val database: VajraDatabase) : Reflection
         }
 
     override suspend fun saveReflection(reflection: Reflection, nowIso: String): Unit = io {
-        val existing = queries.getReflection(reflection.periodType.name, reflection.periodStart.toString()).executeAsOneOrNull()
+        val existing = queries.getReflection(reflection.periodType.name, reflection.periodStart.toString()).awaitAsOneOrNull()
         queries.upsertReflection(
             id = existing?.id ?: "refl_${reflection.periodType.name.lowercase()}_${reflection.periodStart}",
             periodType = reflection.periodType.name,
@@ -206,7 +211,14 @@ class DataRepositoryImpl(private val database: VajraDatabase) : DataRepository {
     private val json = Json { prettyPrint = true }
 
     override suspend fun exportJson(exportedAt: String): String = io {
-        val profile = queries.getCurrentUser().executeAsOneOrNull()
+        val profile = queries.getCurrentUser().awaitAsOneOrNull()
+        // Read everything first: the JSON builders below are not suspending.
+        val trackers = queries.getAllTrackers().awaitAsList()
+        val habits = queries.getTrackedHabits().awaitAsList().map { it.toHabit() }
+        val logs = queries.getRecordsBetween("0000-01-01", "9999-12-31").awaitAsList().map { it.toOccurrence() }
+        val goals = queries.getGoals().awaitAsList()
+        val reflections = queries.getAllReflections().awaitAsList()
+        val customTemplates = queries.getCustomTemplates().awaitAsList()
         val root: JsonObject = buildJsonObject {
             put("format", "vajrax-export")
             put("version", 2)
@@ -216,7 +228,7 @@ class DataRepositoryImpl(private val database: VajraDatabase) : DataRepository {
                 put("email", profile?.email ?: "")
             })
             putJsonArray("trackers") {
-                queries.getAllTrackers().executeAsList().forEach { t ->
+                trackers.forEach { t ->
                     add(buildJsonObject {
                         put("id", t.id); put("templateId", t.templateId); put("name", t.name ?: "")
                         put("startDate", t.startDate ?: ""); put("status", t.status); put("endedAt", t.endedAt ?: "")
@@ -224,7 +236,7 @@ class DataRepositoryImpl(private val database: VajraDatabase) : DataRepository {
                 }
             }
             putJsonArray("habits") {
-                queries.getTrackedHabits().executeAsList().map { it.toHabit() }.forEach { h ->
+                habits.forEach { h ->
                     add(buildJsonObject {
                         put("id", h.id); put("trackerId", h.trackerId ?: ""); put("name", h.title)
                         put("category", h.category); put("type", h.type.name); put("target", h.targetValue)
@@ -236,7 +248,7 @@ class DataRepositoryImpl(private val database: VajraDatabase) : DataRepository {
                 }
             }
             putJsonArray("logs") {
-                queries.getRecordsBetween("0000-01-01", "9999-12-31").executeAsList().map { it.toOccurrence() }.forEach { o ->
+                logs.forEach { o ->
                     add(buildJsonObject {
                         put("habitId", o.habitId); put("date", o.date.toString()); put("status", o.status.name)
                         put("time", o.scheduledTime ?: ""); put("value", o.value ?: 0.0)
@@ -245,7 +257,7 @@ class DataRepositoryImpl(private val database: VajraDatabase) : DataRepository {
                 }
             }
             putJsonArray("goals") {
-                queries.getGoals().executeAsList().forEach { g ->
+                goals.forEach { g ->
                     add(buildJsonObject {
                         put("title", g.title); put("targetType", g.targetType); put("target", g.targetValue)
                         put("startDate", g.startDate); put("endDate", g.endDate ?: "")
@@ -253,17 +265,18 @@ class DataRepositoryImpl(private val database: VajraDatabase) : DataRepository {
                 }
             }
             putJsonArray("reflections") {
-                queries.getAllReflections().executeAsList().forEach { r ->
+                reflections.forEach { r ->
                     add(buildJsonObject {
                         put("period", r.periodType); put("start", r.periodStart)
                         put("achievements", r.achievements); put("obstacles", r.obstacles); put("nextActions", r.nextActions)
                     })
                 }
             }
-            put("customTemplates", JsonArray(queries.getCustomTemplates().executeAsList().map { JsonPrimitive(it.title) }))
+            put("customTemplates", JsonArray(customTemplates.map { JsonPrimitive(it.title) }))
         }
         json.encodeToString(JsonObject.serializer(), root)
     }
 
-    override suspend fun wipePersonalData(): Unit = io { queries.wipePersonalData() }
+    // A multi-statement query: with async generation it only runs once awaited.
+    override suspend fun wipePersonalData(): Unit = io { queries.wipePersonalData().await() }
 }

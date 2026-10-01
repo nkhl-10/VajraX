@@ -86,6 +86,8 @@ val LuminaLightColors = LuminaColors(
     statusSuccess = Color(0xFF16A34A),
     statusWarning = Color(0xFFD97706),
     statusError = Color(0xFFDC2626),
+    // 4.7:1 on white (the old #9CA3AF was 2.5:1): placeholders and future days stay readable.
+    textTertiary = Color(0xFF6F7480),
     isDark = false
 )
 
@@ -153,3 +155,7 @@ val SurfaceContainerLowest = LuminaDarkColors.surfaceContainerLowest
 val SurfaceContainerLow = LuminaDarkColors.surfaceContainerLow
 val SurfaceContainerHigh = LuminaDarkColors.surfaceContainerHigh
 val SurfaceContainerHighest = LuminaDarkColors.surfaceContainerHighest
+
+/** Brand gradient: the logo, the Profile header and the "violet" habit colour share it. */
+val BrandIndigo = Color(0xFF4F46E5)
+val BrandViolet = Color(0xFF7C3AED)

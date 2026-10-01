@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">VajraX</string>
     <string name="widget_description">Today\'s progress and your next habit, with one-tap completion.</string>
     <string name="widget_list_description">All of today\'s habits — tick them off right from your home screen.</string>
@@ -8,4 +8,47 @@
     <string name="shortcut_add_now_long">Add Now widget to home screen</string>
     <string name="reminder_channel_name">Habit reminders</string>
     <string name="reminder_channel_description">Quiet reminders at the times you choose for each habit.</string>
+    <!-- Brand wordmark used where the app name stands alone (widget header, private notifications). -->
+    <string name="brand_wordmark">VAJRAX</string>
+    <string name="widget_habit_generic">%1$s habit</string>
+    <string name="widget_anytime">Anytime</string>
+    <string name="widget_skipped">Skipped</string>
+    <string name="widget_weekly_met">Weekly target met</string>
+    <string name="widget_done">Done</string>
+    <string name="widget_label_now">Now</string>
+    <string name="widget_label_still_open">Still open</string>
+    <string name="widget_label_week_done">Week done</string>
+    <string name="widget_label_next">Next</string>
+    <string name="widget_count">%1$d of %2$d</string>
+    <string name="widget_empty_choose_title">Choose a routine</string>
+    <string name="widget_empty_choose_body">Tap to pick a template</string>
+    <string name="widget_empty_later_title">Starts tomorrow</string>
+    <string name="widget_empty_later_body">Tap to start today instead</string>
+    <string name="widget_empty_rest_title">Rest day</string>
+    <string name="widget_empty_rest_body">Nothing scheduled today</string>
+    <string name="widget_empty_complete_title">Day complete</string>
+    <!-- "3 of 5 done": the count reads the same for one or many. -->
+    <string name="widget_empty_complete_body" tools:ignore="PluralsCandidate">%1$d of %2$d done</string>
+    <string name="widget_snooze">Snooze</string>
+    <plurals name="widget_snooze_description">
+        <item quantity="one">Snooze %1$s %2$d minute</item>
+        <item quantity="other">Snooze %1$s %2$d minutes</item>
+    </plurals>
+    <string name="widget_action_done">Done</string>
+    <string name="widget_action_plus_one">+1</string>
+    <string name="widget_action_start">Start</string>
+    <string name="widget_action_log">Log</string>
+    <string name="widget_mark_done_description">Mark %1$s done</string>
+    <string name="widget_plus_one_description">Add one to %1$s</string>
+    <string name="widget_start_description">Open VAJRAX to start %1$s</string>
+    <string name="widget_log_description">Open VAJRAX to log %1$s</string>
+    <string name="widget_undo_description">Undo %1$s</string>
+    <string name="widget_then">Then · %1$s, %2$s</string>
+    <string name="widget_section_done">Done</string>
+    <string name="widget_pin_manual">Long-press your home screen → Widgets → VAJRAX</string>
+    <string name="notification_done">Done</string>
+    <string name="notification_snooze">Snooze %1$d min</string>
+    <string name="notification_hidden_text">Reminder</string>
+    <string name="notification_generic_text">You have a habit due</string>
+    <string name="notification_test_text">Reminders are working. Nothing is open right now.</string>
 </resources>

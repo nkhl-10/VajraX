@@ -10,8 +10,16 @@ object TimeFormat {
      * Follows the device's 12/24-hour setting; the platform updates it at start-up and whenever
      * the setting may have changed. Stored values are always 24h "HH:mm", only display changes.
      */
-    @kotlin.concurrent.Volatile
-    var use24Hour: Boolean = false
+    private val use24HourState = kotlinx.coroutines.flow.MutableStateFlow(false)
+
+    /** Emits when the device switches between 12- and 24-hour time, so labels can be rebuilt. */
+    val use24HourChanges: kotlinx.coroutines.flow.StateFlow<Boolean> get() = use24HourState
+
+    var use24Hour: Boolean
+        get() = use24HourState.value
+        set(value) {
+            use24HourState.value = value
+        }
 
     /** Parses "HH:mm", "H:mm", "hh:mm AM", or the start of a range into minutes since midnight. */
     fun toMinutes(raw: String?): Int? {

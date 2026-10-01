@@ -2,6 +2,8 @@
 
 package com.vajrax.ui.features.calendar
 
+import com.vajrax.core.coroutines.AppDispatchers
+import com.vajrax.core.coroutines.runCatchingCancellable
 import com.vajrax.core.time.AppClock
 import com.vajrax.core.time.Dates
 import com.vajrax.core.time.TimeFormat
@@ -16,7 +18,6 @@ import com.vajrax.domain.usecase.RoutineManager
 import com.vajrax.presentation.mvi.MviViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -45,7 +46,7 @@ class CalendarViewModel(
 
     init {
         val today = clock.minuteTicks().map { it.first }.distinctUntilChanged()
-        viewModelScope.launch {
+        launchLoad {
             combine(today, selection) { t, s -> t to s.copy(selected = s.selected ?: t) }
                 .flatMapLatest { (t, s) ->
                     val sel = s.selected!!
@@ -162,18 +163,25 @@ class CalendarViewModel(
                 s.copy(selected = if (intent.months >= 0) base.plus(intent.months, DateTimeUnit.MONTH) else base.minus(-intent.months, DateTimeUnit.MONTH))
             }
             CalendarIntent.GoToday -> selection.update { it.copy(selected = clock.today()) }
-            is CalendarIntent.ToggleToday -> write { routineManager.toggle(intent.occurrenceId); null }
+            is CalendarIntent.ToggleToday -> write {
+                val before = routineManager.toggle(intent.occurrenceId)
+                (if (before.isDone || before.isSkipped) "Marked as not done" else "Marked done") to before
+            }
             is CalendarIntent.CorrectPast -> write {
                 routineManager.correctPastRecord(intent.occurrenceId, intent.done)
-                if (intent.done) "Record corrected: marked done" else "Record corrected: marked not done"
+                (if (intent.done) "Record corrected: marked done" else "Record corrected: marked not done") to null
+            }
+            is CalendarIntent.Undo -> write {
+                routineManager.restore(intent.previous)
+                null
             }
         }
     }
 
-    private fun write(block: suspend () -> String?) {
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching { block() }
-                .onSuccess { msg -> msg?.let { sendEffect(CalendarEffect.ShowMessage(it)) } }
+    private fun write(block: suspend () -> Pair<String, com.vajrax.domain.habit.Occurrence?>?) {
+        viewModelScope.launch(AppDispatchers.IO) {
+            runCatchingCancellable { block() }
+                .onSuccess { msg -> msg?.let { sendEffect(CalendarEffect.ShowMessage(it.first, it.second)) } }
                 .onFailure { sendEffect(CalendarEffect.ShowMessage(userMessage(it))) }
         }
     }

@@ -3,7 +3,6 @@ package com.vajrax.di
 import com.vajrax.core.time.AppClock
 import com.vajrax.core.time.SystemAppClock
 import com.vajrax.data.local.DatabaseDriverFactory
-import com.vajrax.data.local.DatabaseSeeder
 import com.vajrax.data.local.VajraDatabase
 import com.vajrax.data.remote.SupabaseSyncManager
 import com.vajrax.data.remote.createHttpClient
@@ -45,6 +44,7 @@ import com.vajrax.domain.repository.TrackerRepository
 import com.vajrax.domain.template.LifePathTemplateEngine
 import com.vajrax.domain.usecase.AppHooks
 import com.vajrax.domain.usecase.NoopAppHooks
+import com.vajrax.domain.usecase.PreferencesService
 import com.vajrax.domain.usecase.RoutineManager
 import com.vajrax.app.AppViewModel
 import com.vajrax.ui.features.calendar.CalendarViewModel
@@ -67,12 +67,12 @@ import org.koin.dsl.module
 fun dataModule() = module {
     single { createHttpClient() }
     single<AppClock> { SystemAppClock }
+    // Offline release: always offline. The sync phase provides a platform monitor instead.
+    single<com.vajrax.domain.sync.ConnectivityMonitor> { com.vajrax.domain.sync.OfflineOnly }
 
-    single {
-        val db = VajraDatabase(get<DatabaseDriverFactory>().createDriver())
-        DatabaseSeeder(db).seedInitialDataIfEmpty()
-        db
-    }
+    // Opening the database is lazy (first query, always on a background dispatcher); reference
+    // data is seeded during RoutineManager.startup(), never on the thread that first asks for it.
+    single { VajraDatabase(get<DatabaseDriverFactory>().createDriver()) }
 
     // Repositories
     single { PracticeRepositoryImpl(get()) }
@@ -119,13 +119,22 @@ fun dataModule() = module {
 
     // Presentation
     single { AppViewModel(get(), get(), get(), get()) }
-    single { OnboardingViewModel(get(), get(), get(), get(), get()) }
-    single { TodayViewModel(get(), get(), get(), get(), get(), get(), get()) }
+    single { PreferencesService(get(), getOrNull<AppHooks>() ?: NoopAppHooks) }
+    single { com.vajrax.domain.usecase.ProfileService(get(), get()) }
+    single { com.vajrax.domain.usecase.GoalService(get(), get()) }
+    single { com.vajrax.domain.usecase.ReflectionService(get(), get()) }
+    single { com.vajrax.domain.usecase.TemplateLibraryService(get()) }
+    single { OnboardingViewModel(get(), get(), get(), get(), get(), get(), get()) }
+    single { TodayViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
     single { CalendarViewModel(get(), get(), get(), get()) }
     single { DiscoverViewModel(get(), get()) }
     single { com.vajrax.ui.features.templates.ActivationViewModel(get(), get(), get(), get(), get()) }
-    single { ReportViewModel(get(), get(), get(), get(), get()) }
-    single { ProfileViewModel(get(), get(), get(), get(), get(), get(), get(), getOrNull<AppHooks>()) }
+    single { ReportViewModel(get(), get(), get(), get(), get(), get(), get()) }
+    single { ProfileViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), getOrNull<AppHooks>()) }
+    // Screens opened on top of a tab get a fresh view model each time (cleared when they close).
+    factory { (templateId: String?) -> com.vajrax.ui.features.builder.TemplateBuilderViewModel(get(), get(), templateId) }
+    factory { com.vajrax.ui.features.routine.RoutineViewModel(get(), get(), get(), get()) }
+    factory { (habitId: String) -> com.vajrax.ui.features.routine.HabitDetailViewModel(habitId, get(), get(), get()) }
     single { PathViewModel(get(), get(), get()) }
     single { LearnViewModel(get()) }
     single { GrowViewModel(get()) }

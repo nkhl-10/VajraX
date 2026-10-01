@@ -1,5 +1,6 @@
 package com.vajrax.android.reminders
 
+import com.vajrax.domain.habit.NotificationPrivacy
 import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
@@ -37,8 +38,11 @@ class ReminderReceiver : BroadcastReceiver() {
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
                 handle(context.applicationContext, intent)
-            } catch (_: Exception) {
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
                 // Never crash in the background; the next sync will recover.
+                com.vajrax.core.log.VxLog.w("Reminders", "Couldn't handle ${intent.action}", e)
             } finally {
                 pending.finish()
             }
@@ -58,8 +62,8 @@ class ReminderReceiver : BroadcastReceiver() {
                 val habit = practices.getHabit(habitId)
                 val occ = practices.getOccurrence(habitId, clock.today())
                 if (habit != null && !habit.isArchived && occ != null && occ.isOpen) {
-                    val privacy = koin.get<SettingsRepository>().get(SettingsRepository.NOTIFICATION_PRIVACY) ?: "GENERIC"
-                    val (title, text) = content(privacy, habit, occ)
+                    val privacy = NotificationPrivacy.of(koin.get<SettingsRepository>().get(SettingsRepository.NOTIFICATION_PRIVACY))
+                    val (title, text) = content(context, privacy, habit, occ)
                     notify(context, habitId, occ, title, text)
                 }
                 scheduler.sync()
@@ -76,12 +80,12 @@ class ReminderReceiver : BroadcastReceiver() {
                 }
                 val pick = candidates.firstOrNull { (h, o) -> (TimeFormat.toMinutes(o.scheduledTime ?: h.time) ?: 0) + h.durationMinutes > now }
                     ?: candidates.firstOrNull()
-                val privacy = koin.get<SettingsRepository>().get(SettingsRepository.NOTIFICATION_PRIVACY) ?: "GENERIC"
+                val privacy = NotificationPrivacy.of(koin.get<SettingsRepository>().get(SettingsRepository.NOTIFICATION_PRIVACY))
                 if (pick == null) {
-                    notifyPlain(context, "VAJRAX", "Reminders are working. Nothing is open right now.")
+                    notifyPlain(context, context.getString(R.string.brand_wordmark), context.getString(R.string.notification_test_text))
                 } else {
                     val (habit, occ) = pick
-                    val (title, text) = content(privacy, habit, occ)
+                    val (title, text) = content(context, privacy, habit, occ)
                     notify(context, habit.id, occ, title, text)
                 }
             }
@@ -95,7 +99,7 @@ class ReminderReceiver : BroadcastReceiver() {
                 val habitId = intent.getStringExtra(EXTRA_HABIT_ID) ?: return
                 cancelNotification(context, habitId)
                 // Moves today's occurrence; the reminder is rescheduled to the new time via AppHooks.
-                routine.snooze(occId, 15)
+                routine.snooze(occId, com.vajrax.domain.BusinessRules.SNOOZE_MINUTES)
             }
             Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED,
             Intent.ACTION_TIMEZONE_CHANGED, Intent.ACTION_TIME_CHANGED -> {
@@ -108,10 +112,10 @@ class ReminderReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun content(privacy: String, habit: com.vajrax.domain.habit.Habit, occ: Occurrence): Pair<String, String> = when (privacy) {
-        "FULL" -> habit.title to "${TimeFormat.display(occ.scheduledTime ?: habit.time)} · ${TimeFormat.duration(habit.durationMinutes)}"
-        "HIDDEN" -> "VAJRAX" to "Reminder"
-        else -> "VAJRAX" to "You have a habit due"
+    private fun content(context: Context, privacy: NotificationPrivacy, habit: com.vajrax.domain.habit.Habit, occ: Occurrence): Pair<String, String> = when (privacy) {
+        NotificationPrivacy.FULL -> habit.title to "${TimeFormat.display(occ.scheduledTime ?: habit.time)} · ${TimeFormat.duration(habit.durationMinutes)}"
+        NotificationPrivacy.HIDDEN -> context.getString(R.string.brand_wordmark) to context.getString(R.string.notification_hidden_text)
+        NotificationPrivacy.GENERIC -> context.getString(R.string.brand_wordmark) to context.getString(R.string.notification_generic_text)
     }
 
     private fun notifyPlain(context: Context, title: String, text: String) {
@@ -153,8 +157,8 @@ class ReminderReceiver : BroadcastReceiver() {
             .setAutoCancel(true)
             .setCategory(Notification.CATEGORY_REMINDER)
             .setVisibility(Notification.VISIBILITY_PRIVATE)
-            .addAction(Notification.Action.Builder(Icon.createWithResource(context, R.drawable.ic_action_check), "Done", action(ACTION_DONE, 1)).build())
-            .addAction(Notification.Action.Builder(Icon.createWithResource(context, R.drawable.ic_action_check), "Snooze 15 min", action(ACTION_SNOOZE, 2)).build())
+            .addAction(Notification.Action.Builder(Icon.createWithResource(context, R.drawable.ic_action_check), context.getString(R.string.notification_done), action(ACTION_DONE, 1)).build())
+            .addAction(Notification.Action.Builder(Icon.createWithResource(context, R.drawable.ic_action_snooze), context.getString(R.string.notification_snooze, com.vajrax.domain.BusinessRules.SNOOZE_MINUTES), action(ACTION_SNOOZE, 2)).build())
             .build()
         context.getSystemService(NotificationManager::class.java)?.notify(habitId, NOTIFICATION_ID, notification)
     }

@@ -1,0 +1,66 @@
+# Overrides on top of detekt's default rule set (buildUponDefaultConfig = true).
+# Tuned for Compose: composables are PascalCase, take many parameters and hold layout numbers.
+
+build:
+  maxIssues: 0
+
+naming:
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+  TopLevelPropertyNaming:
+    constantPattern: '[A-Z][A-Za-z0-9_]*'
+  MatchingDeclarationName:
+    active: false
+
+complexity:
+  LongParameterList:
+    functionThreshold: 8
+    constructorThreshold: 10
+    ignoreDefaultParameters: true
+    ignoreAnnotated: ['Composable']
+  LongMethod:
+    threshold: 80
+    ignoreAnnotated: ['Composable']
+  CyclomaticComplexMethod:
+    ignoreAnnotated: ['Composable']
+  TooManyFunctions:
+    thresholdInFiles: 30
+    thresholdInClasses: 25
+    thresholdInInterfaces: 25
+    thresholdInObjects: 25
+    ignorePrivate: true
+
+style:
+  MagicNumber:
+    ignorePropertyDeclaration: true
+    ignoreCompanionObjectPropertyDeclaration: true
+    ignoreAnnotated: ['Composable', 'Preview']
+    ignoreNamedArgument: true
+  WildcardImport:
+    excludeImports:
+      - 'com.vajrax.resources.*'
+      - 'androidx.compose.foundation.layout.*'
+      - 'androidx.compose.runtime.*'
+      - 'java.util.*'
+  UnusedPrivateMember:
+    ignoreAnnotated: ['Preview']
+  MaxLineLength:
+    maxLineLength: 140
+  ReturnCount:
+    max: 4
+  ThrowsCount:
+    max: 5
+  ForbiddenComment:
+    active: false
+
+formatting:
+  MaximumLineLength:
+    maxLineLength: 140
+  NoWildcardImports:
+    active: false
+  FunctionNaming:
+    ignoreAnnotated: ['Composable']
+  TrailingCommaOnCallSite:
+    active: false
+  TrailingCommaOnDeclarationSite:
+    active: false

@@ -3,19 +3,13 @@ package com.vajrax.ui.features.today
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.gestures.animateScrollBy
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
@@ -25,21 +19,27 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.vajrax.domain.habit.HabitType
-import com.vajrax.domain.model.TrackingMode
+import com.vajrax.domain.habit.CheckInAction
+import com.vajrax.resources.*
 import com.vajrax.ui.designsystem.*
 import com.vajrax.ui.theme.LuminaTheme
+import com.vajrax.ui.theme.VxShape
 import com.vajrax.ui.theme.VxSpace
 import com.vajrax.ui.theme.accentOnContainer
 import com.vajrax.ui.theme.habitAccent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun TodayScreen(
@@ -50,7 +50,9 @@ fun TodayScreen(
     onOpenRoutine: () -> Unit,
     onOpenHabit: (String) -> Unit,
     onOpenReport: () -> Unit,
-    onWeeklyReview: () -> Unit
+    onWeeklyReview: () -> Unit,
+    openRequest: String? = null,
+    onOpenRequestHandled: () -> Unit = {}
 ) {
     val colors = LuminaTheme.colors
     val snackbar = LocalVxSnackbar.current
@@ -65,7 +67,7 @@ fun TodayScreen(
                     snackbar.currentSnackbarData?.dismiss()
                     val result = snackbar.showSnackbar(
                         message = effect.message,
-                        actionLabel = if (effect.undo != null) "Undo" else null,
+                        actionLabel = if (effect.undo != null) getString(Res.string.today_undo) else null,
                         duration = SnackbarDuration.Short
                     )
                     if (result == SnackbarResult.ActionPerformed && effect.undo != null) {
@@ -81,11 +83,24 @@ fun TodayScreen(
     // The main check-in for a habit: +1 for counts, a focus session for timers, the value sheet
     // for measured habits, otherwise done.
     val primary: (TodayItem) -> Unit = { item ->
-        when {
-            item.habit.type == HabitType.COUNT -> onIntent(TodayIntent.Increment(item.id))
-            item.habit.trackingMode == TrackingMode.TIMER -> onIntent(TodayIntent.StartTimer(item.id))
-            item.habit.type != HabitType.BOOLEAN -> sheetFor = item.id
-            else -> complete(item)
+        when (CheckInAction.of(item.habit)) {
+            CheckInAction.PlusOne -> onIntent(TodayIntent.Increment(item.id))
+            CheckInAction.StartTimer -> onIntent(TodayIntent.StartTimer(item.id))
+            CheckInAction.LogValue -> sheetFor = item.id
+            CheckInAction.Done -> complete(item)
+        }
+    }
+
+    // Opened from a widget's "Start" / "Log": run that habit's check-in once today's list is ready.
+    LaunchedEffect(openRequest, state.isLoading, state.items) {
+        val id = openRequest ?: return@LaunchedEffect
+        if (state.isLoading) return@LaunchedEffect
+        onOpenRequestHandled()
+        val item = state.items.firstOrNull { it.id == id } ?: return@LaunchedEffect
+        if (CheckInAction.of(item.habit) == CheckInAction.StartTimer && item.occurrence.isOpen) {
+            onIntent(TodayIntent.StartTimer(item.id))
+        } else {
+            sheetFor = item.id
         }
     }
 
@@ -110,7 +125,9 @@ fun TodayScreen(
 
         // Keep the active habit in the centre of the visible list area (between the dashboard and
         // the nav bar): on open and whenever focus moves on to the next habit.
-        val dialActive = pinDashboard && state.dialView && state.hasTracker && state.items.isNotEmpty()
+        // Very large text doesn't fit the dial's hub, so Home falls back to the list there.
+        val largeText = LocalDensity.current.fontScale >= 1.5f
+        val dialActive = pinDashboard && state.dialView && !largeText && state.hasTracker && state.items.isNotEmpty()
         LaunchedEffect(state.nowId, state.isLoading, listHeightPx, dialActive) {
             val nowId = state.nowId ?: return@LaunchedEffect
             if (dialActive || state.isLoading || listHeightPx == 0) return@LaunchedEffect
@@ -134,7 +151,7 @@ fun TodayScreen(
             Spacer(Modifier.fillMaxWidth().windowInsetsTopHeight(WindowInsets.statusBars).background(colors.background))
             if (pinDashboard && !state.isLoading) {
                 Box(Modifier.padding(start = VxSpace.gutter, end = VxSpace.gutter, top = VxSpace.lg, bottom = VxSpace.md)) {
-                    DashboardCard(state, onWeeklyReview, onOpenReport)
+                    DashboardCard(state, onWeeklyReview, onOpenReport, onOpenDiscover, onDismissCycle = { onIntent(TodayIntent.DismissCycleComplete) })
                 }
             }
             if (dialActive && !state.isLoading) {
@@ -169,7 +186,7 @@ fun TodayScreen(
                     }
                     if (!pinDashboard) {
                         item(key = "dashboard") {
-                            DashboardCard(state, onWeeklyReview, onOpenReport)
+                            DashboardCard(state, onWeeklyReview, onOpenReport, onOpenDiscover, onDismissCycle = { onIntent(TodayIntent.DismissCycleComplete) })
                             Spacer(Modifier.height(VxSpace.xl))
                         }
                     }
@@ -177,9 +194,9 @@ fun TodayScreen(
                         item(key = "no_routine") {
                             EmptyState(
                                 icon = VxIcons.Compass,
-                                title = "No routine yet",
-                                message = "Pick a template to start.",
-                                actionLabel = "Choose a template",
+                                title = stringResource(Res.string.today_no_routine_yet),
+                                message = stringResource(Res.string.today_pick_a_template_to_start),
+                                actionLabel = stringResource(Res.string.today_choose_a_template),
                                 onAction = onOpenDiscover
                             )
                         }
@@ -189,7 +206,8 @@ fun TodayScreen(
                         RoutineHeader(
                             state,
                             onToggleView = { onIntent(TodayIntent.SetDialView(!state.dialView)) },
-                            onOpenRoutine = onOpenRoutine
+                            onOpenRoutine = onOpenRoutine,
+                            showViewToggle = pinDashboard && !largeText
                         )
                         Spacer(Modifier.height(VxSpace.md))
                     }
@@ -197,9 +215,9 @@ fun TodayScreen(
                         item(key = "starts_later") {
                             EmptyState(
                                 icon = VxIcons.Sunrise,
-                                title = "Starts ${state.startsLabel}",
-                                message = state.firstUp?.let { "First up: $it" } ?: "Your routine is ready.",
-                                actionLabel = "Start today",
+                                title = stringResource(Res.string.today_starts_fmt, state.startsLabel),
+                                message = state.firstUp?.let { "First up: $it" } ?: stringResource(Res.string.today_your_routine_is_ready),
+                                actionLabel = stringResource(Res.string.today_start_today),
                                 onAction = { onIntent(TodayIntent.StartToday) }
                             )
                         }
@@ -207,9 +225,9 @@ fun TodayScreen(
                         item(key = "rest_day") {
                             EmptyState(
                                 icon = VxIcons.Moon,
-                                title = "Rest day",
-                                message = "Nothing scheduled today.",
-                                actionLabel = "Edit routine",
+                                title = stringResource(Res.string.today_rest_day),
+                                message = stringResource(Res.string.today_nothing_scheduled_today),
+                                actionLabel = stringResource(Res.string.today_edit_routine),
                                 onAction = onOpenRoutine
                             )
                         }
@@ -273,24 +291,24 @@ fun TodayScreen(
 
 /** Tracker name, what's left, and the dial/list switch. */
 @Composable
-private fun RoutineHeader(state: TodayUiState, onToggleView: () -> Unit, onOpenRoutine: () -> Unit) {
+private fun RoutineHeader(state: TodayUiState, onToggleView: () -> Unit, onOpenRoutine: () -> Unit, showViewToggle: Boolean = true) {
     val colors = LuminaTheme.colors
     Row(verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(state.trackerName, style = MaterialTheme.typography.titleLarge, color = colors.onSurface, maxLines = 1)
+            Text(state.trackerName, style = MaterialTheme.typography.titleLarge, color = colors.onSurface, maxLines = 1, overflow = TextOverflow.Ellipsis)
             val left = state.totalCount - state.doneCount
             if (state.totalCount > 0) {
-                Text(if (left > 0) "$left left" else "All done", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                Text(if (left > 0) stringResource(Res.string.today_left_fmt, left) else stringResource(Res.string.today_all_done), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             }
         }
-        if (state.items.isNotEmpty()) {
+        if (showViewToggle && state.items.isNotEmpty()) {
             RoundIconButton(
                 if (state.dialView) VxIcons.ListChecks else VxIcons.Gauge,
-                if (state.dialView) "Show as list" else "Show as dial",
+                if (state.dialView) stringResource(Res.string.today_show_as_list) else stringResource(Res.string.today_show_as_dial),
                 onClick = onToggleView
             )
         }
-        RoundIconButton(VxIcons.Pencil, "Edit routine", onClick = onOpenRoutine)
+        RoundIconButton(VxIcons.Pencil, stringResource(Res.string.today_edit_routine), onClick = onOpenRoutine)
     }
 }
 
@@ -340,7 +358,13 @@ private fun DialSection(
 }
 
 @Composable
-private fun DashboardCard(state: TodayUiState, onWeeklyReview: () -> Unit, onOpenReport: () -> Unit) {
+private fun DashboardCard(
+    state: TodayUiState,
+    onWeeklyReview: () -> Unit,
+    onOpenReport: () -> Unit,
+    onOpenDiscover: () -> Unit,
+    onDismissCycle: () -> Unit
+) {
     val colors = LuminaTheme.colors
     VxCard(elevated = true, contentPadding = PaddingValues(VxSpace.xl)) {
         Text(state.dateLabel, style = MaterialTheme.typography.labelSmall, color = colors.primary)
@@ -349,7 +373,7 @@ private fun DashboardCard(state: TodayUiState, onWeeklyReview: () -> Unit, onOpe
             Column(Modifier.weight(1f)) {
                 Text(state.greeting, style = MaterialTheme.typography.headlineMedium, color = colors.onSurface)
                 Spacer(Modifier.height(VxSpace.md))
-                Text("Task Completion", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+                Text(stringResource(Res.string.today_task_completion), style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
                 Spacer(Modifier.height(2.dp))
                 Text(state.statusLine, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             }
@@ -362,26 +386,37 @@ private fun DashboardCard(state: TodayUiState, onWeeklyReview: () -> Unit, onOpe
                     contentDescription = "${state.doneCount} of ${state.totalCount} habits done today, ${state.todayPercent} percent"
                 }
             ) {
-                Text("${state.todayPercent}%", style = MaterialTheme.typography.labelLarge, color = colors.onSurface)
+                Text(stringResource(Res.string.common_value_fmt_2, state.todayPercent), style = MaterialTheme.typography.labelLarge, color = colors.onSurface)
             }
         }
         Spacer(Modifier.height(VxSpace.xl))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            StatPod("Today", "${state.doneCount}/${state.totalCount}", Modifier.weight(1f))
-            StatPod("Week", state.weekRate?.let { "$it%" } ?: "—", Modifier.weight(1f))
-            StatPod("Consistency", state.consistencyRate?.let { "$it%" } ?: "—", Modifier.weight(1f))
+            StatPod(stringResource(Res.string.today_today), stringResource(Res.string.today_value_fmt, state.doneCount, state.totalCount), Modifier.weight(1f))
+            StatPod(stringResource(Res.string.today_week), state.weekRate?.let { "$it%" } ?: "—", Modifier.weight(1f))
+            StatPod(stringResource(Res.string.today_consistency), state.consistencyRate?.let { "$it%" } ?: "—", Modifier.weight(1f))
         }
         // End-of-day and end-of-week prompts live in the pinned card, so auto-centring the NOW habit
         // can never scroll them out of sight.
         val wrap = state.dayWrap
+        val cycleDays = state.cycleCompleteDays
         when {
-            state.weeklyReviewDue -> PromptStrip(VxIcons.Pen, "Weekly review", "Look back on your week", onWeeklyReview)
+            state.weeklyReviewDue -> PromptStrip(VxIcons.Pen, stringResource(Res.string.today_weekly_review), stringResource(Res.string.today_look_back_on_your_week), onWeeklyReview)
+            cycleDays != null -> PromptStrip(
+                icon = VxIcons.Award,
+                title = stringResource(Res.string.today_days_done_fmt, cycleDays),
+                body = stringResource(Res.string.today_keep_it_going_or_pick),
+                onClick = onOpenDiscover,
+                onDismiss = onDismissCycle
+            )
             wrap != null -> PromptStrip(
                 icon = if (wrap.allDone) VxIcons.Award else VxIcons.Moon,
-                title = if (wrap.allDone) "Day complete" else "Wrapping up",
+                title = if (wrap.allDone) stringResource(Res.string.today_day_complete) else stringResource(Res.string.today_wrapping_up),
                 body = buildString {
-                    append("${wrap.done} of ${wrap.total} done")
-                    if (wrap.skipped > 0) append(" · ${wrap.skipped} skipped")
+                    append(stringResource(Res.string.today_wrap_done_fmt, wrap.done, wrap.total))
+                    if (wrap.skipped > 0) {
+                        append(" ")
+                        append(stringResource(Res.string.today_wrap_skipped_fmt, wrap.skipped))
+                    }
                 },
                 onClick = onOpenReport
             )
@@ -390,11 +425,17 @@ private fun DashboardCard(state: TodayUiState, onWeeklyReview: () -> Unit, onOpe
 }
 
 @Composable
-private fun PromptStrip(icon: androidx.compose.ui.graphics.vector.ImageVector, title: String, body: String, onClick: () -> Unit) {
+private fun PromptStrip(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    title: String,
+    body: String,
+    onClick: () -> Unit,
+    onDismiss: (() -> Unit)? = null
+) {
     val colors = LuminaTheme.colors
     Spacer(Modifier.height(VxSpace.lg))
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 52.dp).clip(RoundedCornerShape(14.dp))
+        Modifier.fillMaxWidth().heightIn(min = 52.dp).clip(VxShape.control)
             .background(colors.primaryContainer)
             .hapticClickable(onClickLabel = title, onClick = onClick)
             .padding(horizontal = VxSpace.md, vertical = VxSpace.sm),
@@ -406,7 +447,18 @@ private fun PromptStrip(icon: androidx.compose.ui.graphics.vector.ImageVector, t
             Text(title, style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = colors.accentOnContainer)
             Text(body, style = MaterialTheme.typography.bodySmall, color = colors.onPrimaryContainer.copy(alpha = 0.8f))
         }
-        Icon(VxIcons.ArrowRight, null, tint = colors.accentOnContainer, modifier = Modifier.size(18.dp))
+        if (onDismiss != null) {
+            Box(
+                Modifier.size(48.dp).clip(VxShape.tile)
+                    .hapticClickable(onClickLabel = "Keep going", onClick = onDismiss)
+                    .semantics { contentDescription = "Dismiss" },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(VxIcons.Close, null, tint = colors.accentOnContainer, modifier = Modifier.size(16.dp))
+            }
+        } else {
+            Icon(VxIcons.ArrowRight, null, tint = colors.accentOnContainer, modifier = Modifier.size(18.dp))
+        }
     }
 }
 
@@ -421,7 +473,7 @@ private fun NowCard(
     onCheck: () -> Unit
 ) {
     val colors = LuminaTheme.colors
-    val shape = RoundedCornerShape(16.dp)
+    val shape = VxShape.medium
     Column(
         Modifier.fillMaxWidth().clip(shape).background(colors.primaryContainer)
             .border(1.dp, colors.primary.copy(alpha = 0.3f), shape)
@@ -456,21 +508,12 @@ private fun NowCard(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            val (label, icon) = when {
-                item.habit.type == HabitType.COUNT -> "+1" to VxIcons.Plus
-                item.habit.trackingMode == TrackingMode.TIMER -> "Start" to VxIcons.Play
-                item.habit.type != HabitType.BOOLEAN -> "Log" to VxIcons.Pencil
-                else -> "Mark done" to VxIcons.Check
-            }
-            val feel = when {
-                item.habit.type == HabitType.COUNT -> VxHaptic.Tick
-                item.habit.type == HabitType.BOOLEAN && item.habit.trackingMode != TrackingMode.TIMER -> VxHaptic.Confirm
-                else -> VxHaptic.Tap
-            }
-            PillAction(label, icon, onDone, filled = true, haptic = feel)
-            PillAction("Snooze", VxIcons.Alarm, onSnooze)
-            PillAction("Skip", VxIcons.SkipForward, onSkip)
-            PillAction("Notes", VxIcons.Pencil, onNotes)
+            val action = CheckInAction.of(item.habit)
+            val label = if (action == CheckInAction.Done) "Mark done" else action.label
+            PillAction(label, action.icon, onDone, filled = true, haptic = action.haptic)
+            PillAction(stringResource(Res.string.today_snooze), VxIcons.Alarm, onSnooze)
+            PillAction(stringResource(Res.string.today_skip), VxIcons.SkipForward, onSkip)
+            PillAction(stringResource(Res.string.today_notes), VxIcons.Pencil, onNotes)
         }
     }
 }
@@ -491,7 +534,7 @@ private fun HabitRow(item: TodayItem, onCheck: () -> Unit, onOpen: () -> Unit) {
         else -> item.progressLabel
     }
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
+        Modifier.fillMaxWidth().clip(VxShape.control)
             .hapticClickable(onClick = onOpen)
             .padding(end = VxSpace.md),
         verticalAlignment = Alignment.CenterVertically

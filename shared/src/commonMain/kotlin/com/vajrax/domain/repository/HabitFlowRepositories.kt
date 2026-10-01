@@ -46,6 +46,7 @@ interface SettingsRepository {
         const val LIBRARY_VERSION = "template_library_version"
         const val ONBOARDING_DONE = "onboarding_done"
         const val HOME_VIEW = "home_view" // DIAL | LIST
+        const val ONBOARDING_PROGRESS = "onboarding_progress" // JSON while onboarding is unfinished
     }
 }
 

@@ -2,10 +2,8 @@ package com.vajrax.ui.features.profile
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -14,25 +12,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.layout.layout
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import com.vajrax.ui.theme.VxShape
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.vajrax.domain.template.DefaultTemplate
-import com.vajrax.ui.features.legal.LegalDoc
 import com.vajrax.platform.LocalPlatformActions
+import com.vajrax.resources.*
 import com.vajrax.ui.designsystem.*
+import com.vajrax.ui.features.legal.LegalDoc
 import com.vajrax.ui.theme.LuminaTheme
 import com.vajrax.ui.theme.ThemeMode
+import com.vajrax.ui.theme.VxShape
 import com.vajrax.ui.theme.VxSpace
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,14 +56,13 @@ fun ProfileScreen(
     var editProfile by remember { mutableStateOf(false) }
     var appearance by remember { mutableStateOf(false) }
     var notifications by remember { mutableStateOf(false) }
-    var confirmExport by remember { mutableStateOf(false) }
     var confirmDelete by remember { mutableStateOf(false) }
     var templateMenu by remember { mutableStateOf<DefaultTemplate?>(null) }
     var confirmDeleteTemplate by remember { mutableStateOf<DefaultTemplate?>(null) }
     // After a denial Android stops showing the permission prompt, so offer the settings page.
     val notificationsBlocked: () -> Unit = {
         scope.launch {
-            val result = snackbar.showSnackbar("Notifications are off for VAJRAX", actionLabel = "Settings")
+            val result = snackbar.showSnackbar(getString(Res.string.profile_notifications_are_off_for_vajrax), actionLabel = getString(Res.string.profile_settings))
             if (result == SnackbarResult.ActionPerformed) platform.openNotificationSettings()
         }
     }
@@ -72,7 +72,9 @@ fun ProfileScreen(
             when (e) {
                 is ProfileEffect.ShowMessage -> scope.launch { snackbar.showSnackbar(e.message) }
                 is ProfileEffect.ExportReady -> platform.exportFile(e.fileName, e.json) { ok ->
-                    scope.launch { snackbar.showSnackbar(if (ok) "Export saved" else "Export cancelled") }
+                    scope.launch {
+                        snackbar.showSnackbar(if (ok) getString(Res.string.profile_export_saved_it_includes_your) else getString(Res.string.profile_export_cancelled))
+                    }
                 }
                 ProfileEffect.DataWiped -> onDataWiped()
             }
@@ -85,21 +87,21 @@ fun ProfileScreen(
             .verticalScroll(rememberScrollState()).padding(horizontal = VxSpace.gutter)
     ) {
         Spacer(Modifier.height(VxSpace.lg))
-        ScreenTitle("Profile")
+        ScreenTitle(stringResource(Res.string.profile_profile))
         Spacer(Modifier.height(VxSpace.xl))
 
         ProfileHero(state, onEdit = { editProfile = true })
 
         Spacer(Modifier.height(VxSpace.xxl))
-        SectionLabel("Current template")
+        SectionLabel(stringResource(Res.string.profile_current_routine))
         Spacer(Modifier.height(VxSpace.sm))
         VxCard {
             val t = state.tracker
             if (t == null) {
-                Text("No active routine", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
-                Text("Choose a template to start tracking.", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+                Text(stringResource(Res.string.profile_no_active_routine), style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+                Text(stringResource(Res.string.profile_choose_a_template_to_start), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
                 Spacer(Modifier.height(VxSpace.md))
-                PrimaryButton("Choose a template", onChangeTemplate, Modifier.fillMaxWidth())
+                PrimaryButton(stringResource(Res.string.today_choose_a_template), onChangeTemplate, Modifier.fillMaxWidth())
             } else {
                 Text(t.name, style = MaterialTheme.typography.titleLarge, color = colors.onSurface)
                 if (state.trackerDescription.isNotBlank()) {
@@ -107,30 +109,36 @@ fun ProfileScreen(
                 }
                 Spacer(Modifier.height(VxSpace.md))
                 Row {
-                    Text("Day ${state.dayNumber} of ${t.totalDays}", style = MaterialTheme.typography.labelLarge, color = colors.primary, modifier = Modifier.weight(1f))
-                    Text("${(state.cycleFraction * 100).toInt()}% Complete", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                    if (state.cycleComplete) {
+                        Text(stringResource(Res.string.profile_day_cycle_complete_fmt, t.totalDays), style = MaterialTheme.typography.labelLarge, color = colors.primary, modifier = Modifier.weight(1f))
+                        Text(stringResource(Res.string.profile_day_fmt, state.daysIn), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                    } else {
+                        Text(stringResource(Res.string.profile_day_of_fmt, state.dayNumber, t.totalDays), style = MaterialTheme.typography.labelLarge, color = colors.primary, modifier = Modifier.weight(1f))
+                        Text(stringResource(Res.string.profile_complete_fmt, (state.cycleFraction * 100).toInt()), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                    }
                 }
                 Spacer(Modifier.height(VxSpace.sm))
                 LinearBar(state.cycleFraction)
                 Spacer(Modifier.height(VxSpace.lg))
                 Row(horizontalArrangement = Arrangement.spacedBy(VxSpace.md)) {
-                    SecondaryButton("View Template", onViewRoutine, Modifier.weight(1f))
-                    PrimaryButton("Change Template", onChangeTemplate, Modifier.weight(1f))
+                    // Looking at the routine is the everyday action; switching it is rare.
+                    PrimaryButton(stringResource(Res.string.profile_view_routine), onViewRoutine, Modifier.weight(1f))
+                    SecondaryButton(stringResource(Res.string.profile_change), onChangeTemplate, Modifier.weight(1f))
                 }
             }
         }
 
         Spacer(Modifier.height(VxSpace.xxl))
-        SectionLabel("Home-screen widget")
+        SectionLabel(stringResource(Res.string.profile_home_screen_widget))
         Spacer(Modifier.height(VxSpace.sm))
         VxCard {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 IconBadge(VxIcons.Smartphone, colors.primary, size = 44.dp)
                 Spacer(Modifier.width(VxSpace.md))
                 Column(Modifier.weight(1f)) {
-                    Text("Check in from your home screen", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+                    Text(stringResource(Res.string.profile_check_in_from_your_home), style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
                     Text(
-                        "Check in without opening the app.",
+                        stringResource(Res.string.profile_check_in_without_opening_the),
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.onSurfaceVariant
                     )
@@ -139,56 +147,60 @@ fun ProfileScreen(
             Spacer(Modifier.height(VxSpace.lg))
             val addWidget: (Boolean) -> Unit = { list ->
                 if (platform.canPinWidget()) platform.requestPinWidget(list)
-                else scope.launch { snackbar.showSnackbar("Long-press your home screen → Widgets → VAJRAX.") }
+                else scope.launch { snackbar.showSnackbar(getString(Res.string.profile_long_press_your_home_screen)) }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(VxSpace.md)) {
-                SecondaryButton("Now card", onClick = { addWidget(false) }, modifier = Modifier.weight(1f), icon = VxIcons.Check)
-                PrimaryButton("Today list", onClick = { addWidget(true) }, modifier = Modifier.weight(1f), icon = VxIcons.ListChecks)
+                SecondaryButton(stringResource(Res.string.profile_now_card), onClick = { addWidget(false) }, modifier = Modifier.weight(1f), icon = VxIcons.Check)
+                SecondaryButton(stringResource(Res.string.profile_today_list), onClick = { addWidget(true) }, modifier = Modifier.weight(1f), icon = VxIcons.ListChecks)
             }
         }
 
         Spacer(Modifier.height(VxSpace.xxl))
-        SectionLabel("My templates")
+        SectionLabel(stringResource(Res.string.profile_my_templates))
         Spacer(Modifier.height(VxSpace.sm))
         VxCard(contentPadding = PaddingValues(vertical = VxSpace.xs)) {
             state.myTemplates.forEach { t ->
                 ListRow(
                     title = t.name,
-                    value = if (t.isDraft) "Draft" else "${t.habits.size} habits",
+                    value = if (t.isDraft) stringResource(Res.string.profile_draft) else stringResource(Res.string.profile_habits_fmt, t.habits.size),
                     onClick = { templateMenu = t }
                 )
                 RowDivider()
             }
-            ListRow("Create New Template", onClick = onCreateTemplate, icon = VxIcons.Plus, titleColor = colors.primary, showChevron = false)
+            ListRow(stringResource(Res.string.profile_create_new_template), onClick = onCreateTemplate, icon = VxIcons.Plus, titleColor = colors.primary, showChevron = false)
         }
 
         Spacer(Modifier.height(VxSpace.xxl))
-        SectionLabel("Preferences")
+        SectionLabel(stringResource(Res.string.profile_preferences))
         Spacer(Modifier.height(VxSpace.sm))
         VxCard(contentPadding = PaddingValues(vertical = VxSpace.xs)) {
-            ListRow("Notifications", onClick = { notifications = true }, value = if (state.remindersEnabled) "On" else "Off", icon = VxIcons.Bell)
+            // "On" only when reminders can really ring (setting on and Android permission granted).
+            ListRow(stringResource(Res.string.profile_notifications), onClick = { notifications = true }, value = if (LocalReminderAccess.current.on) stringResource(Res.string.profile_on) else stringResource(Res.string.profile_off), icon = VxIcons.Bell)
             RowDivider()
             ListRow(
-                "Appearance",
+                stringResource(Res.string.profile_appearance),
                 onClick = { appearance = true },
                 value = when (state.themeMode) { ThemeMode.AUTO -> "System"; ThemeMode.LIGHT -> "Light"; ThemeMode.DARK -> "Dark" },
                 icon = VxIcons.Sun
             )
-            RowDivider()
-            ListRow("Language", onClick = { scope.launch { snackbar.showSnackbar("English is the only language for now.") } }, value = "English", icon = VxIcons.Globe)
+            // Shown once there is a second language to choose; a row that can't change anything is clutter.
+            if (AVAILABLE_LANGUAGES > 1) {
+                RowDivider()
+                ListRow(stringResource(Res.string.profile_language), onClick = { scope.launch { snackbar.showSnackbar(getString(Res.string.profile_english_is_the_only_language)) } }, value = stringResource(Res.string.profile_english), icon = VxIcons.Globe)
+            }
         }
 
         Spacer(Modifier.height(VxSpace.xxl))
-        SectionLabel("Data & privacy")
+        SectionLabel(stringResource(Res.string.profile_data_privacy))
         Spacer(Modifier.height(VxSpace.sm))
         VxCard(contentPadding = PaddingValues(vertical = VxSpace.xs)) {
-            ListRow("Export my data", onClick = { confirmExport = true }, icon = VxIcons.Download, value = if (state.isExporting) "Preparing…" else "JSON")
+            ListRow(stringResource(Res.string.profile_export_my_data), onClick = { onIntent(ProfileIntent.Export) }, icon = VxIcons.Download, value = if (state.isExporting) stringResource(Res.string.profile_preparing) else stringResource(Res.string.profile_json))
             RowDivider()
-            ListRow("Delete all data", onClick = { confirmDelete = true }, icon = VxIcons.Trash, titleColor = colors.statusError, showChevron = false)
+            ListRow(stringResource(Res.string.profile_delete_all_data_2), onClick = { confirmDelete = true }, icon = VxIcons.Trash, titleColor = colors.statusError, showChevron = false)
         }
 
         Spacer(Modifier.height(VxSpace.xxl))
-        SectionLabel("About")
+        SectionLabel(stringResource(Res.string.profile_about))
         Spacer(Modifier.height(VxSpace.sm))
         VxCard(contentPadding = PaddingValues(vertical = VxSpace.xs)) {
             ListRow(LegalDoc.PRIVACY.title, onClick = { onOpenLegal(LegalDoc.PRIVACY) }, icon = VxIcons.Shield)
@@ -201,7 +213,7 @@ fun ProfileScreen(
         }
         Spacer(Modifier.height(VxSpace.md))
         Text(
-            "Offline · on this device · v${platform.appVersion}",
+            stringResource(Res.string.profile_offline_on_this_device_v_fmt, platform.appVersion),
             style = MaterialTheme.typography.bodySmall,
             color = colors.onSurfaceVariant
         )
@@ -215,8 +227,8 @@ fun ProfileScreen(
 
     if (appearance) {
         OptionDialog(
-            title = "Appearance",
-            options = listOf(ThemeMode.AUTO to "Use system setting", ThemeMode.LIGHT to "Light", ThemeMode.DARK to "Dark"),
+            title = stringResource(Res.string.profile_appearance),
+            options = listOf(ThemeMode.AUTO to stringResource(Res.string.profile_use_system_setting), ThemeMode.LIGHT to stringResource(Res.string.profile_light), ThemeMode.DARK to stringResource(Res.string.profile_dark)),
             selected = state.themeMode,
             onSelect = {
                 onIntent(ProfileIntent.SetTheme(it))
@@ -227,14 +239,14 @@ fun ProfileScreen(
     }
 
     if (notifications) {
-        ModalBottomSheet(onDismissRequest = { notifications = false }, sheetState = rememberModalBottomSheetState(true), containerColor = colors.surface) {
+        VxBottomSheet(onDismiss = { notifications = false }) {
             Column(Modifier.padding(horizontal = VxSpace.xxl).padding(bottom = VxSpace.xxxl)) {
-                Text("Notifications", style = MaterialTheme.typography.headlineSmall, color = colors.onSurface)
-                Text("Set per habit.", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                Text(stringResource(Res.string.profile_notifications), style = MaterialTheme.typography.headlineSmall, color = colors.onSurface)
+                Text(stringResource(Res.string.profile_set_per_habit), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
                 Spacer(Modifier.height(VxSpace.lg))
                 SwitchRow(
-                    title = "Habit reminders",
-                    subtitle = if (state.remindersEnabled) "On for habits with a reminder time" else "Off",
+                    title = stringResource(Res.string.profile_habit_reminders),
+                    subtitle = if (state.remindersEnabled) stringResource(Res.string.profile_on_for_habits_with_a) else stringResource(Res.string.profile_off),
                     checked = state.remindersEnabled,
                     onChange = { enable ->
                         if (enable && !platform.notificationsPermitted()) {
@@ -248,9 +260,13 @@ fun ProfileScreen(
                     }
                 )
                 Spacer(Modifier.height(VxSpace.lg))
-                Text("On the lock screen", style = MaterialTheme.typography.titleSmall, color = colors.onSurface)
+                Text(stringResource(Res.string.profile_on_the_lock_screen), style = MaterialTheme.typography.titleSmall, color = colors.onSurface)
                 Spacer(Modifier.height(VxSpace.sm))
-                listOf("FULL" to "Show habit names", "GENERIC" to "Generic: “You have a habit due”", "HIDDEN" to "No details").forEach { (key, label) ->
+                listOf(
+                    com.vajrax.domain.habit.NotificationPrivacy.FULL.name to "Show habit names",
+                    com.vajrax.domain.habit.NotificationPrivacy.GENERIC.name to "Generic: “You have a habit due”",
+                    com.vajrax.domain.habit.NotificationPrivacy.HIDDEN.name to "No details"
+                ).forEach { (key, label) ->
                     Row(
                         Modifier.fillMaxWidth().heightIn(min = 48.dp).hapticSelectable(state.privacy == key, role = Role.RadioButton) { onIntent(ProfileIntent.SetPrivacy(key)) },
                         verticalAlignment = Alignment.CenterVertically
@@ -262,11 +278,11 @@ fun ProfileScreen(
                 }
                 Spacer(Modifier.height(VxSpace.md))
                 SecondaryButton(
-                    "Send a test reminder",
+                    stringResource(Res.string.profile_send_a_test_reminder),
                     onClick = {
                         val send = {
                             platform.sendTestReminder()
-                            scope.launch { snackbar.showSnackbar("Test reminder sent") }
+                            scope.launch { snackbar.showSnackbar(getString(Res.string.profile_test_reminder_sent)) }
                         }
                         if (platform.notificationsPermitted()) send()
                         else platform.requestNotificationPermission { granted ->
@@ -278,7 +294,7 @@ fun ProfileScreen(
                 )
                 Spacer(Modifier.height(VxSpace.md))
                 SwitchRow(
-                    title = "Hide habit names on the home-screen widget",
+                    title = stringResource(Res.string.profile_hide_habit_names_on_the),
                     subtitle = null,
                     checked = state.widgetHideNames,
                     onChange = { onIntent(ProfileIntent.SetWidgetHideNames(it)) }
@@ -287,23 +303,11 @@ fun ProfileScreen(
         }
     }
 
-    if (confirmExport) {
-        ConfirmDialog(
-            title = "Export your data?",
-            message = "Includes habits, history and notes. Saved only where you choose.",
-            confirmLabel = "Export",
-            onConfirm = {
-                confirmExport = false
-                onIntent(ProfileIntent.Export)
-            },
-            onDismiss = { confirmExport = false }
-        )
-    }
     if (confirmDelete) {
         ConfirmDialog(
-            title = "Delete all data?",
-            message = "Removes all routines, history and templates from this device. This can't be undone.",
-            confirmLabel = "Delete everything",
+            title = stringResource(Res.string.profile_delete_all_data),
+            message = stringResource(Res.string.profile_removes_all_routines_history_and),
+            confirmLabel = stringResource(Res.string.profile_delete_everything),
             destructive = true,
             onConfirm = {
                 confirmDelete = false
@@ -314,25 +318,25 @@ fun ProfileScreen(
     }
 
     templateMenu?.let { t ->
-        ModalBottomSheet(onDismissRequest = { templateMenu = null }, sheetState = rememberModalBottomSheetState(true), containerColor = colors.surface) {
+        VxBottomSheet(onDismiss = { templateMenu = null }) {
             Column(Modifier.padding(bottom = VxSpace.xxxl)) {
                 Text(t.name, style = MaterialTheme.typography.titleLarge, color = colors.onSurface, modifier = Modifier.padding(horizontal = VxSpace.xl))
-                Text(if (t.isDraft) "Draft" else "${t.habits.size} habits", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, modifier = Modifier.padding(horizontal = VxSpace.xl))
+                Text(if (t.isDraft) stringResource(Res.string.profile_draft) else stringResource(Res.string.profile_habits_fmt, t.habits.size), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, modifier = Modifier.padding(horizontal = VxSpace.xl))
                 Spacer(Modifier.height(VxSpace.md))
                 if (!t.isDraft && t.habits.isNotEmpty()) {
-                    ListRow("Use this template", onClick = { templateMenu = null; onUseTemplate(t.id) }, icon = VxIcons.Check)
+                    ListRow(stringResource(Res.string.profile_use_this_template), onClick = { templateMenu = null; onUseTemplate(t.id) }, icon = VxIcons.Check)
                 }
-                ListRow("Edit", onClick = { templateMenu = null; onEditTemplate(t.id) }, icon = VxIcons.Pencil)
-                ListRow("Duplicate", onClick = { templateMenu = null; onIntent(ProfileIntent.DuplicateTemplate(t.id)) }, icon = VxIcons.Copy)
-                ListRow("Delete", onClick = { templateMenu = null; confirmDeleteTemplate = t }, icon = VxIcons.Trash, titleColor = colors.statusError, showChevron = false)
+                ListRow(stringResource(Res.string.profile_edit), onClick = { templateMenu = null; onEditTemplate(t.id) }, icon = VxIcons.Pencil)
+                ListRow(stringResource(Res.string.profile_duplicate), onClick = { templateMenu = null; onIntent(ProfileIntent.DuplicateTemplate(t.id)) }, icon = VxIcons.Copy)
+                ListRow(stringResource(Res.string.profile_delete), onClick = { templateMenu = null; confirmDeleteTemplate = t }, icon = VxIcons.Trash, titleColor = colors.statusError, showChevron = false)
             }
         }
     }
     confirmDeleteTemplate?.let { t ->
         ConfirmDialog(
-            title = "Delete “${t.name}”?",
-            message = "Started routines keep their history.",
-            confirmLabel = "Delete",
+            title = stringResource(Res.string.profile_delete_fmt, t.name),
+            message = stringResource(Res.string.profile_started_routines_keep_their_history),
+            confirmLabel = stringResource(Res.string.profile_delete),
             destructive = true,
             onConfirm = {
                 onIntent(ProfileIntent.DeleteTemplate(t.id))
@@ -350,7 +354,7 @@ fun ProfileScreen(
 @Composable
 private fun ProfileHero(state: ProfileUiState, onEdit: () -> Unit) {
     val colors = LuminaTheme.colors
-    val gradient = Brush.linearGradient(listOf(colors.primary, Color(0xFF7C3AED)))
+    val gradient = Brush.linearGradient(listOf(colors.primary, com.vajrax.ui.theme.BrandViolet))
     val overlap = 36.dp
     VxCard(elevated = true, contentPadding = PaddingValues(0.dp)) {
         Box(Modifier.fillMaxWidth().height(88.dp).background(gradient)) {
@@ -360,7 +364,7 @@ private fun ProfileHero(state: ProfileUiState, onEdit: () -> Unit) {
                 drawCircle(Color.White.copy(alpha = 0.07f), radius = size.height * 0.55f, center = Offset(size.width * 0.66f, size.height))
             }
             Box(
-                Modifier.align(Alignment.TopEnd).padding(8.dp).size(44.dp).clip(CircleShape)
+                Modifier.align(Alignment.TopEnd).padding(6.dp).size(48.dp).clip(CircleShape)
                     .background(Color.White.copy(alpha = 0.18f))
                     .hapticClickable(onClickLabel = "Edit profile", onClick = onEdit)
                     .semantics { contentDescription = "Edit profile" },
@@ -390,7 +394,13 @@ private fun ProfileHero(state: ProfileUiState, onEdit: () -> Unit) {
             Column(
                 Modifier.weight(1f).padding(bottom = 2.dp).clip(VxShape.small).hapticClickable(onClickLabel = "Edit profile", onClick = onEdit)
             ) {
-                Text(state.displayName, style = MaterialTheme.typography.titleLarge, color = colors.onSurface, maxLines = 1)
+                Text(
+                    state.displayName,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = colors.onSurface,
+                    maxLines = 1,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                )
                 Text(
                     state.email.ifBlank { "On this device · offline" },
                     style = MaterialTheme.typography.bodySmall,
@@ -404,9 +414,17 @@ private fun ProfileHero(state: ProfileUiState, onEdit: () -> Unit) {
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             val t = state.tracker
-            StatPod("Day", if (t != null) "${state.dayNumber}/${t.totalDays}" else "—", Modifier.weight(1f))
-            StatPod("Streak", "${state.streakDays}d", Modifier.weight(1f))
-            StatPod("This week", state.weekRate?.let { "$it%" } ?: "—", Modifier.weight(1f))
+            StatPod(
+                stringResource(Res.string.profile_day),
+                when {
+                    t == null -> "—"
+                    state.cycleComplete -> "${state.daysIn}"
+                    else -> "${state.dayNumber}/${t.totalDays}"
+                },
+                Modifier.weight(1f)
+            )
+            StatPod(stringResource(Res.string.profile_streak), stringResource(Res.string.profile_d_fmt, state.streakDays), Modifier.weight(1f))
+            StatPod(stringResource(Res.string.report_this_week), state.weekRate?.let { "$it%" } ?: "—", Modifier.weight(1f))
         }
     }
 }
@@ -416,18 +434,38 @@ private fun EditProfileDialog(state: ProfileUiState, onDismiss: () -> Unit, onSa
     val colors = LuminaTheme.colors
     var name by remember { mutableStateOf(if (state.displayName == "You") "" else state.displayName) }
     var email by remember { mutableStateOf(state.email) }
+    var emailError by remember { mutableStateOf<String?>(null) }
+    val edited = name != (if (state.displayName == "You") "" else state.displayName) || email != state.email
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit profile", style = MaterialTheme.typography.titleLarge) },
+        // A stray tap outside shouldn't throw away what was typed.
+        properties = androidx.compose.ui.window.DialogProperties(dismissOnClickOutside = !edited),
+        title = { Text(stringResource(Res.string.profile_edit_profile), style = MaterialTheme.typography.titleLarge) },
         text = {
             Column {
-                VxTextField("Name", name, { name = it }, maxChars = 40)
+                VxTextField(stringResource(Res.string.profile_name), name, { name = it }, maxChars = 40)
                 Spacer(Modifier.height(VxSpace.md))
-                VxTextField("Email (optional)", email, { email = it }, keyboardType = KeyboardType.Email, helper = "On this device only")
+                VxTextField(
+                    stringResource(Res.string.profile_email_optional),
+                    email,
+                    {
+                        email = it
+                        emailError = null
+                    },
+                    keyboardType = KeyboardType.Email,
+                    helper = stringResource(Res.string.profile_on_this_device_only),
+                    error = emailError
+                )
             }
         },
-        confirmButton = { TextButton(onClick = { onSave(name, email) }) { Text("Save", fontWeight = FontWeight.Bold) } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        confirmButton = {
+            TextButton(onClick = {
+                // Keep the dialog open with the error instead of closing and losing the input.
+                emailError = com.vajrax.domain.usecase.ProfileRules.emailError(email)
+                if (emailError == null) onSave(name, email)
+            }) { Text(stringResource(Res.string.today_save), fontWeight = FontWeight.Bold) }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.common_cancel)) } },
         containerColor = colors.surface
     )
 }
@@ -452,7 +490,10 @@ private fun <T> OptionDialog(title: String, options: List<Pair<T, String>>, sele
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("Close") } },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.profile_close)) } },
         containerColor = colors.surface
     )
 }
+
+/** Languages the UI is translated into (English only for now). */
+private const val AVAILABLE_LANGUAGES = 1

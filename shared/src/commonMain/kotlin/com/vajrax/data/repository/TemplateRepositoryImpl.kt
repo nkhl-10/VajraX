@@ -2,6 +2,8 @@
 
 package com.vajrax.data.repository
 
+import app.cash.sqldelight.async.coroutines.awaitAsList
+import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import com.vajrax.data.local.DbDispatcher
@@ -32,20 +34,20 @@ class TemplateRepositoryImpl(
     }
 
     override suspend fun getAllTemplates(): List<DefaultTemplate> = io {
-        assemble(queries.getAllTemplates().executeAsList(), queries.getAllTemplateHabits().executeAsList())
+        assemble(queries.getAllTemplates().awaitAsList(), queries.getAllTemplateHabits().awaitAsList())
     }
 
     override suspend fun getProvidedTemplates(): List<DefaultTemplate> = io {
-        assemble(queries.getProvidedTemplates().executeAsList(), queries.getAllTemplateHabits().executeAsList())
+        assemble(queries.getProvidedTemplates().awaitAsList(), queries.getAllTemplateHabits().awaitAsList())
     }
 
     override suspend fun getCustomTemplates(): List<DefaultTemplate> = io {
-        assemble(queries.getCustomTemplates().executeAsList(), queries.getAllTemplateHabits().executeAsList())
+        assemble(queries.getCustomTemplates().awaitAsList(), queries.getAllTemplateHabits().awaitAsList())
     }
 
     override suspend fun getTemplateWithHabits(templateId: String): DefaultTemplate? = io {
-        val entity = queries.getTemplateById(templateId).executeAsOneOrNull() ?: return@io null
-        entity.toDefaultTemplate(queries.getHabitsForTemplate(templateId).executeAsList().map { it.toDefaultHabit() })
+        val entity = queries.getTemplateById(templateId).awaitAsOneOrNull() ?: return@io null
+        entity.toDefaultTemplate(queries.getHabitsForTemplate(templateId).awaitAsList().map { it.toDefaultHabit() })
     }
 
     override fun observeLibrary(): Flow<List<DefaultTemplate>> = combine(
@@ -58,7 +60,7 @@ class TemplateRepositoryImpl(
         queries.getAllTemplateHabits().asFlow().mapToList(DbDispatcher)
     ) { templates, habits -> assemble(templates, habits) }
 
-    private fun writeTemplate(template: DefaultTemplate, isCustom: Boolean, updatedAt: String) {
+    private suspend fun writeTemplate(template: DefaultTemplate, isCustom: Boolean, updatedAt: String) {
         queries.upsertTemplate(
             id = template.id,
             title = template.name.trim(),
@@ -107,7 +109,7 @@ class TemplateRepositoryImpl(
     }
 
     override suspend fun updateTemplate(template: DefaultTemplate): Unit = io {
-        val existing = queries.getTemplateById(template.id).executeAsOneOrNull()
+        val existing = queries.getTemplateById(template.id).awaitAsOneOrNull()
         // System templates are immutable source definitions.
         if (existing != null && existing.isCustom != 1L) return@io
         val now = kotlin.time.Clock.System.now().toString()
@@ -115,7 +117,7 @@ class TemplateRepositoryImpl(
     }
 
     override suspend fun deleteTemplate(templateId: String): Unit = io {
-        val existing = queries.getTemplateById(templateId).executeAsOneOrNull() ?: return@io
+        val existing = queries.getTemplateById(templateId).awaitAsOneOrNull() ?: return@io
         if (existing.isCustom != 1L) return@io
         database.transaction {
             queries.deleteTemplateHabits(templateId)
@@ -124,7 +126,8 @@ class TemplateRepositoryImpl(
     }
 
     override suspend fun seedSystemTemplatesIfNeeded(): Unit = io {
-        val stored = queries.getSetting(SettingsRepository.LIBRARY_VERSION).executeAsOneOrNull()
+        com.vajrax.data.local.DatabaseSeeder(database).seedInitialDataIfEmpty()
+        val stored = queries.getSetting(SettingsRepository.LIBRARY_VERSION).awaitAsOneOrNull()
         if (stored == TemplateCatalog.VERSION) return@io
         database.transaction {
             queries.deleteSystemTemplateHabits()

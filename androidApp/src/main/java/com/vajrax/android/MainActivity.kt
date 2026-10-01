@@ -30,6 +30,7 @@ class MainActivity : ComponentActivity() {
     private var permissionCallback: ((Boolean) -> Unit)? = null
     private var barsDark: Boolean? = null
     private val tilt = com.vajrax.platform.DeviceTilt()
+    private val openHabit = kotlinx.coroutines.flow.MutableStateFlow<String?>(null)
     private val tiltSensor by lazy { TiltSensor(this, tilt) }
 
     private val createDocument = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
@@ -79,6 +80,12 @@ class MainActivity : ComponentActivity() {
         override val supportsBackdropBlur: Boolean get() = Build.VERSION.SDK_INT >= 31
 
         override val deviceTilt get() = tilt
+
+        override val openHabitRequest: kotlinx.coroutines.flow.StateFlow<String?> get() = openHabit
+
+        override fun consumeOpenHabitRequest() {
+            openHabit.value = null
+        }
 
         override fun canPinWidget(): Boolean =
             AppWidgetManager.getInstance(this@MainActivity).isRequestPinAppWidgetSupported
@@ -131,8 +138,14 @@ class MainActivity : ComponentActivity() {
         handleShortcut(intent)
     }
 
-    /** App-icon long-press shortcuts (res/xml/shortcuts.xml): add a home-screen widget. */
+    /** App-icon long-press shortcuts (res/xml/shortcuts.xml), and widgets opening a habit. */
     private fun handleShortcut(intent: Intent?) {
+        intent?.getStringExtra(EXTRA_OPEN_OCCURRENCE)?.let { id ->
+            openHabit.value = id
+            // Consume it so a configuration change doesn't open the habit again.
+            intent.removeExtra(EXTRA_OPEN_OCCURRENCE)
+            return
+        }
         val list = when (intent?.action) {
             ACTION_ADD_WIDGET_TODAY -> true
             ACTION_ADD_WIDGET_NOW -> false
@@ -141,7 +154,7 @@ class MainActivity : ComponentActivity() {
         if (platform.canPinWidget()) {
             platform.requestPinWidget(list)
         } else {
-            Toast.makeText(this, "Long-press your home screen → Widgets → VAJRAX", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, getString(R.string.widget_pin_manual), Toast.LENGTH_LONG).show()
         }
         // Consume the action so a configuration change doesn't ask again.
         intent.action = Intent.ACTION_MAIN
@@ -150,5 +163,7 @@ class MainActivity : ComponentActivity() {
     companion object {
         const val ACTION_ADD_WIDGET_TODAY = "com.vajrax.android.action.ADD_WIDGET_TODAY"
         const val ACTION_ADD_WIDGET_NOW = "com.vajrax.android.action.ADD_WIDGET_NOW"
+        /** Widget "Start" / "Log": open Home on this occurrence (timer or value entry). */
+        const val EXTRA_OPEN_OCCURRENCE = "open_occurrence"
     }
 }

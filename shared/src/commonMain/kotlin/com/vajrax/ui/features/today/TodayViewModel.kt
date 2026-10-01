@@ -2,6 +2,8 @@
 
 package com.vajrax.ui.features.today
 
+import com.vajrax.core.coroutines.AppDispatchers
+import com.vajrax.core.coroutines.runCatchingCancellable
 import com.vajrax.core.time.AppClock
 import com.vajrax.core.time.Dates
 import com.vajrax.core.time.TimeFormat
@@ -10,9 +12,7 @@ import com.vajrax.domain.analytics.HabitAnalytics
 import com.vajrax.domain.habit.Habit
 import com.vajrax.domain.habit.HabitType
 import com.vajrax.domain.habit.NowPicker
-import com.vajrax.domain.model.ActionStatus
 import com.vajrax.domain.habit.Occurrence
-import com.vajrax.domain.habit.ScheduleType
 import com.vajrax.domain.habit.Tracker
 import com.vajrax.domain.habit.formatValue
 import com.vajrax.domain.repository.PracticeRepository
@@ -22,11 +22,11 @@ import com.vajrax.domain.repository.ReflectionRepository
 import com.vajrax.domain.repository.SettingsRepository
 import com.vajrax.domain.repository.TrackerRepository
 import com.vajrax.domain.repository.UserProfile
+import com.vajrax.domain.today.TodayPlanner
 import com.vajrax.domain.usecase.RoutineManager
 import com.vajrax.presentation.mvi.MviViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -35,7 +35,6 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.minus
 
 /**
@@ -49,7 +48,8 @@ class TodayViewModel(
     private val profiles: ProfileRepository,
     private val reflections: ReflectionRepository,
     private val settings: SettingsRepository,
-    private val clock: AppClock
+    private val clock: AppClock,
+    private val preferences: com.vajrax.domain.usecase.PreferencesService
 ) : MviViewModel<TodayUiState, TodayIntent, TodayEffect>(TodayUiState()) {
 
     /** Persisted focus session: "occurrenceId|startedAtMs|accumulatedMs|running". */
@@ -62,11 +62,13 @@ class TodayViewModel(
         val profile: UserProfile?,
         val habits: List<Habit>,
         val records: List<Occurrence>,
-        val reflectionDone: Boolean
+        val reflectionDone: Boolean,
+        val cycleSeenFor: String?
     )
 
     init {
-        val ticks = clock.minuteTicks()
+        // A 12/24-hour switch rebuilds the labels right away, not at the next minute.
+        val ticks = combine(clock.minuteTicks(), TimeFormat.use24HourChanges) { tick, _ -> tick }
         val dayFlow = ticks.map { it.first }.distinctUntilChanged()
         val data = dayFlow.flatMapLatest { day ->
             val from = Dates.startOfWeek(day.minus(29, DateTimeUnit.DAY))
@@ -76,13 +78,21 @@ class TodayViewModel(
                 reflections.observeReflection(ReflectionPeriod.WEEK, Dates.startOfWeek(day))
             ) { h, r, refl -> DayData(day, h, r, refl != null) }
         }
-        viewModelScope.launch {
-            persistedTimer = runCatching { settings.get(KEY_TIMER) }.getOrNull()?.takeIf { it.isNotBlank() }
-            combine(ticks, trackers.observeActiveTracker(), profiles.observeProfile(), data) { tick, tracker, profile, d ->
-                Inputs(d.day, tick.second, tracker, profile, d.habits, d.records, d.reflectionDone)
+        launchLoad {
+            persistedTimer = runCatchingCancellable { settings.get(KEY_TIMER) }.getOrNull()?.takeIf { it.isNotBlank() }
+            combine(
+                ticks,
+                trackers.observeActiveTracker(),
+                profiles.observeProfile(),
+                data,
+                settings.observe(KEY_CYCLE_SEEN)
+            ) { tick, tracker, profile, d, cycleSeen ->
+                Inputs(d.day, tick.second, tracker, profile, d.habits, d.records, d.reflectionDone, cycleSeen)
             }
                 .map { build(it) }
                 .flowOn(Dispatchers.Default)
+                // Stops recomputing when no screen shows Today (app in the background).
+                .whileVisible()
                 .collect { built ->
                     // Restore outside the reducer: the reducer may be re-run and must stay side-effect free.
                     val restored = if (currentState().timer == null) restoreTimer(built.items) else null
@@ -116,8 +126,8 @@ class TodayViewModel(
     }
 
     private fun saveTimer(t: TimerState?) {
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching {
+        viewModelScope.launch(AppDispatchers.IO) {
+            runCatchingCancellable {
                 settings.put(KEY_TIMER, t?.let { "${it.item.id}|${it.startedAtMs}|${it.accumulatedMs}|${it.running}" } ?: "")
             }
         }
@@ -127,29 +137,18 @@ class TodayViewModel(
 
     private fun build(input: Inputs): TodayUiState {
         val day = input.day
-        val habitsById = input.habits.associateBy { it.id }
-        val todays = input.records.filter { it.date == day }.mapNotNull { occ -> habitsById[occ.habitId]?.let { it to occ } }
+        val now = input.minute
+        val plan = TodayPlanner.plan(day, now, input.tracker, input.habits, input.records, input.reflectionDone, clock.nowIso())
         val from = Dates.startOfWeek(day.minus(29, DateTimeUnit.DAY))
         val analytics = HabitAnalytics(input.habits, input.records, day, from..day)
-
         val weekStart = Dates.startOfWeek(day)
-        val weekDone = input.records.filter { it.date >= weekStart && it.isDone }.groupBy { it.habitId }.mapValues { it.value.size }
 
-        val now = input.minute
-        val items = todays.map { (habit, occ) ->
-            val start = TimeFormat.toMinutes(occ.scheduledTime ?: habit.time)
-            val weekly = habit.schedule.type == ScheduleType.WEEKLY_TARGET
-            val doneThisWeek = weekDone[habit.id] ?: 0
-            val phase = when {
-                occ.isDone -> TodayPhase.DONE
-                occ.isSkipped -> TodayPhase.SKIPPED
-                weekly && doneThisWeek >= habit.schedule.weeklyTarget -> TodayPhase.WEEKLY_MET
-                start != null && start + habit.durationMinutes <= now -> TodayPhase.OPEN_EARLIER
-                else -> TodayPhase.UPCOMING
-            }
+        val items = plan.items.map { p ->
+            val habit = p.habit
+            val occ = p.occurrence
             val (label, fraction) = when {
-                weekly -> "${minOf(doneThisWeek, habit.schedule.weeklyTarget)} / ${habit.schedule.weeklyTarget} this week" to
-                    (doneThisWeek.toFloat() / habit.schedule.weeklyTarget).coerceIn(0f, 1f)
+                p.weeklyDone != null -> "${minOf(p.weeklyDone, habit.schedule.weeklyTarget)} / ${habit.schedule.weeklyTarget} this week" to
+                    (p.weeklyDone.toFloat() / habit.schedule.weeklyTarget).coerceIn(0f, 1f)
                 habit.type != HabitType.BOOLEAN -> {
                     val v = occ.value ?: 0.0
                     "${formatValue(v)} / ${formatValue(habit.targetValue)} ${habit.unit ?: ""}".trim() to
@@ -160,103 +159,68 @@ class TodayViewModel(
             TodayItem(
                 habit = habit,
                 occurrence = occ,
-                phase = phase,
+                phase = p.phase,
                 timeLabel = TimeFormat.display(occ.scheduledTime ?: habit.time).ifBlank { "Anytime" },
                 progressLabel = label,
                 progressFraction = fraction
             )
-        }.sortedWith(compareBy<TodayItem> { TimeFormat.toMinutes(it.occurrence.scheduledTime ?: it.habit.time) ?: Int.MAX_VALUE }.thenBy { it.habit.sortOrder })
-
-        val nowId = NowPicker.pick(candidates(items), now)
-        val finalItems = items.map { if (it.id == nowId) it.copy(phase = TodayPhase.NOW) else it }
-
-        val counted = finalItems.filter { it.phase != TodayPhase.SKIPPED && !(it.phase == TodayPhase.WEEKLY_MET) }
-        val done = counted.count { it.phase == TodayPhase.DONE }
-        val total = counted.size
-        val openEarlier = finalItems.count { it.phase == TodayPhase.OPEN_EARLIER }
+        }
 
         val name = input.profile?.displayName?.trim().orEmpty().split(" ").firstOrNull().orEmpty()
-        val hour = now / 60
-        val salutation = when (hour) {
-            in 5..11 -> "Good Morning"
-            in 12..16 -> "Good Afternoon"
-            in 17..21 -> "Good Evening"
-            else -> "Good Night"
+        val salutation = when (now / 60) {
+            in 5..11 -> "Good morning"
+            in 12..16 -> "Good afternoon"
+            else -> "Good evening"
         }
         // A routine started "tomorrow" has no occurrences yet: say when it begins, not "Rest day".
-        val notStarted = input.tracker?.takeIf { it.startDate > day }
-        val startsLabel = notStarted?.let {
-            if (Dates.daysBetween(day, it.startDate) == 1) "tomorrow" else "on ${Dates.shortLabel(it.startDate)}"
+        val startsLabel = plan.startsOn?.let {
+            if (Dates.daysBetween(day, it) == 1) "tomorrow" else "on ${Dates.shortLabel(it)}"
         }
-        val firstUp = notStarted?.let { t ->
-            input.habits
-                .filter { it.trackerId == t.id && it.archivedAt == null }
-                .minByOrNull { TimeFormat.toMinutes(it.time) ?: Int.MAX_VALUE }
-                ?.let { h -> listOf(h.title, TimeFormat.display(h.time)).filter { it.isNotBlank() }.joinToString(" · ") }
+        val firstUp = plan.firstHabit?.let { h ->
+            listOf(h.title, TimeFormat.display(h.time)).filter { it.isNotBlank() }.joinToString(" · ")
         }
-
         val status = when {
             input.tracker == null -> "Choose a routine."
             startsLabel != null -> "Starts $startsLabel."
-            total == 0 -> "Rest day."
-            done == total -> "All done today."
-            openEarlier > 0 -> "A few still open."
-            done == 0 -> "Small steps. Consistent progress."
+            plan.total == 0 -> "Rest day."
+            plan.done == plan.total -> "All done today."
+            plan.openEarlier > 0 -> "A few still open."
+            plan.done == 0 -> "Small steps. Consistent progress."
             else -> "You're on track today."
         }
-        // End of day: everything done, or the last habit has started and had up to an hour
-        // (long overnight habits such as Sleep would otherwise end "tomorrow").
-        val lastEnd = counted.mapNotNull { i ->
-            TimeFormat.toMinutes(i.occurrence.scheduledTime ?: i.habit.time)?.let { it + minOf(i.habit.durationMinutes, 60) }
-        }.maxOrNull()?.coerceAtMost(23 * 60 + 30)
-        val allDone = total > 0 && done == total
-        val wrap = if (total > 0 && (allDone || (lastEnd != null && now >= lastEnd))) {
-            DayWrap(done, total, finalItems.count { it.phase == TodayPhase.SKIPPED }, allDone)
-        } else null
-
-        // Weekly review: Saturday evening and Sunday, when the week has records and no reflection yet.
-        val iso = day.dayOfWeek.isoDayNumber
-        val reviewWindow = iso == 7 || (iso == 6 && now >= 18 * 60)
-        val weekHasRecords = input.records.any { it.date >= weekStart && it.date <= day && (it.isDone || it.isSkipped) }
-        val reviewDue = input.tracker != null && reviewWindow && weekHasRecords && !input.reflectionDone
 
         return TodayUiState(
             isLoading = false,
-            dayWrap = wrap,
-            weeklyReviewDue = reviewDue,
+            dayWrap = plan.wrapUp?.let { DayWrap(it.done, it.total, it.skipped, it.allDone) },
+            weeklyReviewDue = plan.weeklyReviewDue,
             startsLabel = startsLabel,
+            cycleCompleteDays = input.tracker
+                ?.takeIf { plan.cycleComplete && input.cycleSeenFor != it.id }
+                ?.totalDays,
             firstUp = firstUp,
             hasTracker = input.tracker != null,
             trackerName = input.tracker?.name ?: "",
             greeting = if (name.isBlank()) "$salutation." else "$salutation, $name.",
             dateLabel = Dates.headerLabel(day).uppercase(),
             statusLine = status,
-            items = finalItems,
-            nowId = nowId,
-            doneCount = done,
-            totalCount = total,
+            items = items,
+            nowId = plan.nowId,
+            doneCount = plan.done,
+            totalCount = plan.total,
             weekRate = analytics.period(weekStart, day).rate,
             consistencyRate = analytics.period(day.minus(29, DateTimeUnit.DAY), day).rate
         )
     }
 
-    private fun candidates(items: List<TodayItem>) = items.map { i ->
-        NowPicker.Candidate(
-            id = i.id,
-            start = TimeFormat.toMinutes(i.occurrence.scheduledTime ?: i.habit.time),
-            durationMinutes = i.habit.durationMinutes,
-            open = i.phase == TodayPhase.UPCOMING || i.phase == TodayPhase.OPEN_EARLIER || i.phase == TodayPhase.NOW,
-            snoozed = i.occurrence.status == ActionStatus.SNOOZED,
-            completedAt = i.occurrence.completedAt?.takeIf { i.occurrence.isDone }
-        )
-    }
+    private fun candidates(items: List<TodayItem>) = items.map { TodayPlanner.candidate(it.habit, it.occurrence, it.phase) }
 
     override fun sendIntent(intent: TodayIntent) {
         when (intent) {
             is TodayIntent.Toggle -> perform {
                 val message = doneMessage(intent.occurrenceId)
                 val before = routineManager.toggle(intent.occurrenceId)
-                if (!before.isDone && !before.isSkipped) message to before else null
+                // Un-checking is undoable too: a mis-tap shouldn't cost a completion.
+                if (!before.isDone && !before.isSkipped) message to before else "Marked as not done" to before
             }
             is TodayIntent.Complete -> perform {
                 val message = doneMessage(intent.occurrenceId)
@@ -270,12 +234,14 @@ class TodayViewModel(
                 "Minimum done" to before
             }
             is TodayIntent.Increment -> perform {
+                val before = snapshot(intent.occurrenceId)
                 routineManager.increment(intent.occurrenceId)
-                null
+                "+1 · ${title(intent.occurrenceId)}" to before
             }
             is TodayIntent.RecordValue -> perform {
+                val before = snapshot(intent.occurrenceId)
                 routineManager.recordValue(intent.occurrenceId, intent.value)
-                "Saved" to null
+                "Saved" to before
             }
             is TodayIntent.Skip -> perform {
                 val before = snapshot(intent.occurrenceId)
@@ -283,20 +249,23 @@ class TodayViewModel(
                 "Skipped" to before
             }
             is TodayIntent.Snooze -> perform {
-                routineManager.snooze(intent.occurrenceId, 15)
-                "Snoozed 15 min" to null
+                val before = snapshot(intent.occurrenceId)
+                routineManager.snooze(intent.occurrenceId, com.vajrax.domain.BusinessRules.SNOOZE_MINUTES)
+                "Snoozed ${com.vajrax.domain.BusinessRules.SNOOZE_MINUTES} min" to before
             }
             is TodayIntent.Move -> perform {
+                val before = snapshot(intent.occurrenceId)
                 routineManager.move(intent.occurrenceId, intent.time)
-                "Moved to ${TimeFormat.display(intent.time)}" to null
+                "Moved to ${TimeFormat.display(intent.time)}" to before
             }
             is TodayIntent.SaveNote -> perform {
                 routineManager.setNote(intent.occurrenceId, intent.note)
                 "Note saved" to null
             }
             is TodayIntent.Reopen -> perform {
+                val before = snapshot(intent.occurrenceId)
                 routineManager.reopen(intent.occurrenceId)
-                null
+                "Marked as not done" to before
             }
             is TodayIntent.Undo -> perform {
                 routineManager.restore(intent.previous)
@@ -337,9 +306,14 @@ class TodayViewModel(
             }
             is TodayIntent.SetDialView -> {
                 updateState { copy(dialView = intent.dial) }
-                viewModelScope.launch(Dispatchers.IO) {
-                    runCatching { settings.put(SettingsRepository.HOME_VIEW, if (intent.dial) "DIAL" else "LIST") }
+                viewModelScope.launch(AppDispatchers.IO) {
+                    runCatchingCancellable { preferences.setHomeDial(intent.dial) }
+                        .onFailure { com.vajrax.core.log.VxLog.w("Today", "Couldn't save home view", it) }
                 }
+            }
+            TodayIntent.DismissCycleComplete -> viewModelScope.launch(AppDispatchers.IO) {
+                runCatchingCancellable { trackers.getActiveTracker()?.let { settings.put(KEY_CYCLE_SEEN, it.id) } }
+                    .onFailure { sendEffect(TodayEffect.ShowMessage(userMessage(it))) }
             }
             TodayIntent.StartToday -> perform {
                 routineManager.startToday()
@@ -364,11 +338,13 @@ class TodayViewModel(
 
     companion object {
         private const val KEY_TIMER = "active_focus_timer"
+        /** Tracker id whose cycle-complete note was dismissed. */
+        private const val KEY_CYCLE_SEEN = "cycle_complete_seen"
     }
 
     private fun perform(block: suspend () -> Pair<String, Occurrence?>?) {
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching { block() }
+        viewModelScope.launch(AppDispatchers.IO) {
+            runCatchingCancellable { block() }
                 .onSuccess { msg -> if (msg != null) sendEffect(TodayEffect.ShowMessage(msg.first, msg.second)) }
                 .onFailure { t -> sendEffect(TodayEffect.ShowMessage(userMessage(t))) }
         }

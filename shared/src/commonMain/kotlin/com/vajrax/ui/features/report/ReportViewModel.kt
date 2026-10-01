@@ -2,6 +2,8 @@
 
 package com.vajrax.ui.features.report
 
+import com.vajrax.core.coroutines.AppDispatchers
+import com.vajrax.core.coroutines.runCatchingCancellable
 import com.vajrax.core.time.AppClock
 import com.vajrax.core.time.Dates
 import com.vajrax.core.time.minuteTicks
@@ -10,6 +12,7 @@ import com.vajrax.domain.analytics.PeriodStats
 import com.vajrax.domain.habit.Habit
 import com.vajrax.domain.habit.Occurrence
 import com.vajrax.domain.habit.Tracker
+import com.vajrax.domain.habit.formatValue
 import com.vajrax.domain.repository.Goal
 import com.vajrax.domain.repository.GoalRepository
 import com.vajrax.domain.repository.GoalTargetType
@@ -18,11 +21,9 @@ import com.vajrax.domain.repository.Reflection
 import com.vajrax.domain.repository.ReflectionPeriod
 import com.vajrax.domain.repository.ReflectionRepository
 import com.vajrax.domain.repository.TrackerRepository
-import com.vajrax.domain.habit.formatValue
 import com.vajrax.presentation.mvi.MviViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -35,7 +36,6 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 
 /**
  * Weekly / monthly progress (spec 04 Screens 08–10, brief §5). Every number is derived from
@@ -46,7 +46,9 @@ class ReportViewModel(
     private val trackers: TrackerRepository,
     private val goals: GoalRepository,
     private val reflections: ReflectionRepository,
-    private val clock: AppClock
+    private val clock: AppClock,
+    private val goalService: com.vajrax.domain.usecase.GoalService,
+    private val reflectionService: com.vajrax.domain.usecase.ReflectionService
 ) : MviViewModel<ReportUiState, ReportIntent, ReportEffect>(ReportUiState()) {
 
     private val period = MutableStateFlow(ReportPeriod.WEEK)
@@ -63,7 +65,7 @@ class ReportViewModel(
 
     init {
         val today = clock.minuteTicks().map { it.first }.distinctUntilChanged()
-        viewModelScope.launch {
+        launchLoad {
             combine(today, period) { t, p -> t to p }
                 .flatMapLatest { (t, p) ->
                     val from = Dates.startOfWeek(t.minus(HISTORY_DAYS, DateTimeUnit.DAY))
@@ -147,7 +149,7 @@ class ReportViewModel(
             completedDelta = comparison.completedDelta,
             headline = headline,
             bars = bars,
-            barsTitle = if (week) "This Week" else "This Month",
+            barsTitle = if (week) "This week" else "This month",
             currentStreak = streak.current,
             bestStreak = streak.longest,
             bestStreakEnd = streak.longestEnd?.let { Dates.shortLabel(it) },
@@ -207,40 +209,25 @@ class ReportViewModel(
             is ReportIntent.SaveReflection -> {
                 val s = currentState()
                 val start = s.reflectionStart ?: return
-                viewModelScope.launch(Dispatchers.IO) {
-                    runCatching {
-                        reflections.saveReflection(Reflection(s.reflectionPeriod, start, intent.achievements, intent.obstacles, intent.nextActions), clock.nowIso())
+                viewModelScope.launch(AppDispatchers.IO) {
+                    runCatchingCancellable {
+                        reflectionService.save(s.reflectionPeriod, start, intent.achievements, intent.obstacles, intent.nextActions)
                     }.onSuccess { sendEffect(ReportEffect.ShowMessage("Reflection saved")) }
                         .onFailure { sendEffect(ReportEffect.ShowMessage(userMessage(it))) }
                 }
             }
             is ReportIntent.SaveGoal -> {
-                if (intent.title.isBlank() || intent.target <= 0 || intent.habitIds.isEmpty()) {
-                    trySendEffect(ReportEffect.ShowMessage("Add a title, a target above 0 and at least one habit."))
-                    return
-                }
-                viewModelScope.launch(Dispatchers.IO) {
-                    runCatching {
-                        goals.saveGoal(
-                            Goal(
-                                id = intent.id ?: ("goal_" + Uuid.random().toString()),
-                                title = intent.title,
-                                description = null,
-                                targetType = intent.targetType,
-                                targetValue = if (intent.targetType == GoalTargetType.RATE) intent.target.coerceAtMost(100.0) else intent.target,
-                                startDate = clock.today(),
-                                endDate = intent.endDate,
-                                habitIds = intent.habitIds
-                            ),
-                            clock.nowIso()
-                        )
+                viewModelScope.launch(AppDispatchers.IO) {
+                    runCatchingCancellable {
+                        goalService.save(intent.id, intent.title, intent.targetType, intent.target, intent.endDate, intent.habitIds)
                     }.onSuccess { sendEffect(ReportEffect.ShowMessage("Goal saved")) }
                         .onFailure { sendEffect(ReportEffect.ShowMessage(userMessage(it))) }
                 }
             }
-            is ReportIntent.DeleteGoal -> viewModelScope.launch(Dispatchers.IO) {
-                runCatching { goals.deleteGoal(intent.goalId) }
+            is ReportIntent.DeleteGoal -> viewModelScope.launch(AppDispatchers.IO) {
+                runCatchingCancellable { goalService.delete(intent.goalId) }
                     .onSuccess { sendEffect(ReportEffect.ShowMessage("Goal removed")) }
+                    .onFailure { sendEffect(ReportEffect.ShowMessage(userMessage(it))) }
             }
         }
     }

@@ -147,6 +147,15 @@ data class Tracker(
     val status: TrackerStatus,
     val endedAt: LocalDate?
 ) {
+    /** Days since the routine started, counting the start day as 1 (not clamped). */
+    fun daysIn(today: LocalDate): Int = com.vajrax.core.time.Dates.daysBetween(startDate, today) + 1
+
+    /**
+     * The first cycle ([totalDays] long) is over. Habits carry on; this is a milestone the app
+     * celebrates once, with a choice to keep going or pick something new.
+     */
+    fun cycleComplete(today: LocalDate): Boolean = totalDays > 0 && daysIn(today) > totalDays
+
     /** 1-based day of the tracker cycle, clamped to [1, totalDays]. */
     fun dayNumber(today: LocalDate): Int {
         val elapsed = com.vajrax.core.time.Dates.daysBetween(startDate, today) + 1

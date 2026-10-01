@@ -1,5 +1,7 @@
 package com.vajrax.ui.features.templates
 
+import com.vajrax.core.coroutines.AppDispatchers
+import com.vajrax.core.coroutines.runCatchingCancellable
 import com.vajrax.core.time.AppClock
 import com.vajrax.core.time.TimeFormat
 import com.vajrax.domain.habit.Habit
@@ -10,8 +12,6 @@ import com.vajrax.domain.template.DefaultTemplate
 import com.vajrax.domain.template.TemplateCatalog
 import com.vajrax.domain.usecase.RoutineManager
 import com.vajrax.presentation.mvi.MviViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
@@ -98,14 +98,27 @@ class ActivationViewModel(
     private fun load(templateId: String) {
         if (currentState().template?.id == templateId && !currentState().isLoading && !currentState().activated) return
         updateState { ActivationState(isLoading = true) }
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(AppDispatchers.IO) {
+            try {
+                loadTemplate(templateId)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                com.vajrax.core.log.VxLog.w("Activation", "Couldn't load template", e)
+                updateState { copy(isLoading = false, error = "We couldn't open this template. Your data is safe.") }
+            }
+        }
+    }
+
+    private suspend fun loadTemplate(templateId: String) {
+        run {
             val template = if (templateId == TemplateCatalog.BLANK_ID) blankTemplate() else templates.getTemplateWithHabits(templateId)
             val wake = settings.get(SettingsRepository.WAKE_TIME)
             val today = clock.today()
             val active = trackers.getActiveTracker() != null
             if (template == null) {
                 updateState { copy(isLoading = false, error = "This template is no longer available.") }
-                return@launch
+                return
             }
             val remindersOn = settings.get(SettingsRepository.REMINDERS_ENABLED) == "true"
             val drafts = withDefaultReminders(routineManager.draftHabits(template, wake), remindersOn).map { DraftHabit(it) }
@@ -159,8 +172,8 @@ class ActivationViewModel(
         val template = s.template ?: return
         if (s.isActivating) return
         updateState { copy(isActivating = true, error = null) }
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching {
+        viewModelScope.launch(AppDispatchers.IO) {
+            runCatchingCancellable {
                 routineManager.activateTemplate(template, s.included, s.startDate ?: clock.today(), s.trackerName)
             }.onSuccess {
                 updateState { copy(isActivating = false, hasActiveTracker = true, activated = true) }

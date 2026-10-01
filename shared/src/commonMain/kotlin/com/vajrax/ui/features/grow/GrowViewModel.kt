@@ -1,9 +1,8 @@
 package com.vajrax.ui.features.grow
 
+import com.vajrax.core.coroutines.AppDispatchers
 import com.vajrax.domain.growth.GrowthAnalyticsManager
 import com.vajrax.presentation.mvi.MviViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 
 class GrowViewModel(
@@ -24,7 +23,7 @@ class GrowViewModel(
     }
 
     private fun loadGrowthData() {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(AppDispatchers.IO) {
             updateState { copy(isLoading = true) }
             val report = growthAnalyticsManager.generateGrowthReport()
 

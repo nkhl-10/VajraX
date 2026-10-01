@@ -2,11 +2,9 @@ package com.vajrax.ui.features.templates
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
@@ -20,7 +18,6 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -30,12 +27,14 @@ import com.vajrax.core.time.TimeFormat
 import com.vajrax.domain.habit.Habit
 import com.vajrax.domain.template.TemplateCatalog
 import com.vajrax.domain.usecase.RoutineManager
+import com.vajrax.resources.*
 import com.vajrax.ui.designsystem.*
 import com.vajrax.ui.theme.LuminaTheme
 import com.vajrax.ui.theme.VxShape
 import com.vajrax.ui.theme.VxSpace
-import com.vajrax.ui.theme.habitAccent
 import com.vajrax.ui.theme.accentOnContainer
+import com.vajrax.ui.theme.habitAccent
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun TemplateDetailScreen(
@@ -45,11 +44,11 @@ fun TemplateDetailScreen(
 ) {
     val colors = LuminaTheme.colors
     Column(Modifier.fillMaxSize().background(colors.background)) {
-        VxTopBar(title = "Template", onBack = onBack)
+        VxTopBar(title = stringResource(Res.string.templates_template), onBack = onBack)
         val template = state.template
         when {
             state.isLoading -> LoadingSkeleton(Modifier.padding(VxSpace.gutter))
-            template == null -> EmptyState(VxIcons.Info, "Template unavailable", state.error ?: "Try another template.")
+            template == null -> EmptyState(VxIcons.Info, stringResource(Res.string.templates_template_unavailable), state.error ?: stringResource(Res.string.templates_try_another_template))
             else -> {
                 LazyColumn(
                     modifier = Modifier.weight(1f),
@@ -65,7 +64,7 @@ fun TemplateDetailScreen(
                             )
                             if (template.author != null) {
                                 Spacer(Modifier.width(VxSpace.sm))
-                                Text("by @${template.author}", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                                Text(stringResource(Res.string.templates_by_fmt, template.author), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
                             }
                         }
                         Spacer(Modifier.height(VxSpace.md))
@@ -84,7 +83,7 @@ fun TemplateDetailScreen(
                                 Icon(VxIcons.Info, null, tint = colors.onSurfaceVariant, modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(VxSpace.sm))
                                 Text(
-                                    "General wellness ideas, not medical advice.",
+                                    stringResource(Res.string.templates_general_wellness_ideas_not_medical),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = colors.onSurfaceVariant
                                 )
@@ -92,12 +91,12 @@ fun TemplateDetailScreen(
                         }
                         Spacer(Modifier.height(VxSpace.xl))
                         Row(horizontalArrangement = Arrangement.spacedBy(VxSpace.sm)) {
-                            StatPod("Habits", "${state.drafts.size}", Modifier.weight(1f))
-                            StatPod("Per day", TimeFormat.duration(state.drafts.sumOf { it.habit.durationMinutes }), Modifier.weight(1f))
-                            StatPod("Cycle", template.frequencyLabel, Modifier.weight(1f))
+                            StatPod(stringResource(Res.string.report_habits), stringResource(Res.string.calendar_value_fmt, state.drafts.size), Modifier.weight(1f))
+                            StatPod(stringResource(Res.string.templates_per_day), TimeFormat.duration(state.drafts.sumOf { it.habit.durationMinutes }), Modifier.weight(1f))
+                            StatPod(stringResource(Res.string.templates_cycle), template.frequencyLabel, Modifier.weight(1f))
                         }
                         Spacer(Modifier.height(VxSpace.xxl))
-                        SectionLabel("Habit timeline")
+                        SectionLabel(stringResource(Res.string.templates_habit_timeline))
                         Spacer(Modifier.height(VxSpace.md))
                     }
                     itemsIndexed(state.drafts, key = { i, d -> "${d.habit.id}_$i" }) { _, d ->
@@ -106,7 +105,7 @@ fun TemplateDetailScreen(
                     item { Spacer(Modifier.height(VxSpace.lg)) }
                 }
                 BottomBar {
-                    PrimaryButton("Use this template", onUse, Modifier.fillMaxWidth())
+                    PrimaryButton(stringResource(Res.string.profile_use_this_template), onUse, Modifier.fillMaxWidth())
                 }
             }
         }
@@ -167,7 +166,7 @@ fun DashedAddBox(title: String, subtitle: String, buttonLabel: String, onClick: 
                     cornerRadius = CornerRadius(16.dp.toPx())
                 )
             }
-            .clip(RoundedCornerShape(16.dp))
+            .clip(VxShape.medium)
             .background(colors.primaryContainer.copy(alpha = 0.35f))
             .padding(VxSpace.lg)
     ) {
@@ -181,8 +180,8 @@ fun DashedAddBox(title: String, subtitle: String, buttonLabel: String, onClick: 
         }
         Spacer(Modifier.height(VxSpace.md))
         Row(
-            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(RoundedCornerShape(12.dp))
-                .background(colors.surface).border(1.dp, colors.primary.copy(alpha = 0.4f), RoundedCornerShape(12.dp))
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).clip(VxShape.tile)
+                .background(colors.surface).border(1.dp, colors.primary.copy(alpha = 0.4f), VxShape.tile)
                 .hapticClickable(onClick = onClick),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
@@ -198,7 +197,8 @@ fun DashedAddBox(title: String, subtitle: String, buttonLabel: String, onClick: 
 fun CustomizeScreen(
     state: ActivationState,
     onIntent: (ActivationIntent) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onRetry: () -> Unit = {}
 ) {
     val colors = LuminaTheme.colors
     var editingIndex by remember { mutableStateOf<Int?>(null) }
@@ -207,9 +207,13 @@ fun CustomizeScreen(
     val template = state.template
 
     Column(Modifier.fillMaxSize().background(colors.background)) {
-        VxTopBar(title = "Customize", onBack = onBack)
-        if (state.isLoading || template == null) {
+        VxTopBar(title = stringResource(Res.string.templates_customize), onBack = onBack)
+        if (state.isLoading) {
             LoadingSkeleton(Modifier.padding(VxSpace.gutter))
+            return@Column
+        }
+        if (template == null) {
+            ErrorState(state.error ?: stringResource(Res.string.templates_we_couldn_t_open_this), onRetry = onRetry)
             return@Column
         }
         LazyColumn(
@@ -220,39 +224,39 @@ fun CustomizeScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(VxIcons.Sparkles, null, tint = colors.primary, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("MAKE IT YOURS", style = MaterialTheme.typography.labelSmall, color = colors.primary)
+                    Text(stringResource(Res.string.templates_make_it_yours), style = MaterialTheme.typography.labelSmall, color = colors.primary)
                 }
                 Spacer(Modifier.height(VxSpace.sm))
                 Text(
-                    if (template.id == TemplateCatalog.BLANK_ID) "Build your tracker" else "Personalize ${template.name}",
+                    if (template.id == TemplateCatalog.BLANK_ID) stringResource(Res.string.templates_build_your_tracker) else stringResource(Res.string.templates_personalize_fmt, template.name),
                     style = MaterialTheme.typography.headlineSmall,
                     color = colors.onSurface
                 )
                 Spacer(Modifier.height(VxSpace.xs))
                 Text(
-                    "Untick or tap to edit.",
+                    stringResource(Res.string.templates_untick_what_you_don_t),
                     style = MaterialTheme.typography.bodyMedium,
                     color = colors.onSurfaceVariant
                 )
                 Spacer(Modifier.height(VxSpace.xl))
                 VxTextField(
-                    label = "Tracker name",
+                    label = stringResource(Res.string.templates_tracker_name),
                     value = state.trackerName,
                     onValueChange = { onIntent(ActivationIntent.Rename(it)) },
                     maxChars = 40
                 )
                 Spacer(Modifier.height(VxSpace.lg))
-                Text("Start", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium), color = colors.onSurface)
+                Text(stringResource(Res.string.templates_start), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium), color = colors.onSurface)
                 Spacer(Modifier.height(VxSpace.sm))
                 val tomorrow = state.startDate != null && state.today != null && state.startDate > state.today
                 Row(horizontalArrangement = Arrangement.spacedBy(VxSpace.sm)) {
                     val left = state.remainingToday
                     CategoryChip(
-                        if (state.included.isEmpty()) "Today" else if (left == 0) "Today · none left" else "Today · $left left",
+                        if (state.included.isEmpty()) stringResource(Res.string.today_today) else if (left == 0) stringResource(Res.string.templates_today_none_left) else stringResource(Res.string.templates_today_left_fmt, left),
                         !tomorrow,
                         onClick = { onIntent(ActivationIntent.StartTomorrow(false)) }
                     )
-                    CategoryChip("Tomorrow", tomorrow, onClick = { onIntent(ActivationIntent.StartTomorrow(true)) })
+                    CategoryChip(stringResource(Res.string.templates_tomorrow), tomorrow, onClick = { onIntent(ActivationIntent.StartTomorrow(true)) })
                 }
                 if (state.wakeTime != null && template.habits.isNotEmpty()) {
                     Spacer(Modifier.height(VxSpace.md))
@@ -263,22 +267,22 @@ fun CustomizeScreen(
                         Icon(VxIcons.Sunrise, null, tint = colors.primary, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(VxSpace.sm))
                         Text(
-                            "Timed around your ${TimeFormat.display(state.wakeTime)} wake-up",
+                            stringResource(Res.string.templates_timed_around_your_wake_up_fmt, TimeFormat.display(state.wakeTime)),
                             style = MaterialTheme.typography.bodySmall,
                             color = colors.onPrimaryContainer
                         )
                     }
                 }
                 Spacer(Modifier.height(VxSpace.xxl))
-                SectionLabel("Habits") {
-                    Text("${state.included.size} of ${state.drafts.size} selected", style = MaterialTheme.typography.labelMedium, color = colors.primary)
+                SectionLabel(stringResource(Res.string.report_habits)) {
+                    Text(stringResource(Res.string.templates_of_selected_fmt, state.included.size, state.drafts.size), style = MaterialTheme.typography.labelMedium, color = colors.primary)
                 }
                 Spacer(Modifier.height(VxSpace.sm))
             }
             if (state.drafts.isEmpty()) {
                 item {
                     Text(
-                        "No habits yet.",
+                        stringResource(Res.string.templates_no_habits_yet),
                         style = MaterialTheme.typography.bodyMedium,
                         color = colors.onSurfaceVariant,
                         modifier = Modifier.padding(vertical = VxSpace.md)
@@ -292,9 +296,9 @@ fun CustomizeScreen(
             item {
                 Spacer(Modifier.height(VxSpace.sm))
                 DashedAddBox(
-                    title = "Add your own habit",
-                    subtitle = "Check, count, minutes or value.",
-                    buttonLabel = "Add habit",
+                    title = stringResource(Res.string.templates_add_your_own_habit),
+                    subtitle = stringResource(Res.string.templates_check_count_minutes_or_value),
+                    buttonLabel = stringResource(Res.string.common_add_habit),
                     onClick = { adding = true }
                 )
                 Spacer(Modifier.height(VxSpace.lg))
@@ -303,7 +307,7 @@ fun CustomizeScreen(
         BottomBar {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "${state.included.size} habits · ${TimeFormat.duration(state.dailyMinutes)} a day",
+                    stringResource(Res.string.templates_habits_a_day_fmt, state.included.size, TimeFormat.duration(state.dailyMinutes)),
                     style = MaterialTheme.typography.titleSmall,
                     color = colors.onSurface,
                     modifier = Modifier.weight(1f)
@@ -315,7 +319,7 @@ fun CustomizeScreen(
             }
             Spacer(Modifier.height(VxSpace.md))
             PrimaryButton(
-                text = if (state.hasActiveTracker) "Switch to this routine" else "Start my routine",
+                text = if (state.hasActiveTracker) stringResource(Res.string.templates_switch_to_this_routine) else stringResource(Res.string.templates_start_my_routine),
                 onClick = { if (state.hasActiveTracker) confirmSwitch = true else onIntent(ActivationIntent.Activate) },
                 enabled = state.included.isNotEmpty(),
                 loading = state.isActivating,
@@ -339,7 +343,7 @@ fun CustomizeScreen(
                     onIntent(ActivationIntent.RemoveHabit(index))
                     editingIndex = null
                 },
-                removeLabel = "Remove habit"
+                removeLabel = stringResource(Res.string.templates_remove_habit)
             )
         }
     }
@@ -356,9 +360,9 @@ fun CustomizeScreen(
     }
     if (confirmSwitch) {
         ConfirmDialog(
-            title = "Switch routine?",
-            message = "Current routine is archived from today. History stays.",
-            confirmLabel = "Switch",
+            title = stringResource(Res.string.templates_switch_routine),
+            message = stringResource(Res.string.templates_current_routine_is_archived_from),
+            confirmLabel = stringResource(Res.string.templates_switch),
             onConfirm = {
                 confirmSwitch = false
                 onIntent(ActivationIntent.Activate)

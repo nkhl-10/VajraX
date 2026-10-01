@@ -2,6 +2,8 @@
 
 package com.vajrax.data.repository
 
+import app.cash.sqldelight.async.coroutines.awaitAsList
+import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
 import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import com.vajrax.core.time.Dates
@@ -44,11 +46,11 @@ class PracticeRepositoryImpl(
     )
 
     override suspend fun getActivePractices(): List<Practice> = io {
-        queries.getActivePractices().executeAsList().map { it.toPractice() }
+        queries.getActivePractices().awaitAsList().map { it.toPractice() }
     }
 
     override suspend fun getAllPractices(): List<Practice> = io {
-        queries.getAllPractices().executeAsList().map { it.toPractice() }
+        queries.getAllPractices().awaitAsList().map { it.toPractice() }
     }
 
     override suspend fun insertPractice(practice: Practice): Unit = io {
@@ -69,7 +71,7 @@ class PracticeRepositoryImpl(
     }
 
     override suspend fun getTodayTimeline(date: String): List<ActionTimelineEntityResult> = io {
-        queries.getTodayTimeline(date).executeAsList().map {
+        queries.getTodayTimeline(date).awaitAsList().map {
             ActionTimelineEntityResult(
                 id = it.id,
                 practiceId = it.practiceId,
@@ -119,23 +121,23 @@ class PracticeRepositoryImpl(
             .map { list -> list.map { it.toHabit() }.sortedForTimeline() }
 
     override suspend fun getTrackerHabits(trackerId: String): List<Habit> = io {
-        queries.getHabitsForTracker(trackerId).executeAsList().map { it.toHabit() }.sortedForTimeline()
+        queries.getHabitsForTracker(trackerId).awaitAsList().map { it.toHabit() }.sortedForTimeline()
     }
 
     override fun observeAllTrackedHabits(): Flow<List<Habit>> =
         queries.getTrackedHabits().asFlow().mapToList(DbDispatcher).map { list -> list.map { it.toHabit() } }
 
     override suspend fun getAllTrackedHabits(): List<Habit> = io {
-        queries.getTrackedHabits().executeAsList().map { it.toHabit() }
+        queries.getTrackedHabits().awaitAsList().map { it.toHabit() }
     }
 
     override suspend fun getHabit(habitId: String): Habit? = io {
-        queries.getHabitById(habitId).executeAsOneOrNull()?.toHabit()
+        queries.getHabitById(habitId).awaitAsOneOrNull()?.toHabit()
     }
 
     override suspend fun insertHabit(habit: Habit, createdAt: String): Unit = io { insertHabitBlocking(habit, createdAt) }
 
-    internal fun insertHabitBlocking(habit: Habit, createdAt: String) {
+    internal suspend fun insertHabitBlocking(habit: Habit, createdAt: String) {
         queries.insertHabit(
             id = habit.id,
             principleId = null,
@@ -214,19 +216,19 @@ class PracticeRepositoryImpl(
             .map { list -> list.map { it.toOccurrence() } }
 
     override suspend fun getRange(from: LocalDate, to: LocalDate): List<Occurrence> = io {
-        queries.getRecordsBetween(from.toString(), to.toString()).executeAsList().map { it.toOccurrence() }
+        queries.getRecordsBetween(from.toString(), to.toString()).awaitAsList().map { it.toOccurrence() }
     }
 
     override suspend fun getHabitHistory(habitId: String, since: LocalDate): List<Occurrence> = io {
-        queries.getRecordsForHabitSince(habitId, since.toString()).executeAsList().map { it.toOccurrence() }
+        queries.getRecordsForHabitSince(habitId, since.toString()).awaitAsList().map { it.toOccurrence() }
     }
 
     override suspend fun getOccurrence(occurrenceId: String): Occurrence? = io {
-        queries.getOccurrenceById(occurrenceId).executeAsOneOrNull()?.toOccurrence()
+        queries.getOccurrenceById(occurrenceId).awaitAsOneOrNull()?.toOccurrence()
     }
 
     override suspend fun getOccurrence(habitId: String, date: LocalDate): Occurrence? = io {
-        queries.getOccurrence(habitId, date.toString()).executeAsOneOrNull()?.toOccurrence()
+        queries.getOccurrence(habitId, date.toString()).awaitAsOneOrNull()?.toOccurrence()
     }
 
     override suspend fun insertPlanned(planned: List<OccurrencePlanner.Planned>, nowIso: String): Unit = io {
@@ -245,7 +247,7 @@ class PracticeRepositoryImpl(
     }
 
     override suspend fun existingKeys(from: LocalDate, to: LocalDate): Set<String> = io {
-        queries.getRecordsBetween(from.toString(), to.toString()).executeAsList()
+        queries.getRecordsBetween(from.toString(), to.toString()).awaitAsList()
             .mapTo(HashSet()) { "${it.practiceId}|${it.date}" }
     }
 
@@ -262,7 +264,7 @@ class PracticeRepositoryImpl(
     }
 
     override suspend fun earliestRecordDate(): LocalDate? = io {
-        Dates.parse(queries.earliestRecordDate().executeAsOneOrNull()?.minDate)
+        Dates.parse(queries.earliestRecordDate().awaitAsOneOrNull()?.minDate)
     }
 
     override suspend fun checkIn(

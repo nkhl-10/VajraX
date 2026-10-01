@@ -9,13 +9,11 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
@@ -34,13 +32,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.vajrax.domain.template.TemplateCatalog
 import com.vajrax.platform.LocalPlatformActions
-import com.vajrax.ui.features.legal.LegalDoc
+import com.vajrax.resources.*
 import com.vajrax.ui.designsystem.*
+import com.vajrax.ui.features.legal.LegalDoc
 import com.vajrax.ui.features.templates.BottomBar
 import com.vajrax.ui.features.templates.TemplateCard
 import com.vajrax.ui.theme.LuminaTheme
 import com.vajrax.ui.theme.VxShape
 import com.vajrax.ui.theme.VxSpace
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -62,12 +62,12 @@ fun OnboardingScreen(
                 Modifier.fillMaxWidth().padding(horizontal = VxSpace.md, vertical = VxSpace.sm),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                RoundIconButton(VxIcons.ArrowLeft, "Back", onClick = { onIntent(OnboardingIntent.Back) })
+                RoundIconButton(VxIcons.ArrowLeft, stringResource(Res.string.today_back), onClick = { onIntent(OnboardingIntent.Back) })
                 Spacer(Modifier.weight(1f))
                 StepDots(current = state.stepIndex, total = OnboardingStep.entries.size)
                 Spacer(Modifier.weight(1f))
                 if (state.step == OnboardingStep.ROUTINE) {
-                    TextButton(onClick = { onIntent(OnboardingIntent.SkipPreferences) }) { Text("Skip") }
+                    TextButton(onClick = { onIntent(OnboardingIntent.SkipPreferences) }) { Text(stringResource(Res.string.today_skip)) }
                 } else {
                     Spacer(Modifier.width(48.dp))
                 }
@@ -103,7 +103,7 @@ fun OnboardingScreen(
     }
 
     if (pickWake) {
-        TimePickerDialog(state.wakeTime, title = "Wake-up time", onDismiss = { pickWake = false }, onConfirm = {
+        TimePickerDialog(state.wakeTime, title = stringResource(Res.string.onboarding_wake_up_time), onDismiss = { pickWake = false }, onConfirm = {
             onIntent(OnboardingIntent.SetWakeTime(it))
             pickWake = false
         })
@@ -137,26 +137,26 @@ private fun WelcomeStep(onStart: () -> Unit, onOpenLegal: (LegalDoc) -> Unit) {
             Spacer(Modifier.height(VxSpace.xxxl))
             VajraMark(size = 64.dp)
             Spacer(Modifier.height(VxSpace.xxl))
-            Text("Choose the life you want to build.", style = MaterialTheme.typography.displaySmall, color = colors.onSurface)
+            Text(stringResource(Res.string.onboarding_choose_the_life_you_want), style = MaterialTheme.typography.displaySmall, color = colors.onSurface)
             Spacer(Modifier.height(VxSpace.md))
             Text(
-                "Small steps, every day.",
+                stringResource(Res.string.onboarding_small_steps_every_day),
                 style = MaterialTheme.typography.bodyLarge,
                 color = colors.onSurfaceVariant
             )
             Spacer(Modifier.height(VxSpace.xxxl))
-            ValueRow(VxIcons.ListChecks, "Ready-made templates", "")
-            ValueRow(VxIcons.Check, "One-tap check-ins", "")
-            ValueRow(VxIcons.Chart, "Real progress", "")
+            ValueRow(VxIcons.ListChecks, stringResource(Res.string.onboarding_ready_made_templates), "")
+            ValueRow(VxIcons.Check, stringResource(Res.string.onboarding_one_tap_check_ins), "")
+            ValueRow(VxIcons.Chart, stringResource(Res.string.onboarding_real_progress), "")
         }
         BottomBar {
-            PrimaryButton("Get started", onStart, Modifier.fillMaxWidth())
+            PrimaryButton(stringResource(Res.string.onboarding_get_started), onStart, Modifier.fillMaxWidth())
             Spacer(Modifier.height(VxSpace.xs))
             // Stated up front: nothing leaves the phone. Links open the full documents.
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                Text("Stays on this device", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
-                TextButton(onClick = { onOpenLegal(LegalDoc.PRIVACY) }) { Text("Privacy", style = MaterialTheme.typography.labelMedium) }
-                TextButton(onClick = { onOpenLegal(LegalDoc.TERMS) }) { Text("Terms", style = MaterialTheme.typography.labelMedium) }
+                Text(stringResource(Res.string.onboarding_stays_on_this_device_2), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                TextButton(onClick = { onOpenLegal(LegalDoc.PRIVACY) }) { Text(stringResource(Res.string.onboarding_privacy), style = MaterialTheme.typography.labelMedium) }
+                TextButton(onClick = { onOpenLegal(LegalDoc.TERMS) }) { Text(stringResource(Res.string.onboarding_terms), style = MaterialTheme.typography.labelMedium) }
             }
         }
     }
@@ -181,20 +181,20 @@ private fun AboutStep(state: OnboardingUiState, onIntent: (OnboardingIntent) -> 
     val colors = LuminaTheme.colors
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = VxSpace.xxl, vertical = VxSpace.lg)) {
-            Text("Let's set you up", style = MaterialTheme.typography.headlineMedium, color = colors.onSurface)
+            Text(stringResource(Res.string.onboarding_let_s_set_you_up), style = MaterialTheme.typography.headlineMedium, color = colors.onSurface)
             Spacer(Modifier.height(VxSpace.xs))
-            Text("Stays on this device.", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+            Text(stringResource(Res.string.onboarding_stays_on_this_device), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
             Spacer(Modifier.height(VxSpace.xxl))
             VxTextField(
-                label = "What should we call you?",
+                label = stringResource(Res.string.onboarding_what_should_we_call_you),
                 value = state.name,
                 onValueChange = { onIntent(OnboardingIntent.SetName(it)) },
-                placeholder = "Your name (optional)",
+                placeholder = stringResource(Res.string.onboarding_your_name_optional),
                 maxChars = 40
             )
             Spacer(Modifier.height(VxSpace.xxl))
-            Text("What do you want to improve?", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
-            Text("Pick up to 3", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            Text(stringResource(Res.string.onboarding_what_do_you_want_to), style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+            Text(stringResource(Res.string.onboarding_pick_up_to_3), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             Spacer(Modifier.height(VxSpace.md))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(VxSpace.sm), verticalArrangement = Arrangement.spacedBy(VxSpace.sm)) {
                 TemplateCatalog.goalToCategories.keys.forEach { goal ->
@@ -202,7 +202,7 @@ private fun AboutStep(state: OnboardingUiState, onIntent: (OnboardingIntent) -> 
                 }
             }
         }
-        BottomBar { PrimaryButton("Continue", { onIntent(OnboardingIntent.Next) }, Modifier.fillMaxWidth()) }
+        BottomBar { PrimaryButton(stringResource(Res.string.onboarding_continue), { onIntent(OnboardingIntent.Next) }, Modifier.fillMaxWidth()) }
     }
 }
 
@@ -212,21 +212,21 @@ private fun RoutineStep(state: OnboardingUiState, onIntent: (OnboardingIntent) -
     val colors = LuminaTheme.colors
     Column(Modifier.fillMaxSize()) {
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = VxSpace.xxl, vertical = VxSpace.lg)) {
-            Text("Your day", style = MaterialTheme.typography.headlineMedium, color = colors.onSurface)
+            Text(stringResource(Res.string.onboarding_your_day), style = MaterialTheme.typography.headlineMedium, color = colors.onSurface)
             Spacer(Modifier.height(VxSpace.xs))
-            Text("Used to suggest habit times.", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+            Text(stringResource(Res.string.onboarding_used_to_suggest_habit_times), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
             Spacer(Modifier.height(VxSpace.xxl))
-            TimeField("Wake-up time", state.wakeTime, onPick = onPickWake)
+            TimeField(stringResource(Res.string.onboarding_wake_up_time), state.wakeTime, onPick = onPickWake)
             Spacer(Modifier.height(VxSpace.xxl))
-            Text("Time available in the morning", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+            Text(stringResource(Res.string.onboarding_time_available_in_the_morning), style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
             Spacer(Modifier.height(VxSpace.md))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(VxSpace.sm), verticalArrangement = Arrangement.spacedBy(VxSpace.sm)) {
                 listOf(15, 30, 60, 90).forEach { m ->
-                    CategoryChip(if (m == 90) "90+ min" else "$m min", state.morningMinutes == m, onClick = { onIntent(OnboardingIntent.SetMorningMinutes(m)) })
+                    CategoryChip(if (m == 90) stringResource(Res.string.onboarding_90_min) else stringResource(Res.string.onboarding_min_fmt, m), state.morningMinutes == m, onClick = { onIntent(OnboardingIntent.SetMorningMinutes(m)) })
                 }
             }
             Spacer(Modifier.height(VxSpace.xxl))
-            Text("Reminders", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+            Text(stringResource(Res.string.onboarding_reminders), style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
             Spacer(Modifier.height(VxSpace.md))
             ReminderStyle.entries.forEach { style ->
                 val selected = state.reminderStyle == style
@@ -251,7 +251,7 @@ private fun RoutineStep(state: OnboardingUiState, onIntent: (OnboardingIntent) -
                 }
             }
         }
-        BottomBar { PrimaryButton("Continue", onContinue, Modifier.fillMaxWidth()) }
+        BottomBar { PrimaryButton(stringResource(Res.string.onboarding_continue), onContinue, Modifier.fillMaxWidth()) }
     }
 }
 
@@ -279,23 +279,23 @@ private fun TemplateStep(
     ) {
         item {
             Spacer(Modifier.height(VxSpace.sm))
-            Text("Choose your tracker", style = MaterialTheme.typography.headlineMedium, color = colors.onSurface)
+            Text(stringResource(Res.string.onboarding_choose_your_routine), style = MaterialTheme.typography.headlineMedium, color = colors.onSurface)
             Spacer(Modifier.height(VxSpace.xs))
             Text(
-                "Pick one. You can edit it next.",
+                stringResource(Res.string.onboarding_pick_one_you_can_edit),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurfaceVariant
             )
             Spacer(Modifier.height(VxSpace.lg))
             VxTextField(
-                label = "Search",
+                label = stringResource(Res.string.onboarding_search),
                 value = state.query,
                 onValueChange = { onIntent(OnboardingIntent.Search(it)) },
-                placeholder = "Morning, study, fitness…"
+                placeholder = stringResource(Res.string.onboarding_morning_study_fitness)
             )
             Spacer(Modifier.height(VxSpace.md))
             SegmentedToggle(
-                options = listOf("Templates", "Arc"),
+                options = listOf(stringResource(Res.string.onboarding_templates), stringResource(Res.string.onboarding_arc)),
                 selectedIndex = if (state.arcTab) 1 else 0,
                 onSelect = { onIntent(OnboardingIntent.ShowArc(it == 1)) },
                 modifier = Modifier.fillMaxWidth()
@@ -303,7 +303,7 @@ private fun TemplateStep(
             if (!state.arcTab) {
                 Spacer(Modifier.height(VxSpace.md))
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(VxSpace.sm)) {
-                    CategoryChip("All", state.category == null, onClick = { onIntent(OnboardingIntent.SelectCategory(null)) })
+                    CategoryChip(stringResource(Res.string.discover_all), state.category == null, onClick = { onIntent(OnboardingIntent.SelectCategory(null)) })
                     TemplateCatalog.categories.filter { c -> c != "Arc" && state.templates.any { it.category == c } }.forEach { c ->
                         CategoryChip(c, state.category == c, onClick = { onIntent(OnboardingIntent.SelectCategory(if (state.category == c) null else c)) })
                     }
@@ -312,16 +312,16 @@ private fun TemplateStep(
             Spacer(Modifier.height(VxSpace.xl))
         }
         if (!filtering && recommended.isNotEmpty()) {
-            item { SectionLabel("Recommended for you"); Spacer(Modifier.height(VxSpace.sm)) }
+            item { SectionLabel(stringResource(Res.string.onboarding_recommended_for_you)); Spacer(Modifier.height(VxSpace.sm)) }
             items(recommended, key = { "rec_" + it.id }) { t ->
                 TemplateCard(t, onOpen = { onOpenTemplate(t.id) }, onUse = { onUseTemplate(t.id) })
                 Spacer(Modifier.height(VxSpace.md))
             }
             item { Spacer(Modifier.height(VxSpace.md)) }
         }
-        item { SectionLabel(if (filtering) "${state.filtered.size} templates" else "All templates"); Spacer(Modifier.height(VxSpace.sm)) }
+        item { SectionLabel(if (filtering) stringResource(Res.string.onboarding_templates_fmt, state.filtered.size) else stringResource(Res.string.onboarding_all_templates)); Spacer(Modifier.height(VxSpace.sm)) }
         if (state.filtered.isEmpty()) {
-            item { EmptyState(VxIcons.Search, "No templates found", "Try another word.") }
+            item { EmptyState(VxIcons.Search, stringResource(Res.string.discover_no_templates_found), stringResource(Res.string.onboarding_try_another_word)) }
         }
         items(state.filtered, key = { it.id }) { t ->
             TemplateCard(t, onOpen = { onOpenTemplate(t.id) }, onUse = { onUseTemplate(t.id) })
@@ -350,8 +350,8 @@ private fun BlankTrackerCard(onClick: () -> Unit) {
         }
         Spacer(Modifier.width(VxSpace.md))
         Column(Modifier.weight(1f)) {
-            Text("Blank tracker", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
-            Text("Create a tracker entirely your own.", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            Text(stringResource(Res.string.onboarding_blank_tracker), style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+            Text(stringResource(Res.string.onboarding_create_a_tracker_entirely_your), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
         }
         Icon(VxIcons.ChevronRight, null, tint = colors.onSurfaceVariant, modifier = Modifier.size(18.dp))
     }

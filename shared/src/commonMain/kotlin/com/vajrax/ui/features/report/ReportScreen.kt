@@ -23,12 +23,15 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.vajrax.domain.repository.GoalTargetType
+import com.vajrax.resources.*
 import com.vajrax.ui.designsystem.*
 import com.vajrax.ui.theme.LuminaTheme
 import com.vajrax.ui.theme.VxSpace
 import com.vajrax.ui.theme.habitAccent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.pluralStringResource
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ReportScreen(
@@ -44,6 +47,7 @@ fun ReportScreen(
     var why by remember { mutableStateOf(false) }
     var reflectionOpen by remember { mutableStateOf(false) }
     var goalOpen by remember { mutableStateOf(false) }
+    var deleteGoalId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(effects) {
         effects.collect { e -> if (e is ReportEffect.ShowMessage) scope.launch { snackbar.showSnackbar(e.message) } }
@@ -58,9 +62,9 @@ fun ReportScreen(
     Column(Modifier.fillMaxSize().background(colors.background).statusBarsPadding()) {
         Spacer(Modifier.height(VxSpace.lg))
         Row(Modifier.fillMaxWidth().padding(horizontal = VxSpace.gutter), verticalAlignment = Alignment.CenterVertically) {
-            ScreenTitle("Report", Modifier.weight(1f))
+            ScreenTitle(stringResource(Res.string.report_report), Modifier.weight(1f))
             SegmentedToggle(
-                listOf("This Week", "This Month"),
+                listOf(stringResource(Res.string.report_this_week), stringResource(Res.string.report_this_month)),
                 state.period.ordinal,
                 onSelect = { onIntent(ReportIntent.SetPeriod(ReportPeriod.entries[it])) }
             )
@@ -70,9 +74,9 @@ fun ReportScreen(
             when {
                 state.isLoading -> LoadingSkeleton()
                 !state.hasData -> EmptyState(
-                    VxIcons.Chart, "Your report builds as you check in",
-                    "Check in to see your progress.",
-                    actionLabel = "Choose a template", onAction = onOpenDiscover
+                    VxIcons.Chart, stringResource(Res.string.report_your_report_builds_as_you),
+                    stringResource(Res.string.report_check_in_to_see_your),
+                    actionLabel = stringResource(Res.string.today_choose_a_template), onAction = onOpenDiscover
                 )
                 else -> ReportContent(
                     state,
@@ -80,13 +84,26 @@ fun ReportScreen(
                     onWhy = { why = true },
                     onReflection = { reflectionOpen = true },
                     onAddGoal = { goalOpen = true },
-                    onDeleteGoal = { onIntent(ReportIntent.DeleteGoal(it)) }
+                    onDeleteGoal = { deleteGoalId = it }
                 )
             }
             Spacer(Modifier.height(VxSpace.navClearance))
         }
     }
 
+    deleteGoalId?.let { id ->
+        ConfirmDialog(
+            title = stringResource(Res.string.report_remove_this_goal),
+            message = stringResource(Res.string.report_your_habits_and_their_history),
+            confirmLabel = stringResource(Res.string.common_remove),
+            destructive = true,
+            onConfirm = {
+                onIntent(ReportIntent.DeleteGoal(id))
+                deleteGoalId = null
+            },
+            onDismiss = { deleteGoalId = null }
+        )
+    }
     if (breakdown) BreakdownSheet(state, onDismiss = { breakdown = false })
     if (why && state.insight != null) WhySheet(state.insight, onDismiss = { why = false })
     if (reflectionOpen) ReflectionSheet(state, onDismiss = { reflectionOpen = false }, onSave = { a, o, n ->
@@ -115,7 +132,7 @@ private fun ReportContent(
     VxCard(elevated = true, onClick = onBreakdown, contentPadding = PaddingValues(VxSpace.xl)) {
         Row(verticalAlignment = Alignment.Top) {
             Column(Modifier.weight(1f)) {
-                Text("Overall Completion", style = MaterialTheme.typography.titleLarge, color = colors.onSurface)
+                Text(stringResource(Res.string.report_overall_completion), style = MaterialTheme.typography.titleLarge, color = colors.onSurface)
                 Text(state.headline, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             }
             DeltaChip(state.rateDelta)
@@ -132,7 +149,11 @@ private fun ReportContent(
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(state.overall.rate?.let { "$it%" } ?: "—", style = MaterialTheme.typography.headlineSmall, color = colors.onSurface)
-                    Text("SCORE", style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
+                    Text(
+                        stringResource(Res.string.report_done_word),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.onSurfaceVariant
+                    )
                 }
             }
         }
@@ -146,18 +167,25 @@ private fun ReportContent(
             Text(
                 buildAnnotatedString {
                     when {
-                        state.previous.eligible == 0 -> append("Tap to see exactly how this is calculated.")
+                        state.previous.eligible == 0 -> append(stringResource(Res.string.report_how_calculated_hint))
                         d > 0 -> {
-                            append("You achieved ")
-                            withStyle(SpanStyle(color = colors.primary, fontWeight = FontWeight.Bold)) { append("$d more ${if (d == 1) "task" else "tasks"}") }
-                            append(" compared to last $periodWord.")
+                            append(stringResource(Res.string.report_you_achieved))
+                            append(" ")
+                            withStyle(SpanStyle(color = colors.primary, fontWeight = FontWeight.Bold)) {
+                                append(pluralStringResource(Res.plurals.report_more_check_ins, d, d))
+                            }
+                            append(" ")
+                            append(stringResource(Res.string.report_compared_to_last_fmt, periodWord))
                         }
                         d < 0 -> {
-                            append("${-d} fewer than this point last $periodWord — ")
-                            withStyle(SpanStyle(color = colors.primary, fontWeight = FontWeight.Bold)) { append("every check-in still counts") }
+                            append(stringResource(Res.string.report_fewer_than_last_fmt, -d, periodWord))
+                            append(" ")
+                            withStyle(SpanStyle(color = colors.primary, fontWeight = FontWeight.Bold)) {
+                                append(stringResource(Res.string.report_every_check_in_counts))
+                            }
                             append(".")
                         }
-                        else -> append("Same number of completions as last $periodWord so far.")
+                        else -> append(stringResource(Res.string.report_same_as_last_fmt, periodWord))
                     }
                 },
                 style = MaterialTheme.typography.bodySmall,
@@ -171,7 +199,7 @@ private fun ReportContent(
     VxCard(elevated = true, contentPadding = PaddingValues(VxSpace.xl)) {
         Text(state.barsTitle, style = MaterialTheme.typography.titleLarge, color = colors.onSurface)
         Text(
-            if (state.period == ReportPeriod.WEEK) "Daily completions vs targeted workload" else "Weekly completions vs targeted workload",
+            if (state.period == ReportPeriod.WEEK) stringResource(Res.string.report_done_vs_planned_by_day) else stringResource(Res.string.report_done_vs_planned_by_week),
             style = MaterialTheme.typography.bodySmall,
             color = colors.onSurfaceVariant
         )
@@ -182,14 +210,14 @@ private fun ReportContent(
 
     // Streaks
     Row(horizontalArrangement = Arrangement.spacedBy(VxSpace.md)) {
-        StreakCard("Current Streak", state.currentStreak, VxIcons.Flame, "Days with 80%+ done", Modifier.weight(1f))
-        StreakCard("Best Streak", state.bestStreak, VxIcons.Award, state.bestStreakEnd?.let { "Achieved $it" } ?: "Your record so far", Modifier.weight(1f))
+        StreakCard(stringResource(Res.string.report_current_streak), state.currentStreak, VxIcons.Flame, stringResource(Res.string.report_days_with_done_fmt, com.vajrax.domain.BusinessRules.STREAK_DAY_PERCENT), Modifier.weight(1f))
+        StreakCard(stringResource(Res.string.report_best_streak), state.bestStreak, VxIcons.Award, state.bestStreakEnd?.let { "Achieved $it" } ?: stringResource(Res.string.report_your_record_so_far), Modifier.weight(1f))
     }
     Spacer(Modifier.height(VxSpace.lg))
 
     if (state.mostConsistent.isNotEmpty()) {
         VxCard {
-            SectionLabel("Most consistent")
+            SectionLabel(stringResource(Res.string.report_most_consistent))
             Spacer(Modifier.height(VxSpace.md))
             state.mostConsistent.forEach { row -> HabitRateRow(row) }
         }
@@ -197,7 +225,7 @@ private fun ReportContent(
     }
     if (state.needsAttention.isNotEmpty()) {
         VxCard {
-            SectionLabel("Needs attention")
+            SectionLabel(stringResource(Res.string.report_needs_attention))
             Spacer(Modifier.height(VxSpace.md))
             state.needsAttention.forEach { row -> HabitRateRow(row, showMissed = true) }
         }
@@ -205,7 +233,7 @@ private fun ReportContent(
     }
     if (state.areas.isNotEmpty()) {
         VxCard {
-            SectionLabel("Your areas")
+            SectionLabel(stringResource(Res.string.report_your_areas))
             Spacer(Modifier.height(VxSpace.md))
             state.areas.forEach { area ->
                 Column(Modifier.padding(vertical = 6.dp)) {
@@ -215,13 +243,13 @@ private fun ReportContent(
                             Text(
                                 area.tag,
                                 style = MaterialTheme.typography.labelMedium,
-                                color = if (area.tag == "Strongest") colors.onSuccessContainer else colors.onWarningContainer,
-                                modifier = Modifier.clip(RoundedCornerShape(50)).background(if (area.tag == "Strongest") colors.successContainer else colors.warningContainer)
+                                color = if (area.tag == stringResource(Res.string.report_strongest)) colors.onSuccessContainer else colors.onWarningContainer,
+                                modifier = Modifier.clip(RoundedCornerShape(50)).background(if (area.tag == stringResource(Res.string.report_strongest)) colors.successContainer else colors.warningContainer)
                                     .padding(horizontal = 8.dp, vertical = 2.dp)
                             )
                             Spacer(Modifier.width(VxSpace.sm))
                         }
-                        Text("${area.stats.rate ?: 0}%", style = MaterialTheme.typography.labelLarge, color = colors.onSurface)
+                        Text(stringResource(Res.string.common_value_fmt_2, area.stats.rate ?: 0), style = MaterialTheme.typography.labelLarge, color = colors.onSurface)
                     }
                     Spacer(Modifier.height(4.dp))
                     LinearBar(area.stats.rateFraction, height = 6.dp)
@@ -232,12 +260,12 @@ private fun ReportContent(
     }
 
     VxCard {
-        SectionLabel("Pattern discovery")
+        SectionLabel(stringResource(Res.string.report_pattern_discovery))
         Spacer(Modifier.height(VxSpace.sm))
         val insight = state.insight
         if (insight == null) {
             Text(
-                "Appears after a few weeks of check-ins.",
+                stringResource(Res.string.report_appears_after_a_few_weeks),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurfaceVariant
             )
@@ -246,22 +274,22 @@ private fun ReportContent(
             Spacer(Modifier.height(VxSpace.xs))
             Text(insight.rawData, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             Spacer(Modifier.height(VxSpace.sm))
-            TonalAction("Why?", VxIcons.ArrowRight, onWhy)
+            TonalAction(stringResource(Res.string.report_why), VxIcons.ArrowRight, onWhy)
         }
     }
     Spacer(Modifier.height(VxSpace.lg))
 
     VxCard {
-        SectionLabel(if (state.period == ReportPeriod.WEEK) "Weekly summary" else "Monthly summary")
+        SectionLabel(if (state.period == ReportPeriod.WEEK) stringResource(Res.string.report_weekly_summary) else stringResource(Res.string.report_monthly_summary))
         Spacer(Modifier.height(VxSpace.md))
         Row(horizontalArrangement = Arrangement.spacedBy(VxSpace.sm)) {
-            StatPod("Habits", "${state.habitsTracked}", Modifier.weight(1f))
-            StatPod("Scheduled", "${state.overall.eligible + state.overall.pending}", Modifier.weight(1f))
-            StatPod("Completed", "${state.overall.completed}", Modifier.weight(1f))
+            StatPod(stringResource(Res.string.report_habits), stringResource(Res.string.calendar_value_fmt, state.habitsTracked), Modifier.weight(1f))
+            StatPod(stringResource(Res.string.report_scheduled), stringResource(Res.string.calendar_value_fmt, state.overall.eligible + state.overall.pending), Modifier.weight(1f))
+            StatPod(stringResource(Res.string.report_completed), stringResource(Res.string.calendar_value_fmt, state.overall.completed), Modifier.weight(1f))
         }
         if (state.overall.skipped > 0) {
             Spacer(Modifier.height(VxSpace.sm))
-            Text("${state.overall.skipped} skipped · not counted", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            Text(stringResource(Res.string.report_skipped_not_counted_fmt, state.overall.skipped), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
         }
     }
     Spacer(Modifier.height(VxSpace.lg))
@@ -271,9 +299,9 @@ private fun ReportContent(
             IconBadge(VxIcons.Pen, colors.primary, size = 36.dp, iconSize = 18.dp)
             Spacer(Modifier.width(VxSpace.md))
             Column(Modifier.weight(1f)) {
-                Text(if (state.period == ReportPeriod.WEEK) "Weekly reflection" else "Monthly reflection", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+                Text(if (state.period == ReportPeriod.WEEK) stringResource(Res.string.report_weekly_reflection) else stringResource(Res.string.report_monthly_reflection), style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
                 Text(
-                    state.reflection?.achievements?.takeIf { it.isNotBlank() } ?: "Look back and adjust.",
+                    state.reflection?.achievements?.takeIf { it.isNotBlank() } ?: stringResource(Res.string.report_look_back_and_adjust),
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.onSurfaceVariant,
                     maxLines = 2,
@@ -286,11 +314,11 @@ private fun ReportContent(
     Spacer(Modifier.height(VxSpace.lg))
 
     VxCard {
-        SectionLabel("Goals") {
-            TextButton(onClick = onAddGoal) { Text("Add goal") }
+        SectionLabel(stringResource(Res.string.report_goals)) {
+            TextButton(onClick = onAddGoal) { Text(stringResource(Res.string.report_add_goal)) }
         }
         if (state.goals.isEmpty()) {
-            Text("Link habits to a goal.", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            Text(stringResource(Res.string.report_link_habits_to_a_goal), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
         }
         state.goals.forEach { g ->
             Column(Modifier.padding(vertical = VxSpace.sm)) {
@@ -304,7 +332,7 @@ private fun ReportContent(
                 }
                 LinearBar(g.fraction, height = 6.dp)
                 Spacer(Modifier.height(4.dp))
-                Text("${g.label} · ${g.habitNames.joinToString()}", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(stringResource(Res.string.today_value_fmt_2, g.label, g.habitNames.joinToString()), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -323,7 +351,7 @@ private fun BarChart(bars: List<Bar>) {
         bars.forEach { bar ->
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Bottom) {
                 Text(
-                    if (bar.total > 0) "${bar.done}/${bar.total}" else "",
+                    if (bar.total > 0) stringResource(Res.string.today_value_fmt, bar.done, bar.total) else "",
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Medium),
                     color = colors.onSurfaceVariant
                 )
@@ -373,14 +401,14 @@ private fun HabitRateRow(row: HabitStatRow, showMissed: Boolean = false) {
             Icon(VxIcons.forKey(row.habit.icon), null, tint = habitAccent(row.habit.color, colors.isDark), modifier = Modifier.size(16.dp))
             Spacer(Modifier.width(VxSpace.sm))
             Text(row.habit.title, style = MaterialTheme.typography.titleSmall, color = colors.onSurface, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Text("${row.stats.rate ?: 0}%", style = MaterialTheme.typography.labelLarge, color = colors.onSurface)
+            Text(stringResource(Res.string.common_value_fmt_2, row.stats.rate ?: 0), style = MaterialTheme.typography.labelLarge, color = colors.onSurface)
         }
         Spacer(Modifier.height(4.dp))
         LinearBar(row.stats.rateFraction, height = 6.dp)
         Text(
-            "${row.stats.completed} of ${row.stats.eligible}" +
-                (if (showMissed && row.stats.missed > 0) " · ${row.stats.missed} missed" else "") +
-                (if (row.streak > 1) " · ${row.streak}-${row.streakUnit.dropLast(1)} streak" else ""),
+            stringResource(Res.string.report_of_fmt, row.stats.completed, row.stats.eligible) +
+                (if (showMissed && row.stats.missed > 0) stringResource(Res.string.report_missed_fmt, row.stats.missed) else "") +
+                (if (row.streak > 1) stringResource(Res.string.report_streak_fmt, row.streak, row.streakUnit.dropLast(1)) else ""),
             style = MaterialTheme.typography.bodySmall,
             color = colors.onSurfaceVariant
         )
@@ -391,9 +419,9 @@ private fun HabitRateRow(row: HabitStatRow, showMissed: Boolean = false) {
 @Composable
 private fun BreakdownSheet(state: ReportUiState, onDismiss: () -> Unit) {
     val colors = LuminaTheme.colors
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(true), containerColor = colors.surface) {
+    VxBottomSheet(onDismiss = onDismiss) {
         Column(Modifier.padding(horizontal = VxSpace.xxl).padding(bottom = VxSpace.xxxl)) {
-            Text("How this is calculated", style = MaterialTheme.typography.headlineSmall, color = colors.onSurface)
+            Text(stringResource(Res.string.report_how_this_is_calculated), style = MaterialTheme.typography.headlineSmall, color = colors.onSurface)
             Spacer(Modifier.height(VxSpace.xs))
             Text(state.periodLabel, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             Spacer(Modifier.height(VxSpace.lg))
@@ -404,13 +432,13 @@ private fun BreakdownSheet(state: ReportUiState, onDismiss: () -> Unit) {
             BreakdownLine("Still open today", s.pending, "not counted yet")
             HorizontalDivider(Modifier.padding(vertical = VxSpace.md), color = colors.outlineVariant)
             Text(
-                if (s.eligible > 0) "${s.completed} completed ÷ ${s.eligible} scheduled = ${s.rate}%" else "Nothing has been due yet in this period.",
+                if (s.eligible > 0) stringResource(Res.string.report_completed_scheduled_fmt, s.completed, s.eligible, s.rate ?: 0) else stringResource(Res.string.report_nothing_has_been_due_yet),
                 style = MaterialTheme.typography.titleSmall,
                 color = colors.onSurface
             )
             Spacer(Modifier.height(VxSpace.sm))
             Text(
-                "Rest and future days aren't counted." + (state.previous.rate?.let { " Previous ${if (state.period == ReportPeriod.WEEK) "week" else "month"}: $it%." } ?: ""),
+                stringResource(Res.string.report_rest_and_future_days_aren) + (state.previous.rate?.let { " Previous ${if (state.period == ReportPeriod.WEEK) "week" else "month"}: $it%." } ?: ""),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant
             )
@@ -425,7 +453,7 @@ private fun BreakdownLine(label: String, value: Int, note: String) {
         Text(label, style = MaterialTheme.typography.bodyMedium, color = colors.onSurface, modifier = Modifier.weight(1f))
         Text(note, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
         Spacer(Modifier.width(VxSpace.md))
-        Text("$value", style = MaterialTheme.typography.titleSmall, color = colors.onSurface, modifier = Modifier.widthIn(min = 32.dp), textAlign = TextAlign.End)
+        Text(stringResource(Res.string.calendar_value_fmt, value), style = MaterialTheme.typography.titleSmall, color = colors.onSurface, modifier = Modifier.widthIn(min = 32.dp), textAlign = TextAlign.End)
     }
 }
 
@@ -433,26 +461,26 @@ private fun BreakdownLine(label: String, value: Int, note: String) {
 @Composable
 private fun WhySheet(insight: PatternInsight, onDismiss: () -> Unit) {
     val colors = LuminaTheme.colors
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(true), containerColor = colors.surface) {
+    VxBottomSheet(onDismiss = onDismiss) {
         Column(Modifier.padding(horizontal = VxSpace.xxl).padding(bottom = VxSpace.xxxl)) {
-            Text("Why this pattern?", style = MaterialTheme.typography.headlineSmall, color = colors.onSurface)
+            Text(stringResource(Res.string.report_why_this_pattern), style = MaterialTheme.typography.headlineSmall, color = colors.onSurface)
             Spacer(Modifier.height(VxSpace.xs))
-            Text("Last 30 days, by scheduled time", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+            Text(stringResource(Res.string.report_last_30_days_by_scheduled), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             Spacer(Modifier.height(VxSpace.lg))
             insight.buckets.forEach { b ->
                 Column(Modifier.padding(vertical = 6.dp)) {
                     Row {
-                        Text("${b.label} · ${b.window}", style = MaterialTheme.typography.titleSmall, color = colors.onSurface, modifier = Modifier.weight(1f))
-                        Text(if (b.stats.eligible > 0) "${b.stats.rate}%" else "—", style = MaterialTheme.typography.labelLarge, color = colors.onSurface)
+                        Text(stringResource(Res.string.today_value_fmt_2, b.label, b.window), style = MaterialTheme.typography.titleSmall, color = colors.onSurface, modifier = Modifier.weight(1f))
+                        Text(if (b.stats.eligible > 0) stringResource(Res.string.common_value_fmt_2, b.stats.rate ?: 0) else "—", style = MaterialTheme.typography.labelLarge, color = colors.onSurface)
                     }
                     Spacer(Modifier.height(4.dp))
                     LinearBar(b.stats.rateFraction, height = 6.dp)
-                    Text("${b.stats.completed} of ${b.stats.eligible} completed", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                    Text(stringResource(Res.string.report_of_completed_fmt, b.stats.completed, b.stats.eligible), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
                 }
             }
             Spacer(Modifier.height(VxSpace.md))
             Text(
-                "Try moving a habit to your strongest time.",
+                stringResource(Res.string.report_try_moving_a_habit_to),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurface
             )
@@ -467,18 +495,19 @@ private fun ReflectionSheet(state: ReportUiState, onDismiss: () -> Unit, onSave:
     var a by remember { mutableStateOf(state.reflection?.achievements ?: "") }
     var o by remember { mutableStateOf(state.reflection?.obstacles ?: "") }
     var n by remember { mutableStateOf(state.reflection?.nextActions ?: "") }
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(true), containerColor = colors.surface) {
+    val edited = a != (state.reflection?.achievements ?: "") || o != (state.reflection?.obstacles ?: "") || n != (state.reflection?.nextActions ?: "")
+    VxBottomSheet(onDismiss = onDismiss, hasUnsavedChanges = edited) {
         Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = VxSpace.xxl).padding(bottom = VxSpace.xxxl)) {
-            Text(if (state.period == ReportPeriod.WEEK) "Weekly reflection" else "Monthly reflection", style = MaterialTheme.typography.headlineSmall, color = colors.onSurface)
+            Text(if (state.period == ReportPeriod.WEEK) stringResource(Res.string.report_weekly_reflection) else stringResource(Res.string.report_monthly_reflection), style = MaterialTheme.typography.headlineSmall, color = colors.onSurface)
             Text(state.periodLabel, style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             Spacer(Modifier.height(VxSpace.lg))
-            VxTextField("What went well?", a, { a = it }, singleLine = false, minLines = 2, maxChars = 1000)
+            VxTextField(stringResource(Res.string.report_what_went_well), a, { a = it }, singleLine = false, minLines = 2, maxChars = 1000)
             Spacer(Modifier.height(VxSpace.md))
-            VxTextField("What got in the way?", o, { o = it }, singleLine = false, minLines = 2, maxChars = 1000)
+            VxTextField(stringResource(Res.string.report_what_got_in_the_way), o, { o = it }, singleLine = false, minLines = 2, maxChars = 1000)
             Spacer(Modifier.height(VxSpace.md))
-            VxTextField("What will you adjust next?", n, { n = it }, singleLine = false, minLines = 2, maxChars = 1000)
+            VxTextField(stringResource(Res.string.report_what_will_you_adjust_next), n, { n = it }, singleLine = false, minLines = 2, maxChars = 1000)
             Spacer(Modifier.height(VxSpace.xl))
-            PrimaryButton("Save reflection", { onSave(a, o, n) }, Modifier.fillMaxWidth(), enabled = a.isNotBlank() || o.isNotBlank() || n.isNotBlank())
+            PrimaryButton(stringResource(Res.string.report_save_reflection), { onSave(a, o, n) }, Modifier.fillMaxWidth(), enabled = a.isNotBlank() || o.isNotBlank() || n.isNotBlank())
         }
     }
 }
@@ -491,28 +520,29 @@ private fun GoalSheet(state: ReportUiState, onDismiss: () -> Unit, onSave: (Stri
     var type by remember { mutableStateOf(GoalTargetType.COMPLETIONS) }
     var target by remember { mutableStateOf("20") }
     var selected by remember { mutableStateOf(setOf<String>()) }
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(true), containerColor = colors.surface) {
+    val edited = title.isNotBlank() || selected.isNotEmpty() || target != (if (type == GoalTargetType.RATE) "80" else "20")
+    VxBottomSheet(onDismiss = onDismiss, hasUnsavedChanges = edited) {
         Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = VxSpace.xxl).padding(bottom = VxSpace.xxxl)) {
-            Text("New goal", style = MaterialTheme.typography.headlineSmall, color = colors.onSurface)
+            Text(stringResource(Res.string.report_new_goal), style = MaterialTheme.typography.headlineSmall, color = colors.onSurface)
             Spacer(Modifier.height(VxSpace.lg))
-            VxTextField("Goal", title, { title = it }, placeholder = "e.g. Run a 5K", maxChars = 60)
+            VxTextField(stringResource(Res.string.report_goal), title, { title = it }, placeholder = stringResource(Res.string.report_e_g_run_a_5k), maxChars = 60)
             Spacer(Modifier.height(VxSpace.lg))
-            SegmentedToggle(listOf("Completions", "Completion rate"), type.ordinal, onSelect = {
+            SegmentedToggle(listOf(stringResource(Res.string.report_completions), stringResource(Res.string.report_completion_rate)), type.ordinal, onSelect = {
                 type = GoalTargetType.entries[it]
                 target = if (type == GoalTargetType.RATE) "80" else "20"
             })
             Spacer(Modifier.height(VxSpace.md))
             VxTextField(
-                if (type == GoalTargetType.RATE) "Target rate (%)" else "Target number of completions",
+                if (type == GoalTargetType.RATE) stringResource(Res.string.report_target_rate) else stringResource(Res.string.report_target_number_of_completions),
                 target,
                 { target = it.filter { c -> c.isDigit() }.take(4) },
                 keyboardType = KeyboardType.Number
             )
             Spacer(Modifier.height(VxSpace.lg))
-            Text("Supporting habits", style = MaterialTheme.typography.labelLarge, color = colors.onSurface)
+            Text(stringResource(Res.string.report_supporting_habits), style = MaterialTheme.typography.labelLarge, color = colors.onSurface)
             Spacer(Modifier.height(VxSpace.sm))
             if (state.activeHabits.isEmpty()) {
-                Text("Start a routine first to link habits.", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                Text(stringResource(Res.string.report_start_a_routine_first_to), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(VxSpace.sm), verticalArrangement = Arrangement.spacedBy(VxSpace.sm)) {
                 state.activeHabits.forEach { h ->
@@ -521,7 +551,7 @@ private fun GoalSheet(state: ReportUiState, onDismiss: () -> Unit, onSave: (Stri
             }
             Spacer(Modifier.height(VxSpace.xl))
             PrimaryButton(
-                "Save goal",
+                stringResource(Res.string.report_save_goal),
                 { onSave(title.trim(), type, target.toDoubleOrNull() ?: 0.0, selected.toList()) },
                 Modifier.fillMaxWidth(),
                 enabled = title.isNotBlank() && (target.toDoubleOrNull() ?: 0.0) > 0 && selected.isNotEmpty()

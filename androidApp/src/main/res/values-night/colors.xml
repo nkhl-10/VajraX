@@ -7,4 +7,9 @@
     <color name="vx_primary">#6366F1</color>
     <color name="vx_primary_container">#312E81</color>
     <color name="vx_outline">#262B38</color>
+    <!-- Lighter accent keeps 4.5:1 on the dark widget surface. -->
+    <color name="vx_widget_accent">#A5B4FC</color>
+    <color name="vx_on_primary">#FFFFFF</color>
+    <color name="vx_widget_on_container">#E0E7FF</color>
+    <color name="vx_track">#262B38</color>
 </resources>

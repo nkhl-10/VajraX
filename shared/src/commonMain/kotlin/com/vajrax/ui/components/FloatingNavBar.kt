@@ -16,7 +16,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Brush
@@ -32,13 +31,14 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.vajrax.ui.designsystem.tiltShadow
 import com.vajrax.ui.designsystem.VxHaptic
-import com.vajrax.ui.designsystem.rememberHaptics
 import com.vajrax.ui.designsystem.VxIcons
+import com.vajrax.ui.designsystem.rememberHaptics
+import com.vajrax.ui.designsystem.tiltShadow
 import com.vajrax.ui.navigation.NavTabItem
 import com.vajrax.ui.navigation.NavTabType
 import com.vajrax.ui.theme.LuminaTheme
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Floating glass navigation bar (same material as the TelepMaster bottom nav): the screen behind
@@ -139,7 +139,7 @@ private fun NavItem(tab: NavTabItem, selected: Boolean, onClick: () -> Unit, mod
         Icon(iconFor(tab.type), contentDescription = null, tint = tint, modifier = Modifier.size(22.dp))
         Spacer(Modifier.height(3.dp))
         Text(
-            tab.label,
+            tab.labelRes?.let { stringResource(it) } ?: tab.label,
             style = MaterialTheme.typography.labelMedium.copy(fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium),
             color = tint
         )

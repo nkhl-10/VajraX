@@ -1,9 +1,9 @@
 package com.vajrax.data.local
 
+import com.vajrax.core.coroutines.AppDispatchers
 import com.vajrax.core.time.Dates
 import com.vajrax.core.time.TimeFormat
 import com.vajrax.domain.habit.Habit
-import com.vajrax.domain.habit.HabitIconResolver
 import com.vajrax.domain.habit.HabitSchedule
 import com.vajrax.domain.habit.HabitType
 import com.vajrax.domain.habit.Occurrence
@@ -15,13 +15,12 @@ import com.vajrax.domain.model.TrackingMode
 import com.vajrax.domain.template.DefaultHabit
 import com.vajrax.domain.template.DefaultTemplate
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 
-internal val DbDispatcher: CoroutineDispatcher = Dispatchers.IO
+internal val DbDispatcher: CoroutineDispatcher = AppDispatchers.IO
 
-internal suspend fun <T> io(block: () -> T): T = withContext(DbDispatcher) { block() }
+/** Database work off the main thread; [block] may suspend (async drivers on the web). */
+internal suspend fun <T> io(block: suspend () -> T): T = withContext(DbDispatcher) { block() }
 
 internal fun Boolean.toDb(): Long = if (this) 1L else 0L
 

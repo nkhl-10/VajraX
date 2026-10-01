@@ -5,7 +5,6 @@ import com.vajrax.domain.repository.TrackerRepository
 import com.vajrax.domain.template.TemplateCatalog
 import com.vajrax.presentation.mvi.MviViewModel
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.launch
 
 /** Template library (spec 04 Screens 02 & 11): provided, bundled community picks and the user's own. */
 class DiscoverViewModel(
@@ -16,7 +15,7 @@ class DiscoverViewModel(
     private val catalogOrder: Map<String, Int> = TemplateCatalog.all.mapIndexed { i, t -> t.id to i }.toMap()
 
     init {
-        viewModelScope.launch {
+        launchLoad {
             combine(templates.observeLibrary(), trackers.observeActiveTracker()) { all, tracker -> all to tracker }
                 .collect { (all, tracker) ->
                     val published = all.filter { !it.isDraft }

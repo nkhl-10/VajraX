@@ -1,6 +1,8 @@
 package com.vajrax.platform
 
 import androidx.compose.runtime.staticCompositionLocalOf
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * UI-triggered platform capabilities. Android implements these in MainActivity
@@ -21,12 +23,20 @@ interface PlatformActions {
     fun requestPinWidget(list: Boolean) {}
     /** Opens the system notification settings for this app (after the permission was denied). */
     fun openNotificationSettings() {}
+    /**
+     * Occurrence the app was opened for from outside (a widget's "Start" or "Log"), or null.
+     * Home handles it once and calls [consumeOpenHabitRequest].
+     */
+    val openHabitRequest: StateFlow<String?> get() = NoOpenRequest
+    fun consumeOpenHabitRequest() {}
     /** Live gyroscope tilt for shadows; null where the platform has none. */
     val deviceTilt: DeviceTilt? get() = null
     /** Posts a reminder for the current habit right away so the user can check how reminders look. */
     fun sendTestReminder() {}
     val appVersion: String
 }
+
+private val NoOpenRequest: StateFlow<String?> = MutableStateFlow(null)
 
 object NoopPlatformActions : PlatformActions {
     override fun exportFile(fileName: String, content: String, onResult: (Boolean) -> Unit) = onResult(false)

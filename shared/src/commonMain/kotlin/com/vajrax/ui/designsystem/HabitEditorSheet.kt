@@ -1,10 +1,13 @@
 package com.vajrax.ui.designsystem
 
+import org.jetbrains.compose.resources.stringResource
+import com.vajrax.resources.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
@@ -48,7 +51,6 @@ fun HabitEditorSheet(
 ) {
     val colors = LuminaTheme.colors
     val haptics = rememberHaptics()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var draft by remember(initial.id) { mutableStateOf(initial) }
     var targetText by remember(initial.id) { mutableStateOf(formatValue(initial.targetValue)) }
     var showTimePicker by remember { mutableStateOf(false) }
@@ -57,28 +59,29 @@ fun HabitEditorSheet(
     var targetError by remember { mutableStateOf<String?>(null) }
     var confirmRemove by remember { mutableStateOf(false) }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = colors.surface) {
+    val edited = draft != initial || targetText != formatValue(initial.targetValue)
+    VxBottomSheet(onDismiss = onDismiss, hasUnsavedChanges = edited) {
         Column(
             modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
                 .padding(horizontal = VxSpace.xxl).padding(bottom = VxSpace.xxxl)
         ) {
-            Text(if (isNew) "New habit" else "Edit habit", style = MaterialTheme.typography.headlineSmall, color = colors.onSurface)
+            Text(if (isNew) stringResource(Res.string.common_new_habit) else stringResource(Res.string.common_edit_habit), style = MaterialTheme.typography.headlineSmall, color = colors.onSurface)
             Spacer(Modifier.height(VxSpace.xl))
 
             VxTextField(
-                label = "Habit name",
+                label = stringResource(Res.string.common_habit_name),
                 value = draft.title,
                 onValueChange = {
                     draft = draft.copy(title = it)
                     nameError = null
                 },
-                placeholder = "e.g. Read 10 pages",
+                placeholder = stringResource(Res.string.common_e_g_read_10_pages),
                 error = nameError,
                 maxChars = 60
             )
 
             Spacer(Modifier.height(VxSpace.xl))
-            Text("Icon & color", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium), color = colors.onSurface)
+            Text(stringResource(Res.string.common_icon_color), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium), color = colors.onSurface)
             Spacer(Modifier.height(VxSpace.sm))
             val accent = habitAccent(draft.color, colors.isDark)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(VxSpace.xs), verticalArrangement = Arrangement.spacedBy(VxSpace.xs)) {
@@ -102,7 +105,7 @@ fun HabitEditorSheet(
                     val c = habitAccent(key, colors.isDark)
                     val selected = draft.color == key
                     Box(
-                        modifier = Modifier.size(36.dp).clip(CircleShape)
+                        modifier = Modifier.minimumInteractiveComponentSize().size(36.dp).clip(CircleShape)
                             .border(if (selected) 2.dp else 0.dp, if (selected) colors.onSurface else c, CircleShape)
                             .padding(4.dp).clip(CircleShape).background(c)
                             .selectable(selected, role = Role.RadioButton) { haptics(VxHaptic.Select); draft = draft.copy(color = key) }
@@ -112,7 +115,7 @@ fun HabitEditorSheet(
             }
 
             Spacer(Modifier.height(VxSpace.xl))
-            Text("Category", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium), color = colors.onSurface)
+            Text(stringResource(Res.string.common_category), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium), color = colors.onSurface)
             Spacer(Modifier.height(VxSpace.sm))
             FlowRow(horizontalArrangement = Arrangement.spacedBy(VxSpace.sm), verticalArrangement = Arrangement.spacedBy(VxSpace.sm)) {
                 HabitIconResolver.categories.forEach { cat ->
@@ -121,7 +124,7 @@ fun HabitEditorSheet(
             }
 
             Spacer(Modifier.height(VxSpace.xl))
-            Text("How do you track it?", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium), color = colors.onSurface)
+            Text(stringResource(Res.string.common_how_do_you_track_it), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium), color = colors.onSurface)
             Spacer(Modifier.height(VxSpace.sm))
             val types = listOf(HabitType.BOOLEAN to "Check", HabitType.COUNT to "Count", HabitType.DURATION to "Minutes", HabitType.VALUE to "Value")
             SegmentedToggle(
@@ -148,7 +151,7 @@ fun HabitEditorSheet(
                 Spacer(Modifier.height(VxSpace.md))
                 Row(horizontalArrangement = Arrangement.spacedBy(VxSpace.md)) {
                     VxTextField(
-                        label = "Daily target",
+                        label = stringResource(Res.string.common_daily_target),
                         value = targetText,
                         onValueChange = { v ->
                             targetText = v.filter { it.isDigit() || it == '.' }.take(8)
@@ -159,7 +162,7 @@ fun HabitEditorSheet(
                         modifier = Modifier.weight(1f)
                     )
                     VxTextField(
-                        label = "Unit",
+                        label = stringResource(Res.string.common_unit),
                         value = draft.unit ?: "",
                         onValueChange = { draft = draft.copy(unit = it.take(16)) },
                         placeholder = if (draft.type == HabitType.COUNT) "glasses" else "pages",
@@ -169,10 +172,10 @@ fun HabitEditorSheet(
             }
 
             Spacer(Modifier.height(VxSpace.xl))
-            TimeField("Time", draft.time, onPick = { showTimePicker = true })
+            TimeField(stringResource(Res.string.common_time), draft.time, onPick = { showTimePicker = true })
 
             Spacer(Modifier.height(VxSpace.xl))
-            Text("Duration", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium), color = colors.onSurface)
+            Text(stringResource(Res.string.common_duration), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium), color = colors.onSurface)
             Spacer(Modifier.height(VxSpace.sm))
             Stepper(
                 value = TimeFormat.duration(draft.durationMinutes),
@@ -184,20 +187,25 @@ fun HabitEditorSheet(
                     val m = (draft.durationMinutes + if (draft.durationMinutes >= 60) 15 else 5).coerceAtMost(720)
                     draft = draft.copy(durationMinutes = m, minimumMinutes = (m / 3).coerceAtLeast(1))
                 },
-                label = "Duration"
+                label = stringResource(Res.string.common_duration)
             )
             Spacer(Modifier.height(VxSpace.sm))
             SwitchRow(
-                title = "Use focus timer",
-                subtitle = "Time it from Today",
+                title = stringResource(Res.string.common_use_focus_timer),
+                subtitle = stringResource(Res.string.common_time_it_from_today),
                 checked = draft.trackingMode == TrackingMode.TIMER,
                 onChange = { draft = draft.copy(trackingMode = if (it) TrackingMode.TIMER else TrackingMode.MANUAL) }
             )
 
             Spacer(Modifier.height(VxSpace.xl))
-            Text("Repeat", style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium), color = colors.onSurface)
+            Text(stringResource(Res.string.common_repeat), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium), color = colors.onSurface)
             Spacer(Modifier.height(VxSpace.sm))
-            val schedules = listOf(ScheduleType.DAILY to "Daily", ScheduleType.WEEKDAYS to "Days", ScheduleType.WEEKLY_TARGET to "Weekly", ScheduleType.INTERVAL to "Interval")
+            val schedules = listOf(
+                ScheduleType.DAILY to stringResource(Res.string.editor_schedule_daily),
+                ScheduleType.WEEKDAYS to stringResource(Res.string.editor_schedule_days),
+                ScheduleType.WEEKLY_TARGET to stringResource(Res.string.editor_schedule_weekly),
+                ScheduleType.INTERVAL to stringResource(Res.string.editor_schedule_interval)
+            )
             SegmentedToggle(
                 options = schedules.map { it.second },
                 selectedIndex = schedules.indexOfFirst { it.first == draft.schedule.type }.coerceAtLeast(0),
@@ -207,18 +215,18 @@ fun HabitEditorSheet(
             when (draft.schedule.type) {
                 ScheduleType.WEEKDAYS -> DayPicker(draft.schedule.days) { days -> draft = draft.copy(schedule = draft.schedule.copy(days = days)) }
                 ScheduleType.WEEKLY_TARGET -> Stepper(
-                    value = "${draft.schedule.weeklyTarget}× per week",
+                    value = stringResource(Res.string.editor_times_per_week_fmt, draft.schedule.weeklyTarget),
                     onMinus = { draft = draft.copy(schedule = draft.schedule.copy(weeklyTarget = (draft.schedule.weeklyTarget - 1).coerceAtLeast(1))) },
                     onPlus = { draft = draft.copy(schedule = draft.schedule.copy(weeklyTarget = (draft.schedule.weeklyTarget + 1).coerceAtMost(7))) },
-                    label = "Times per week"
+                    label = stringResource(Res.string.editor_times_per_week)
                 )
                 ScheduleType.INTERVAL -> Stepper(
-                    value = "Every ${draft.schedule.intervalDays} days",
+                    value = stringResource(Res.string.editor_every_days_fmt, draft.schedule.intervalDays),
                     onMinus = { draft = draft.copy(schedule = draft.schedule.copy(intervalDays = (draft.schedule.intervalDays - 1).coerceAtLeast(2))) },
                     onPlus = { draft = draft.copy(schedule = draft.schedule.copy(intervalDays = (draft.schedule.intervalDays + 1).coerceAtMost(30))) },
-                    label = "Interval"
+                    label = stringResource(Res.string.editor_schedule_interval)
                 )
-                ScheduleType.DAILY -> Text("Every day", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                ScheduleType.DAILY -> Text(stringResource(Res.string.common_every_day), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             }
             val restNote = when (draft.schedule.type) {
                 ScheduleType.WEEKDAYS -> "Other days are rest days."
@@ -232,14 +240,26 @@ fun HabitEditorSheet(
             }
 
             Spacer(Modifier.height(VxSpace.xl))
+            val reminders = LocalReminderAccess.current
             SwitchRow(
-                title = "Reminder",
-                subtitle = if (draft.reminderEnabled) "At ${TimeFormat.display(draft.reminderTime ?: draft.time)}" else "Off",
+                title = stringResource(Res.string.common_reminder),
+                subtitle = when {
+                    !draft.reminderEnabled -> "Off"
+                    !reminders.on -> "Won't ring: reminders are off for VAJRAX"
+                    else -> "At ${TimeFormat.display(draft.reminderTime ?: draft.time)}"
+                },
                 checked = draft.reminderEnabled,
-                onChange = { draft = draft.copy(reminderEnabled = it, reminderTime = draft.reminderTime ?: draft.time) }
+                onChange = { on ->
+                    draft = draft.copy(reminderEnabled = on, reminderTime = draft.reminderTime ?: draft.time)
+                    // Asking for a reminder is the moment to switch reminders (and permission) on.
+                    if (on && !reminders.on) reminders.turnOn()
+                }
             )
             if (draft.reminderEnabled) {
-                TextButton(onClick = { showReminderPicker = true }) { Text("Change reminder time") }
+                Row {
+                    TextButton(onClick = { showReminderPicker = true }) { Text(stringResource(Res.string.common_change_time)) }
+                    if (!reminders.on) TextButton(onClick = reminders.turnOn) { Text(stringResource(Res.string.common_turn_on_reminders)) }
+                }
             }
 
             if (errorMessage != null) {
@@ -249,7 +269,7 @@ fun HabitEditorSheet(
 
             Spacer(Modifier.height(VxSpace.xxl))
             PrimaryButton(
-                text = if (isNew) "Add habit" else "Save changes",
+                text = if (isNew) stringResource(Res.string.common_add_habit) else stringResource(Res.string.common_save_changes),
                 onClick = {
                     val name = draft.title.trim()
                     val target = targetText.toDoubleOrNull()
@@ -284,15 +304,16 @@ fun HabitEditorSheet(
         })
     }
     if (showReminderPicker) {
-        TimePickerDialog(draft.reminderTime ?: draft.time, title = "Reminder time", onDismiss = { showReminderPicker = false }, onConfirm = { t ->
+        TimePickerDialog(draft.reminderTime ?: draft.time, title = stringResource(Res.string.common_reminder_time), onDismiss = { showReminderPicker = false }, onConfirm = { t ->
             draft = draft.copy(reminderTime = t)
             showReminderPicker = false
         })
     }
     if (confirmRemove && onRemove != null) {
         ConfirmDialog(
-            title = "$removeLabel?",
-            message = "Stops from today. History stays.",
+            title = stringResource(Res.string.common_value_fmt_3, removeLabel),
+            // Archiving a running habit keeps its past days; removing a draft just drops it.
+            message = if (isNew || removeLabel.startsWith(stringResource(Res.string.common_remove))) stringResource(Res.string.common_it_won_t_be_part) else stringResource(Res.string.common_it_stops_from_today_its),
             confirmLabel = removeLabel,
             destructive = true,
             onConfirm = {
@@ -309,8 +330,8 @@ fun Stepper(value: String, onMinus: () -> Unit, onPlus: () -> Unit, label: Strin
     val colors = LuminaTheme.colors
     val haptics = rememberHaptics()
     Row(
-        modifier = modifier.fillMaxWidth().clip(androidx.compose.foundation.shape.RoundedCornerShape(14.dp))
-            .border(1.dp, colors.outlineVariant, androidx.compose.foundation.shape.RoundedCornerShape(14.dp)),
+        modifier = modifier.fillMaxWidth().clip(VxShape.control)
+            .border(1.dp, colors.outlineVariant, VxShape.control),
         verticalAlignment = Alignment.CenterVertically
     ) {
         IconButton(onClick = { haptics(VxHaptic.Tick); onMinus() }, modifier = Modifier.semantics { contentDescription = "Decrease $label" }) {
@@ -356,9 +377,10 @@ fun SwitchRow(title: String, subtitle: String?, checked: Boolean, onChange: (Boo
     val haptics = rememberHaptics()
     Row(
         modifier = modifier.fillMaxWidth().heightIn(min = 56.dp)
-            .selectable(checked, role = Role.Switch) {
-                haptics(if (checked) VxHaptic.ToggleOff else VxHaptic.ToggleOn)
-                onChange(!checked)
+            // A switch, announced as on/off by TalkBack.
+            .toggleable(value = checked, role = Role.Switch) { on ->
+                haptics(if (on) VxHaptic.ToggleOn else VxHaptic.ToggleOff)
+                onChange(on)
             },
         verticalAlignment = Alignment.CenterVertically
     ) {

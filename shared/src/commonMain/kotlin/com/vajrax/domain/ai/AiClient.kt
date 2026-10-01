@@ -1,8 +1,7 @@
 package com.vajrax.domain.ai
 
+import com.vajrax.core.coroutines.AppDispatchers
 import io.ktor.client.HttpClient
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 
 /**
@@ -15,7 +14,7 @@ class AiClient(
     private val interpreter: AiPatternInterpreter
 ) {
 
-    suspend fun getEnrichedInsight(description: String, pathName: String): String = withContext(Dispatchers.IO) {
+    suspend fun getEnrichedInsight(description: String, pathName: String): String = withContext(AppDispatchers.IO) {
         // Deterministic fallback ensures 100% offline functionality
         "Observation: $description\nGuidance: Design systems around your actual human nature, not idealized expectations."
     }

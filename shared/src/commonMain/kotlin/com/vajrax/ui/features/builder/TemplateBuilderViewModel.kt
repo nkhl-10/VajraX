@@ -2,15 +2,13 @@
 
 package com.vajrax.ui.features.builder
 
+import com.vajrax.core.coroutines.AppDispatchers
+import com.vajrax.core.coroutines.runCatchingCancellable
 import com.vajrax.core.time.TimeFormat
 import com.vajrax.domain.habit.Habit
 import com.vajrax.domain.repository.TemplateRepository
-import com.vajrax.domain.template.DefaultTemplate
 import com.vajrax.domain.template.toHabitCopy
-import com.vajrax.domain.template.toTemplateHabit
 import com.vajrax.presentation.mvi.MviViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
@@ -50,11 +48,12 @@ sealed interface BuilderEffect {
 /** "Create new template" (design: Create new template.png). Custom templates are the user's own copies. */
 class TemplateBuilderViewModel(
     private val templates: TemplateRepository,
+    private val library: com.vajrax.domain.usecase.TemplateLibraryService,
     editTemplateId: String?
 ) : MviViewModel<BuilderState, BuilderIntent, BuilderEffect>(BuilderState()) {
 
     init {
-        viewModelScope.launch(Dispatchers.IO) {
+        launchLoad(AppDispatchers.IO) {
             val existing = editTemplateId?.let { templates.getTemplateWithHabits(it) }?.takeIf { it.isCustom }
             if (existing != null) {
                 updateState {
@@ -108,29 +107,15 @@ class TemplateBuilderViewModel(
             return
         }
         updateState { copy(isSaving = true) }
-        viewModelScope.launch(Dispatchers.IO) {
-            val template = DefaultTemplate(
-                id = s.id,
-                name = name,
-                category = s.category,
-                description = s.description.trim().ifBlank { "My custom routine" },
-                difficulty = "Custom",
-                estimatedDuration = "Daily",
-                habits = s.habits.mapIndexed { i, h -> h.toTemplateHabit(i) },
-                isCustom = true,
-                isDraft = !publish,
-                frequencyLabel = "Daily",
-                durationDays = 30,
-                recommendedFor = "Created by you"
-            )
-            runCatching { templates.saveCustomTemplate(template) }
-                .onSuccess {
+        viewModelScope.launch(AppDispatchers.IO) {
+            runCatchingCancellable { library.saveCustom(s.id, name, s.category, s.description, s.habits, publish) }
+                .onSuccess { template ->
                     updateState { copy(isSaving = false) }
                     sendEffect(BuilderEffect.Saved(template.id, publish))
                 }
                 .onFailure {
                     updateState { copy(isSaving = false) }
-                    sendEffect(BuilderEffect.ShowMessage("Couldn't save the template. Please try again."))
+                    sendEffect(BuilderEffect.ShowMessage(if (it is com.vajrax.domain.usecase.RoutineException) userMessage(it) else "Couldn't save the template. Please try again."))
                 }
         }
     }

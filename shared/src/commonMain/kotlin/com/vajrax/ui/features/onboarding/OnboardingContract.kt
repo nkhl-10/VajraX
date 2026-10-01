@@ -5,8 +5,8 @@ import com.vajrax.domain.template.DefaultTemplate
 enum class OnboardingStep { WELCOME, ABOUT, ROUTINE, TEMPLATE }
 
 enum class ReminderStyle(val label: String, val description: String, val privacy: String?) {
-    FULL("Show habit names", "“Time for Morning walk”", "FULL"),
-    GENERIC("Keep it private", "“You have a habit due”", "GENERIC"),
+    FULL("Show habit names", "“Time for Morning walk”", com.vajrax.domain.habit.NotificationPrivacy.FULL.name),
+    GENERIC("Keep it private", "“You have a habit due”", com.vajrax.domain.habit.NotificationPrivacy.GENERIC.name),
     OFF("No reminders", "You can turn them on later", null)
 }
 

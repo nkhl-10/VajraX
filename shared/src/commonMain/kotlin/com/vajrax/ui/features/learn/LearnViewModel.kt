@@ -1,9 +1,8 @@
 package com.vajrax.ui.features.learn
 
+import com.vajrax.core.coroutines.AppDispatchers
 import com.vajrax.domain.repository.LearnRepository
 import com.vajrax.presentation.mvi.MviViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 
 class LearnViewModel(
@@ -25,14 +24,14 @@ class LearnViewModel(
     }
 
     private fun loadIdeas() {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(AppDispatchers.IO) {
             val ideas = learnRepository.getAllBookIdeas()
             updateState { copy(ideas = ideas) }
         }
     }
 
     private fun launchExperiment(ideaId: String, customPractice: String) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(AppDispatchers.IO) {
             learnRepository.launchExperiment(ideaId, customPractice, 7)
             val updated = learnRepository.getAllBookIdeas()
             updateState {

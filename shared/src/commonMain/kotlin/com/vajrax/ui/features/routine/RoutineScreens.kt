@@ -2,7 +2,6 @@ package com.vajrax.ui.features.routine
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -13,7 +12,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -23,6 +21,7 @@ import com.vajrax.core.time.Dates
 import com.vajrax.core.time.TimeFormat
 import com.vajrax.domain.habit.Habit
 import com.vajrax.domain.usecase.RoutineManager
+import com.vajrax.resources.*
 import com.vajrax.ui.designsystem.*
 import com.vajrax.ui.features.templates.DashedAddBox
 import com.vajrax.ui.theme.LuminaTheme
@@ -30,6 +29,7 @@ import com.vajrax.ui.theme.VxShape
 import com.vajrax.ui.theme.VxSpace
 import com.vajrax.ui.theme.habitAccent
 import kotlinx.coroutines.flow.Flow
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 private fun CollectMessages(effects: Flow<RoutineEffect>) {
@@ -55,15 +55,15 @@ fun RoutineScreen(
     var renaming by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().background(colors.background)) {
-        VxTopBar("My routine", onBack = onBack, trailing = {
-            if (state.tracker != null) TonalAction("Rename", VxIcons.Pencil, onClick = { renaming = true })
+        VxTopBar(stringResource(Res.string.routine_my_routine), onBack = onBack, trailing = {
+            if (state.tracker != null) TonalAction(stringResource(Res.string.routine_rename), VxIcons.Pencil, onClick = { renaming = true })
         })
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = VxSpace.gutter).navigationBarsPadding()) {
             Spacer(Modifier.height(VxSpace.xl))
             val tracker = state.tracker
             when {
                 state.isLoading -> LoadingSkeleton()
-                tracker == null -> EmptyState(VxIcons.Compass, "No active routine", "Choose a template to start.", actionLabel = "Choose a template", onAction = onChangeTemplate)
+                tracker == null -> EmptyState(VxIcons.Compass, stringResource(Res.string.profile_no_active_routine), stringResource(Res.string.routine_choose_a_template_to_start), actionLabel = stringResource(Res.string.today_choose_a_template), onAction = onChangeTemplate)
                 else -> {
                     Text(tracker.name, style = MaterialTheme.typography.headlineMedium, color = colors.onSurface)
                     Text(
@@ -73,28 +73,28 @@ fun RoutineScreen(
                     )
                     Spacer(Modifier.height(VxSpace.sm))
                     Text(
-                        "Changes apply from today.",
+                        stringResource(Res.string.routine_changes_apply_from_today),
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.onSurfaceVariant
                     )
                     Spacer(Modifier.height(VxSpace.xl))
-                    SectionLabel("Habits")
+                    SectionLabel(stringResource(Res.string.report_habits))
                     Spacer(Modifier.height(VxSpace.sm))
                     state.habits.forEach { h ->
                         RoutineHabitRow(h, onEdit = { editing = h }, onDetails = { onOpenHabit(h.id) })
                         Spacer(Modifier.height(VxSpace.sm))
                     }
                     Spacer(Modifier.height(VxSpace.sm))
-                    DashedAddBox("Add a habit", "Starts today", "Add habit", onClick = { adding = true })
+                    DashedAddBox(stringResource(Res.string.builder_add_a_habit), stringResource(Res.string.routine_starts_today), stringResource(Res.string.common_add_habit), onClick = { adding = true })
                     Spacer(Modifier.height(VxSpace.xl))
                     VxCard(contentPadding = PaddingValues(vertical = VxSpace.xs)) {
-                        ListRow("Save as a reusable template", onClick = { onIntent(RoutineIntent.SaveAsTemplate) }, icon = VxIcons.Copy)
+                        ListRow(stringResource(Res.string.routine_save_as_a_reusable_template), onClick = { onIntent(RoutineIntent.SaveAsTemplate) }, icon = VxIcons.Copy)
                         RowDivider()
-                        ListRow("Switch to another template", onClick = onChangeTemplate, icon = VxIcons.Repeat)
+                        ListRow(stringResource(Res.string.routine_switch_to_another_template), onClick = onChangeTemplate, icon = VxIcons.Repeat)
                     }
                     if (state.pastTrackers.isNotEmpty()) {
                         Spacer(Modifier.height(VxSpace.xl))
-                        SectionLabel("Past routines")
+                        SectionLabel(stringResource(Res.string.routine_past_routines))
                         Spacer(Modifier.height(VxSpace.sm))
                         VxCard {
                             state.pastTrackers.forEach { t ->
@@ -107,7 +107,7 @@ fun RoutineScreen(
                                     )
                                 }
                             }
-                            Text("Included in reports", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                            Text(stringResource(Res.string.routine_included_in_reports), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
                         }
                     }
                 }
@@ -146,15 +146,15 @@ fun RoutineScreen(
         var name by remember { mutableStateOf(state.tracker?.name ?: "") }
         AlertDialog(
             onDismissRequest = { renaming = false },
-            title = { Text("Rename routine") },
-            text = { VxTextField("Name", name, { name = it }, maxChars = 40) },
+            title = { Text(stringResource(Res.string.routine_rename_routine)) },
+            text = { VxTextField(stringResource(Res.string.profile_name), name, { name = it }, maxChars = 40) },
             confirmButton = {
                 TextButton(onClick = {
                     onIntent(RoutineIntent.Rename(name))
                     renaming = false
-                }, enabled = name.isNotBlank()) { Text("Save") }
+                }, enabled = name.isNotBlank()) { Text(stringResource(Res.string.today_save)) }
             },
-            dismissButton = { TextButton(onClick = { renaming = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { renaming = false }) { Text(stringResource(Res.string.common_cancel)) } },
             containerColor = colors.surface
         )
     }
@@ -175,7 +175,7 @@ private fun RoutineHabitRow(habit: Habit, onEdit: () -> Unit, onDetails: () -> U
         Column(Modifier.weight(1f).padding(vertical = VxSpace.sm)) {
             Text(habit.title, style = MaterialTheme.typography.titleSmall, color = colors.onSurface, maxLines = 2, overflow = TextOverflow.Ellipsis)
             Text(
-                listOfNotNull(TimeFormat.display(habit.time).ifBlank { null }, TimeFormat.duration(habit.durationMinutes), habit.targetLabel(), habit.schedule.label(), if (habit.reminderEnabled) "Reminder" else null)
+                listOfNotNull(TimeFormat.display(habit.time).ifBlank { null }, TimeFormat.duration(habit.durationMinutes), habit.targetLabel(), habit.schedule.label(), if (habit.reminderEnabled) stringResource(Res.string.common_reminder) else null)
                     .joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.onSurfaceVariant
@@ -200,14 +200,14 @@ fun HabitDetailScreen(
     val habit = state.habit
 
     Column(Modifier.fillMaxSize().background(colors.background)) {
-        VxTopBar("Habit", onBack = onBack, trailing = {
-            if (habit != null && !habit.isArchived) TonalAction("Edit", VxIcons.Pencil, onClick = { editing = true })
+        VxTopBar(stringResource(Res.string.routine_habit), onBack = onBack, trailing = {
+            if (habit != null && !habit.isArchived) TonalAction(stringResource(Res.string.profile_edit), VxIcons.Pencil, onClick = { editing = true })
         })
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = VxSpace.gutter).navigationBarsPadding()) {
             Spacer(Modifier.height(VxSpace.xl))
             when {
                 state.isLoading -> LoadingSkeleton()
-                habit == null -> EmptyState(VxIcons.Info, "Habit not found", "It may have been removed.")
+                habit == null -> EmptyState(VxIcons.Info, stringResource(Res.string.routine_habit_not_found), stringResource(Res.string.routine_it_may_have_been_removed))
                 else -> {
                     val accent = habitAccent(habit.color, colors.isDark)
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -215,22 +215,22 @@ fun HabitDetailScreen(
                         Spacer(Modifier.width(VxSpace.lg))
                         Column {
                             Text(habit.title, style = MaterialTheme.typography.headlineSmall, color = colors.onSurface)
-                            Text(habit.category + if (habit.isArchived) " · Archived" else "", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+                            Text(habit.category + if (habit.isArchived) stringResource(Res.string.routine_archived) else "", style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
                         }
                     }
                     Spacer(Modifier.height(VxSpace.xl))
                     Row(horizontalArrangement = Arrangement.spacedBy(VxSpace.sm)) {
-                        StatPod("Current streak", "${state.streak.current} ${state.streakUnit}", Modifier.weight(1f))
-                        StatPod("Longest", "${state.streak.longest} ${state.streakUnit}", Modifier.weight(1f))
+                        StatPod(stringResource(Res.string.report_current_streak), stringResource(Res.string.routine_value_fmt, state.streak.current, state.streakUnit), Modifier.weight(1f))
+                        StatPod(stringResource(Res.string.routine_longest), stringResource(Res.string.routine_value_fmt, state.streak.longest, state.streakUnit), Modifier.weight(1f))
                     }
                     Spacer(Modifier.height(VxSpace.sm))
                     Row(horizontalArrangement = Arrangement.spacedBy(VxSpace.sm)) {
-                        StatPod("Last 30 days", state.last30.rate?.let { "$it%" } ?: "—", Modifier.weight(1f))
-                        StatPod("Completed", "${state.allTime.completed}", Modifier.weight(1f))
+                        StatPod(stringResource(Res.string.routine_last_30_days), state.last30.rate?.let { "$it%" } ?: "—", Modifier.weight(1f))
+                        StatPod(stringResource(Res.string.report_completed), stringResource(Res.string.calendar_value_fmt, state.allTime.completed), Modifier.weight(1f))
                     }
                     Spacer(Modifier.height(VxSpace.xl))
                     VxCard {
-                        SectionLabel("Schedule")
+                        SectionLabel(stringResource(Res.string.routine_schedule))
                         Spacer(Modifier.height(VxSpace.sm))
                         DetailLine("Time", TimeFormat.display(habit.time).ifBlank { "Anytime" })
                         DetailLine("Duration", TimeFormat.duration(habit.durationMinutes))
@@ -241,7 +241,7 @@ fun HabitDetailScreen(
                     }
                     Spacer(Modifier.height(VxSpace.lg))
                     VxCard {
-                        SectionLabel("Last 5 weeks")
+                        SectionLabel(stringResource(Res.string.routine_last_5_weeks))
                         Spacer(Modifier.height(VxSpace.sm))
                         Row(Modifier.fillMaxWidth()) {
                             listOf("M", "T", "W", "T", "F", "S", "S").forEach {
@@ -272,12 +272,12 @@ fun HabitDetailScreen(
                             }
                         }
                         Spacer(Modifier.height(VxSpace.sm))
-                        Text("Filled: done · Outline: skipped · Grey: not done · Blank: rest day", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                        Text(stringResource(Res.string.routine_filled_done_outline_skipped_grey), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
                     }
                     if (state.notes.isNotEmpty()) {
                         Spacer(Modifier.height(VxSpace.lg))
                         VxCard {
-                            SectionLabel("Recent notes")
+                            SectionLabel(stringResource(Res.string.routine_recent_notes))
                             state.notes.forEach { (date, note) ->
                                 Spacer(Modifier.height(VxSpace.sm))
                                 Text(Dates.shortLabel(date), style = MaterialTheme.typography.labelMedium, color = colors.primary)

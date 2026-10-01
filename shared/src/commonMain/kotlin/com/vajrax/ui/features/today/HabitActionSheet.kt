@@ -1,5 +1,7 @@
 package com.vajrax.ui.features.today
 
+import org.jetbrains.compose.resources.stringResource
+import com.vajrax.resources.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -40,7 +42,6 @@ fun HabitActionSheet(
     val colors = LuminaTheme.colors
     val habit = item.habit
     val occ = item.occurrence
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     var mode by remember(item.id) { mutableStateOf("main") }
     var note by remember(item.id) { mutableStateOf(occ.note ?: "") }
     var valueText by remember(item.id) { mutableStateOf(occ.value?.let { formatValue(it) } ?: "") }
@@ -54,7 +55,13 @@ fun HabitActionSheet(
         onDismiss()
     }
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = colors.surface) {
+    val edited = note != (occ.note ?: "") || valueText != (occ.value?.let { formatValue(it) } ?: "") || reason != null
+    VxBottomSheet(
+        onDismiss = onDismiss,
+        hasUnsavedChanges = edited,
+        // Back from "skip" or "note" returns to the main actions instead of closing.
+        onStepBack = { if (mode != "main") { mode = "main"; true } else false }
+    ) {
         Column(
             Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = VxSpace.xxl).padding(bottom = VxSpace.xxxl)
         ) {
@@ -86,9 +93,9 @@ fun HabitActionSheet(
 
             when (mode) {
                 "skip" -> {
-                    Text("Skip today?", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+                    Text(stringResource(Res.string.today_skip_today_2), style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
                     Text(
-                        "Reason (optional)",
+                        stringResource(Res.string.today_reason_optional),
                         style = MaterialTheme.typography.bodySmall,
                         color = colors.onSurfaceVariant
                     )
@@ -99,75 +106,79 @@ fun HabitActionSheet(
                     if (habit.durationMinutes >= 10 && isOpen) {
                         Spacer(Modifier.height(VxSpace.lg))
                         VxCard(onClick = { act(TodayIntent.CompleteMinimum(item.id)) }) {
-                            Text("Do the minimum instead", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = colors.onSurface)
+                            Text(stringResource(Res.string.today_do_the_minimum_instead), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold), color = colors.onSurface)
                             Text(
-                                "${TimeFormat.duration(habit.minimumMinutes)} · counts as done",
+                                stringResource(Res.string.today_counts_as_done_fmt, TimeFormat.duration(habit.minimumMinutes)),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = colors.onSurfaceVariant
                             )
                         }
                     }
                     Spacer(Modifier.height(VxSpace.xl))
-                    PrimaryButton("Skip today", { act(TodayIntent.Skip(item.id, reason?.label)) }, Modifier.fillMaxWidth())
-                    TextButton(onClick = { mode = "main" }, modifier = Modifier.fillMaxWidth()) { Text("Back") }
+                    PrimaryButton(stringResource(Res.string.today_skip_today), { act(TodayIntent.Skip(item.id, reason?.label)) }, Modifier.fillMaxWidth())
+                    TextButton(onClick = { mode = "main" }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(Res.string.today_back)) }
                 }
                 "note" -> {
                     VxTextField(
-                        label = "Note for today",
+                        label = stringResource(Res.string.today_note_for_today),
                         value = note,
                         onValueChange = { note = it },
-                        placeholder = "How did it go?",
+                        placeholder = stringResource(Res.string.today_how_did_it_go),
                         singleLine = false,
                         minLines = 3,
                         maxChars = 500
                     )
                     Spacer(Modifier.height(VxSpace.lg))
-                    PrimaryButton("Save note", { act(TodayIntent.SaveNote(item.id, note)) }, Modifier.fillMaxWidth())
-                    TextButton(onClick = { mode = "main" }, modifier = Modifier.fillMaxWidth()) { Text("Back") }
+                    PrimaryButton(stringResource(Res.string.today_save_note), { act(TodayIntent.SaveNote(item.id, note)) }, Modifier.fillMaxWidth())
+                    TextButton(onClick = { mode = "main" }, modifier = Modifier.fillMaxWidth()) { Text(stringResource(Res.string.today_back)) }
                 }
                 else -> {
                     if (isOpen) {
                         if (habit.type == HabitType.BOOLEAN) {
-                            PrimaryButton("Mark as done", { act(TodayIntent.Complete(item.id)) }, Modifier.fillMaxWidth(), icon = VxIcons.Check)
+                            PrimaryButton(stringResource(Res.string.today_mark_as_done), { act(TodayIntent.Complete(item.id)) }, Modifier.fillMaxWidth(), icon = VxIcons.Check)
                         } else {
                             Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(VxSpace.md)) {
                                 VxTextField(
-                                    label = "Today's ${habit.unit ?: "value"} (target ${formatValue(habit.targetValue)})",
+                                    label = stringResource(
+                                        Res.string.today_value_field_fmt,
+                                        habit.unit ?: stringResource(Res.string.today_value_word),
+                                        formatValue(habit.targetValue)
+                                    ),
                                     value = valueText,
                                     onValueChange = { valueText = it.filter { c -> c.isDigit() || c == '.' }.take(9) },
                                     keyboardType = KeyboardType.Decimal,
                                     modifier = Modifier.weight(1f)
                                 )
-                                PrimaryButton("Save", {
+                                PrimaryButton(stringResource(Res.string.today_save), {
                                     valueText.toDoubleOrNull()?.let { act(TodayIntent.RecordValue(item.id, it)) }
                                 }, enabled = valueText.toDoubleOrNull() != null)
                             }
                             Spacer(Modifier.height(VxSpace.sm))
-                            SecondaryButton("Reached the target", { act(TodayIntent.Complete(item.id)) }, Modifier.fillMaxWidth(), icon = VxIcons.Check)
+                            SecondaryButton(stringResource(Res.string.today_reached_the_target), { act(TodayIntent.Complete(item.id)) }, Modifier.fillMaxWidth(), icon = VxIcons.Check)
                         }
                         Spacer(Modifier.height(VxSpace.md))
                         if (habit.trackingMode == TrackingMode.TIMER) {
-                            SheetAction(VxIcons.Timer, "Start focus timer") { act(TodayIntent.StartTimer(item.id)) }
+                            SheetAction(VxIcons.Timer, stringResource(Res.string.today_start_focus_timer)) { act(TodayIntent.StartTimer(item.id)) }
                         }
                         if (habit.durationMinutes >= 10) {
-                            SheetAction(VxIcons.Zap, "Do the minimum (${TimeFormat.duration(habit.minimumMinutes)})") { act(TodayIntent.CompleteMinimum(item.id)) }
+                            SheetAction(VxIcons.Zap, stringResource(Res.string.today_do_the_minimum_fmt, TimeFormat.duration(habit.minimumMinutes))) { act(TodayIntent.CompleteMinimum(item.id)) }
                         }
-                        SheetAction(VxIcons.Alarm, "Snooze 15 minutes") { act(TodayIntent.Snooze(item.id)) }
-                        SheetAction(VxIcons.Clock, "Move to another time today") { pickTime = true }
-                        SheetAction(VxIcons.SkipForward, "Skip today") { mode = "skip" }
+                        SheetAction(VxIcons.Alarm, stringResource(Res.string.today_snooze_minutes_fmt, com.vajrax.domain.BusinessRules.SNOOZE_MINUTES)) { act(TodayIntent.Snooze(item.id)) }
+                        SheetAction(VxIcons.Clock, stringResource(Res.string.today_move_to_another_time_today)) { pickTime = true }
+                        SheetAction(VxIcons.SkipForward, stringResource(Res.string.today_skip_today)) { mode = "skip" }
                     } else {
-                        SecondaryButton("Undo — mark as not done", { act(TodayIntent.Reopen(item.id)) }, Modifier.fillMaxWidth(), icon = VxIcons.Undo)
+                        SecondaryButton(stringResource(Res.string.today_undo_mark_as_not_done), { act(TodayIntent.Reopen(item.id)) }, Modifier.fillMaxWidth(), icon = VxIcons.Undo)
                         Spacer(Modifier.height(VxSpace.md))
                     }
-                    SheetAction(VxIcons.Note, if (occ.note.isNullOrBlank()) "Add a note" else "Edit note") { mode = "note" }
-                    SheetAction(VxIcons.Chart, "Habit details & history") { onOpenDetails() }
+                    SheetAction(VxIcons.Note, if (occ.note.isNullOrBlank()) stringResource(Res.string.today_add_a_note) else stringResource(Res.string.today_edit_note)) { mode = "note" }
+                    SheetAction(VxIcons.Chart, stringResource(Res.string.today_habit_details_history)) { onOpenDetails() }
                 }
             }
         }
     }
 
     if (pickTime) {
-        TimePickerDialog(occ.scheduledTime ?: habit.time, title = "Move today's ${habit.title}", onDismiss = { pickTime = false }, onConfirm = {
+        TimePickerDialog(occ.scheduledTime ?: habit.time, title = stringResource(Res.string.today_move_today_s_fmt, habit.title), onDismiss = { pickTime = false }, onConfirm = {
             pickTime = false
             act(TodayIntent.Move(item.id, it))
         })

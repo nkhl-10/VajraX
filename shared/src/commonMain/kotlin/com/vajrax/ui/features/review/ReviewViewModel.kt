@@ -1,9 +1,8 @@
 package com.vajrax.ui.features.review
 
+import com.vajrax.core.coroutines.AppDispatchers
 import com.vajrax.domain.repository.ReviewRepository
 import com.vajrax.presentation.mvi.MviViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 
 class ReviewViewModel(
@@ -22,7 +21,7 @@ class ReviewViewModel(
     }
 
     private fun loadReviewData() {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(AppDispatchers.IO) {
             val summary = reviewRepository.getWeeklySummary()
             val pattern = reviewRepository.getActivePatternInsight()
 
@@ -40,7 +39,7 @@ class ReviewViewModel(
     }
 
     private fun applyRecommendation() {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch(AppDispatchers.IO) {
             val pattern = uiState.value.patternInsight
             if (pattern != null) {
                 reviewRepository.markPatternApplied("pattern_1")

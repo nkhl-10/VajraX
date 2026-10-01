@@ -1,5 +1,7 @@
 package com.vajrax.ui.designsystem
 
+import org.jetbrains.compose.resources.stringResource
+import com.vajrax.resources.*
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -20,6 +22,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -61,7 +64,7 @@ fun VxCard(
     content: @Composable ColumnScope.() -> Unit
 ) {
     val colors = LuminaTheme.colors
-    val shape = RoundedCornerShape(20.dp)
+    val shape = VxShape.card
     val tilt = com.vajrax.platform.LocalDeviceTilt.current
     val haptics = rememberHaptics()
     Column(
@@ -192,13 +195,14 @@ fun DeltaChip(delta: Int?, modifier: Modifier = Modifier) {
     ) {
         Icon(if (up) VxIcons.TrendingUp else VxIcons.TrendingDown, null, tint = fg, modifier = Modifier.size(14.dp))
         Spacer(Modifier.width(4.dp))
-        Text("${kotlin.math.abs(delta)}%", style = MaterialTheme.typography.labelMedium, color = fg)
+        Text(stringResource(Res.string.common_value_fmt_2, kotlin.math.abs(delta)), style = MaterialTheme.typography.labelMedium, color = fg)
     }
 }
 
 // ---------------------------------------------------------------- check-in controls
 
-enum class CheckState { OPEN, DONE, DONE_MUTED, SKIPPED, DISABLED, ACTIVE }
+/** [MISSED] is a past day that wasn't done; [DISABLED] is a day that can't be checked (future). */
+enum class CheckState { OPEN, DONE, DONE_MUTED, SKIPPED, MISSED, DISABLED, ACTIVE }
 
 /**
  * Round completion control with a 48dp touch target and a textual state for screen readers
@@ -227,6 +231,7 @@ fun CheckCircle(
     val stateText = when (state) {
         CheckState.DONE, CheckState.DONE_MUTED -> "Done"
         CheckState.SKIPPED -> "Skipped"
+        CheckState.MISSED -> "Not done"
         CheckState.DISABLED -> "Not available"
         CheckState.ACTIVE -> "Current, not done"
         CheckState.OPEN -> "Not done"
@@ -243,6 +248,7 @@ fun CheckCircle(
                 if (onLongClick != null) Modifier.combinedClickable(
                     onClick = { if (onClick != null) { feel(); onClick() } },
                     onLongClick = { haptics(VxHaptic.Tap); onLongClick() },
+                    onLongClickLabel = "Correct this record",
                     role = Role.Button
                 )
                 else if (interactive) Modifier.toggleable(
@@ -266,6 +272,7 @@ fun CheckCircle(
                     when (state) {
                         CheckState.DONE_MUTED -> Modifier.border(1.4.dp, colors.outline.copy(alpha = 0.7f), CircleShape)
                         CheckState.SKIPPED, CheckState.DISABLED -> Modifier.border(1.4.dp, colors.outlineVariant, CircleShape)
+                        CheckState.MISSED -> Modifier.border(1.4.dp, colors.outline, CircleShape)
                         else -> Modifier
                     }
                 ),
@@ -276,6 +283,8 @@ fun CheckCircle(
                 CheckState.DONE_MUTED -> Icon(VxIcons.Check, null, tint = colors.outline, modifier = Modifier.size(size * 0.5f))
                 CheckState.SKIPPED -> Icon(VxIcons.SkipForward, null, tint = colors.outline, modifier = Modifier.size(size * 0.45f))
                 CheckState.ACTIVE -> Box(Modifier.size(size * 0.36f).clip(CircleShape).background(colors.onPrimary))
+                // A mark as well as a colour, so missed and upcoming never look the same.
+                CheckState.MISSED -> Icon(VxIcons.Minus, null, tint = colors.outline, modifier = Modifier.size(size * 0.45f))
                 else -> Unit
             }
         }
@@ -299,7 +308,7 @@ fun PrimaryButton(
         onClick = { haptics(haptic); onClick() },
         enabled = enabled && !loading,
         modifier = modifier.heightIn(min = 52.dp),
-        shape = RoundedCornerShape(14.dp),
+        shape = VxShape.control,
         colors = ButtonDefaults.buttonColors(containerColor = LuminaTheme.colors.primary, contentColor = LuminaTheme.colors.onPrimary)
     ) {
         if (loading) {
@@ -330,7 +339,7 @@ fun SecondaryButton(
         onClick = { haptics(VxHaptic.Tap); onClick() },
         enabled = enabled,
         modifier = modifier.heightIn(min = 52.dp),
-        shape = RoundedCornerShape(14.dp),
+        shape = VxShape.control,
         border = BorderStroke(1.5.dp, if (enabled) tint.copy(alpha = 0.85f) else colors.outlineVariant),
         colors = ButtonDefaults.outlinedButtonColors(contentColor = tint)
     ) {
@@ -356,7 +365,7 @@ fun PillAction(
     val haptics = rememberHaptics()
     Row(
         modifier = modifier
-            .heightIn(min = 40.dp)
+            .minimumInteractiveComponentSize().heightIn(min = 40.dp)
             .clip(VxShape.pill)
             .background(if (filled) colors.primary else colors.surface)
             .border(1.dp, if (filled) colors.primary else colors.primary.copy(alpha = 0.25f), VxShape.pill)
@@ -391,7 +400,7 @@ fun UsePill(text: String = "Use", onClick: () -> Unit, modifier: Modifier = Modi
     val colors = LuminaTheme.colors
     val haptics = rememberHaptics()
     Box(
-        modifier = modifier.heightIn(min = 40.dp).clip(VxShape.pill).background(colors.primary)
+        modifier = modifier.minimumInteractiveComponentSize().heightIn(min = 40.dp).clip(VxShape.pill).background(colors.primary)
             .clickable(role = Role.Button) { haptics(VxHaptic.Tap); onClick() }.padding(horizontal = 22.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -413,7 +422,7 @@ fun SegmentedToggle(options: List<String>, selectedIndex: Int, onSelect: (Int) -
             val selected = index == selectedIndex
             Box(
                 modifier = Modifier
-                    .heightIn(min = 36.dp)
+                    .minimumInteractiveComponentSize().heightIn(min = 40.dp)
                     .clip(VxShape.pill)
                     .background(if (selected) colors.surface else Color.Transparent)
                     .selectable(selected = selected, role = Role.Tab, onClick = { if (!selected) haptics(VxHaptic.Select); onSelect(index) })
@@ -436,7 +445,7 @@ fun CategoryChip(text: String, selected: Boolean, onClick: () -> Unit, modifier:
     val haptics = rememberHaptics()
     Box(
         modifier = modifier
-            .heightIn(min = 40.dp)
+            .minimumInteractiveComponentSize().heightIn(min = 40.dp)
             .clip(VxShape.pill)
             .background(if (selected) colors.primaryContainer else colors.surface)
             .border(if (selected) 1.5.dp else 1.dp, if (selected) colors.primary else colors.outlineVariant, VxShape.pill)
@@ -480,7 +489,7 @@ fun VxTextField(
             singleLine = singleLine,
             minLines = minLines,
             isError = error != null,
-            shape = RoundedCornerShape(14.dp),
+            shape = VxShape.control,
             textStyle = MaterialTheme.typography.bodyLarge,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             colors = OutlinedTextFieldDefaults.colors(
@@ -501,7 +510,7 @@ fun VxTextField(
                     modifier = Modifier.weight(1f)
                 )
                 if (maxChars != null) {
-                    Text("${value.length} / $maxChars", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                    Text(stringResource(Res.string.common_value_fmt, value.length, maxChars), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
                 }
             }
         }
@@ -517,8 +526,8 @@ fun TimeField(label: String, time: String?, onPick: () -> Unit, modifier: Modifi
         Text(label, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium), color = colors.onSurface)
         Spacer(Modifier.height(6.dp))
         Row(
-            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).clip(RoundedCornerShape(14.dp))
-                .border(1.dp, colors.outlineVariant, RoundedCornerShape(14.dp)).background(colors.surface)
+            modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp).clip(VxShape.control)
+                .border(1.dp, colors.outlineVariant, VxShape.control).background(colors.surface)
                 .clickable(role = Role.Button) { haptics(VxHaptic.Tap); onPick() }.padding(horizontal = VxSpace.lg),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -545,9 +554,9 @@ fun TimePickerDialog(initial: String?, onDismiss: () -> Unit, onConfirm: (String
         title = { Text(title, style = MaterialTheme.typography.titleLarge) },
         text = { Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { TimePicker(state = state) } },
         confirmButton = {
-            TextButton(onClick = { onConfirm(TimeFormat.fromMinutes(state.hour * 60 + state.minute)) }) { Text("Set") }
+            TextButton(onClick = { onConfirm(TimeFormat.fromMinutes(state.hour * 60 + state.minute)) }) { Text(stringResource(Res.string.common_set)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(Res.string.common_cancel)) } },
         containerColor = LuminaTheme.colors.surface
     )
 }
@@ -612,11 +621,11 @@ fun ErrorState(message: String, onRetry: () -> Unit, modifier: Modifier = Modifi
     Column(modifier.fillMaxWidth().padding(VxSpace.xxl), horizontalAlignment = Alignment.CenterHorizontally) {
         IconBadge(VxIcons.Info, colors.statusError, size = 56.dp, iconSize = 26.dp)
         Spacer(Modifier.height(VxSpace.lg))
-        Text("Something went wrong", style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
+        Text(stringResource(Res.string.common_something_went_wrong), style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
         Spacer(Modifier.height(VxSpace.xs))
         Text(message, style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant, textAlign = TextAlign.Center)
         Spacer(Modifier.height(VxSpace.lg))
-        SecondaryButton("Try again", onRetry)
+        SecondaryButton(stringResource(Res.string.common_try_again), onRetry)
     }
 }
 
@@ -626,7 +635,7 @@ fun LoadingSkeleton(modifier: Modifier = Modifier, rows: Int = 5) {
     val transition = rememberInfiniteTransition(label = "skeleton")
     val alpha by transition.animateFloat(0.45f, 0.9f, infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "a")
     Column(modifier.fillMaxWidth().semantics { contentDescription = "Loading" }, verticalArrangement = Arrangement.spacedBy(VxSpace.md)) {
-        Box(Modifier.fillMaxWidth().height(150.dp).clip(RoundedCornerShape(20.dp)).alpha(alpha).background(colors.surfaceContainerHigh))
+        Box(Modifier.fillMaxWidth().height(150.dp).clip(VxShape.card).alpha(alpha).background(colors.surfaceContainerHigh))
         repeat(rows) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(28.dp).clip(CircleShape).alpha(alpha).background(colors.surfaceContainerHigh))
@@ -654,11 +663,11 @@ fun VxTopBar(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            modifier = Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)).clickable(role = Role.Button) { haptics(VxHaptic.Tap); onBack() }
+            modifier = Modifier.size(48.dp).clip(VxShape.control).clickable(role = Role.Button) { haptics(VxHaptic.Tap); onBack() }
                 .semantics { contentDescription = "Back" },
             contentAlignment = Alignment.Center
         ) {
-            Box(Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(colors.surfaceDim), contentAlignment = Alignment.Center) {
+            Box(Modifier.size(40.dp).clip(VxShape.tile).background(colors.surfaceDim), contentAlignment = Alignment.Center) {
                 Icon(VxIcons.ArrowLeft, null, tint = colors.onSurface, modifier = Modifier.size(20.dp))
             }
         }
@@ -681,7 +690,7 @@ fun TonalAction(text: String, icon: ImageVector, onClick: () -> Unit, modifier: 
     val colors = LuminaTheme.colors
     val haptics = rememberHaptics()
     Row(
-        modifier = modifier.heightIn(min = 40.dp).clip(VxShape.pill).background(colors.primaryContainer)
+        modifier = modifier.minimumInteractiveComponentSize().heightIn(min = 40.dp).clip(VxShape.pill).background(colors.primaryContainer)
             .clickable(role = Role.Button) { haptics(VxHaptic.Tap); onClick() }.padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

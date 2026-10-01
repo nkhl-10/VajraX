@@ -1,5 +1,7 @@
 package com.vajrax.ui.features.splash
 
+import org.jetbrains.compose.resources.stringResource
+import com.vajrax.resources.*
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -16,6 +18,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.vajrax.ui.designsystem.SecondaryButton
 import com.vajrax.ui.designsystem.VajraMark
 import com.vajrax.ui.theme.LuminaTheme
 import com.vajrax.ui.theme.VxSpace
@@ -26,7 +29,7 @@ import kotlinx.coroutines.delay
  * occurrences). Leaves as soon as [startRoute] is known, after a short minimum so it never flickers.
  */
 @Composable
-fun SplashScreen(startRoute: String?, error: String?, onReady: (String) -> Unit) {
+fun SplashScreen(startRoute: String?, error: String?, onRetry: () -> Unit, onReady: (String) -> Unit) {
     val colors = LuminaTheme.colors
     val appear = remember { Animatable(0f) }
     LaunchedEffect(Unit) { appear.animateTo(1f, tween(450)) }
@@ -44,20 +47,28 @@ fun SplashScreen(startRoute: String?, error: String?, onReady: (String) -> Unit)
             VajraMark(size = 84.dp)
             Spacer(Modifier.height(VxSpace.xl))
             Text(
-                "VAJRAX",
+                stringResource(Res.string.app_name),
                 style = MaterialTheme.typography.headlineMedium.copy(letterSpacing = 6.sp, fontWeight = FontWeight.ExtraBold),
                 color = colors.onSurface
             )
             Spacer(Modifier.height(VxSpace.xs))
-            Text("Build yourself.", style = MaterialTheme.typography.bodyLarge, color = colors.onSurfaceVariant)
+            Text(stringResource(Res.string.splash_build_yourself), style = MaterialTheme.typography.bodyLarge, color = colors.onSurfaceVariant)
         }
         if (error != null) {
-            Text(
-                error,
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.statusError,
-                modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(VxSpace.xxl)
-            )
+            Column(
+                modifier = Modifier.align(Alignment.BottomCenter).navigationBarsPadding().padding(VxSpace.xxl),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(error, style = MaterialTheme.typography.bodyMedium, color = colors.onSurface)
+                Text(
+                    stringResource(Res.string.splash_your_habits_are_safe_try),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                )
+                Spacer(Modifier.height(VxSpace.md))
+                SecondaryButton(stringResource(Res.string.common_try_again), onRetry)
+            }
         }
     }
 }

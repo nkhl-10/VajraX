@@ -1,0 +1,20 @@
+<configuration>
+    <!-- One JSON object per line: Cloud Logging reads "severity" and "message".
+         Local runs use logback-dev.xml (readable text), see DevServer. -->
+    <appender name="OUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <fieldNames>
+                <level>severity</level>
+                <timestamp>time</timestamp>
+                <levelValue>[ignore]</levelValue>
+                <version>[ignore]</version>
+            </fieldNames>
+            <includeMdcKeyName>requestId</includeMdcKeyName>
+        </encoder>
+    </appender>
+    <logger name="com.zaxxer.hikari" level="WARN"/>
+    <logger name="io.netty" level="WARN"/>
+    <root level="${LOG_LEVEL:-INFO}">
+        <appender-ref ref="OUT"/>
+    </root>
+</configuration>

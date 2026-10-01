@@ -14,5 +14,8 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "VajraX"
+include(":contract")
 include(":shared")
 include(":androidApp")
+include(":webApp")
+include(":server")

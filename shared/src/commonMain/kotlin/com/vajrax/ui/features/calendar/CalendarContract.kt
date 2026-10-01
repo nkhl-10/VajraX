@@ -72,8 +72,11 @@ sealed interface CalendarIntent {
     data object GoToday : CalendarIntent
     data class ToggleToday(val occurrenceId: String) : CalendarIntent
     data class CorrectPast(val occurrenceId: String, val done: Boolean) : CalendarIntent
+    /** Undo the last check-in from the calendar. */
+    data class Undo(val previous: com.vajrax.domain.habit.Occurrence) : CalendarIntent
 }
 
 sealed interface CalendarEffect {
-    data class ShowMessage(val message: String) : CalendarEffect
+    /** [undo] offers an Undo action that restores the occurrence to this earlier state. */
+    data class ShowMessage(val message: String, val undo: com.vajrax.domain.habit.Occurrence? = null) : CalendarEffect
 }

@@ -21,50 +21,13 @@ class AuthRepositoryImpl(
         }
     }
 
-    override suspend fun loginWithEmail(email: String, password: String): Result<UserSession> {
-        // Test account verification
-        if (email.trim().equals("admin@gmail.co", ignoreCase = true) && password == "Test@123") {
-            val user = UserSession(
-                userId = "user_admin_01",
-                email = "admin@gmail.co",
-                displayName = "Vajra Admin",
-                isGuest = false,
-                activePathId = "high_performance"
-            )
-            queries.insertOrUpdateUser(
-                userId = user.userId,
-                email = user.email,
-                displayName = user.displayName,
-                isGuest = if (user.isGuest) 1L else 0L,
-                activePathId = user.activePathId,
-                createdAt = "2026-08-30T00:00:00Z"
-            )
-            return Result.success(user)
-        }
-
-        // Generic email login fallback for offline/development mode
-        if (email.contains("@") && password.length >= 6) {
-            val name = email.substringBefore("@").replaceFirstChar { it.uppercase() }
-            val user = UserSession(
-                userId = "user_${email.hashCode()}",
-                email = email,
-                displayName = name,
-                isGuest = false,
-                activePathId = "high_performance"
-            )
-            queries.insertOrUpdateUser(
-                userId = user.userId,
-                email = user.email,
-                displayName = user.displayName,
-                isGuest = if (user.isGuest) 1L else 0L,
-                activePathId = user.activePathId,
-                createdAt = "2026-08-30T00:00:00Z"
-            )
-            return Result.success(user)
-        }
-
-        return Result.failure(IllegalArgumentException("Invalid credentials. For testing use admin@gmail.co / Test@123"))
-    }
+    /**
+     * There is no account server yet, so email sign-in always fails with a plain message. It used
+     * to accept a built-in test account and any address offline; credentials must never ship in
+     * the app. The online phase replaces this with the real auth API.
+     */
+    override suspend fun loginWithEmail(email: String, password: String): Result<UserSession> =
+        Result.failure(IllegalStateException(SIGN_IN_UNAVAILABLE))
 
     override suspend fun continueAsGuest(): UserSession {
         val guest = UserSession(
@@ -87,5 +50,9 @@ class AuthRepositoryImpl(
 
     override suspend fun logout() {
         queries.clearUserSession()
+    }
+
+    companion object {
+        const val SIGN_IN_UNAVAILABLE = "Sign-in isn't available yet. VAJRAX works fully offline on this phone."
     }
 }

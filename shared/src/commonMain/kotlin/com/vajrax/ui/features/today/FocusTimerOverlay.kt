@@ -11,12 +11,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.vajrax.core.time.TimeFormat
+import com.vajrax.resources.*
+import com.vajrax.ui.designsystem.ConfirmDialog
 import com.vajrax.ui.designsystem.PrimaryButton
 import com.vajrax.ui.designsystem.ProgressRing
 import com.vajrax.ui.designsystem.SecondaryButton
@@ -24,6 +26,7 @@ import com.vajrax.ui.designsystem.VxIcons
 import com.vajrax.ui.theme.LuminaTheme
 import com.vajrax.ui.theme.VxSpace
 import kotlinx.coroutines.delay
+import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Clock
 
 /**
@@ -39,6 +42,23 @@ fun FocusTimerOverlay(
     onCancel: () -> Unit
 ) {
     val colors = LuminaTheme.colors
+    var confirmDiscard by remember { mutableStateOf(false) }
+    // Back during a session asks first instead of leaving the timer running unseen.
+    com.vajrax.ui.utils.PlatformBackHandler(enabled = !confirmDiscard) { confirmDiscard = true }
+    if (confirmDiscard) {
+        ConfirmDialog(
+            title = stringResource(Res.string.today_discard_this_session),
+            message = stringResource(Res.string.today_the_time_so_far_won),
+            confirmLabel = stringResource(Res.string.common_discard),
+            destructive = true,
+            dismissLabel = stringResource(Res.string.today_keep_going),
+            onConfirm = {
+                confirmDiscard = false
+                onCancel()
+            },
+            onDismiss = { confirmDiscard = false }
+        )
+    }
     var nowMs by remember { mutableStateOf(Clock.System.now().toEpochMilliseconds()) }
     LaunchedEffect(timer.running) {
         while (true) {
@@ -59,11 +79,11 @@ fun FocusTimerOverlay(
     ) {
         Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(Modifier.height(VxSpace.xxl))
-            Text("FOCUS SESSION", style = MaterialTheme.typography.labelSmall, color = colors.primary)
+            Text(stringResource(Res.string.today_focus_session), style = MaterialTheme.typography.labelSmall, color = colors.primary)
             Spacer(Modifier.height(VxSpace.sm))
             Text(timer.item.habit.title, style = MaterialTheme.typography.headlineSmall, color = colors.onSurface)
             Text(
-                "Target ${TimeFormat.duration(target)} · minimum ${TimeFormat.duration(minimum)}",
+                stringResource(Res.string.today_target_minimum_fmt, TimeFormat.duration(target), TimeFormat.duration(minimum)),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurfaceVariant
             )
@@ -72,9 +92,13 @@ fun FocusTimerOverlay(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         clockText,
-                        style = MaterialTheme.typography.displaySmall.copy(fontSize = 52.sp, fontFeatureSettings = "tnum"),
+                        style = MaterialTheme.typography.displayLarge.copy(fontFeatureSettings = "tnum"),
                         color = colors.onSurface,
-                        modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                        // TalkBack hears the time once a minute, not every tick of the clock.
+                        modifier = Modifier.clearAndSetSemantics {
+                            contentDescription = if (minutes == 1) "1 minute" else "$minutes minutes"
+                            liveRegion = LiveRegionMode.Polite
+                        }
                     )
                     Text(
                         when {
@@ -91,14 +115,14 @@ fun FocusTimerOverlay(
             Spacer(Modifier.weight(1f))
             Row(horizontalArrangement = Arrangement.spacedBy(VxSpace.md)) {
                 SecondaryButton(
-                    if (timer.running) "Pause" else "Resume",
+                    if (timer.running) stringResource(Res.string.today_pause) else stringResource(Res.string.today_resume),
                     onClick = if (timer.running) onPause else onResume,
                     modifier = Modifier.weight(1f),
                     icon = if (timer.running) VxIcons.Timer else VxIcons.Play
                 )
-                PrimaryButton("Finish", onFinish, Modifier.weight(1f), icon = VxIcons.Check)
+                PrimaryButton(stringResource(Res.string.today_finish), onFinish, Modifier.weight(1f), icon = VxIcons.Check)
             }
-            TextButton(onClick = onCancel) { Text("Discard session", color = colors.onSurfaceVariant) }
+            TextButton(onClick = { confirmDiscard = true }) { Text(stringResource(Res.string.today_discard_session), color = colors.onSurfaceVariant) }
         }
     }
 }

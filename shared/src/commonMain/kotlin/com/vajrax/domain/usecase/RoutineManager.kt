@@ -3,9 +3,7 @@
 package com.vajrax.domain.usecase
 
 import com.vajrax.core.time.AppClock
-import com.vajrax.core.time.Dates
 import com.vajrax.core.time.TimeFormat
-import com.vajrax.domain.template.toHabitCopy
 import com.vajrax.domain.habit.Habit
 import com.vajrax.domain.habit.HabitType
 import com.vajrax.domain.habit.Occurrence
@@ -14,7 +12,6 @@ import com.vajrax.domain.habit.ScheduleRules
 import com.vajrax.domain.habit.ScheduleType
 import com.vajrax.domain.habit.Tracker
 import com.vajrax.domain.habit.TrackerStatus
-import com.vajrax.domain.model.ActionStatus
 import com.vajrax.domain.model.TrackingMode
 import com.vajrax.domain.repository.PracticeRepository
 import com.vajrax.domain.repository.ProfileRepository
@@ -22,9 +19,9 @@ import com.vajrax.domain.repository.SettingsRepository
 import com.vajrax.domain.repository.TemplateRepository
 import com.vajrax.domain.repository.TrackerRepository
 import com.vajrax.domain.template.DefaultTemplate
+import com.vajrax.domain.template.toHabitCopy
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
@@ -56,40 +53,28 @@ class RoutineManager(
     private val clock: AppClock,
     private val hooks: AppHooks = NoopAppHooks
 ) {
-    private val materializeLock = Mutex()
-
-    /** App start: seed the library, then create today's (and any missed days') occurrences. */
-    suspend fun startup() {
-        templates.seedSystemTemplatesIfNeeded()
-        materialize()
-    }
+    private val startupLock = Mutex()
+    private var started = false
 
     /**
-     * Creates PENDING occurrences for every scheduled habit from the day after the last run up
-     * to today. Past days are frozen with the schedule that was valid when they were created.
+     * App start: seed the library, then create today's (and any missed days') occurrences.
+     * Safe to call from several places at once (app, splash, onboarding): it runs once, unless
+     * [force] (after "Delete all data").
      */
-    suspend fun materialize(): Unit = materializeLock.withLock {
-        val today = clock.today()
-        val habits = practices.getAllTrackedHabits()
-        if (habits.isEmpty()) {
-            settings.put(SettingsRepository.LAST_MATERIALIZED, today.toString())
-            return@withLock
-        }
-        val last = Dates.parse(settings.get(SettingsRepository.LAST_MATERIALIZED))
-        val earliestStart = habits.mapNotNull { it.startDate }.minOrNull() ?: today
-        val cap = today.minus(MAX_BACKFILL_DAYS, DateTimeUnit.DAY)
-        var from = when {
-            last == null -> earliestStart
-            last >= today -> today
-            else -> last.plus(1, DateTimeUnit.DAY)
-        }
-        if (from < cap) from = cap
-        if (from > today) from = today
-        val existing = practices.existingKeys(from, today)
-        val planned = OccurrencePlanner.plan(habits, from, today, existing)
-        practices.insertPlanned(planned, clock.nowIso())
-        settings.put(SettingsRepository.LAST_MATERIALIZED, today.toString())
+    suspend fun startup(force: Boolean = false) = startupLock.withLock {
+        if (started && !force) return@withLock
+        templates.seedSystemTemplatesIfNeeded()
+        materialize()
+        started = true
     }
+
+    private val materializer = OccurrenceMaterializer(practices, settings, clock)
+
+    /**
+     * Creates PENDING occurrences for every scheduled habit up to today; past days keep the
+     * schedule that was valid then (see [OccurrenceMaterializer]).
+     */
+    suspend fun materialize() = materializer.materialize()
 
     // ------------------------------------------------------------------ trackers
 
@@ -130,6 +115,7 @@ class RoutineManager(
         trackers.replaceActiveTracker(tracker, copies, userId, today, clock.nowIso())
         planToday(copies)
         settings.put(SettingsRepository.ONBOARDING_DONE, "true")
+        settings.put(SettingsRepository.ONBOARDING_PROGRESS, "")
         hooks.onRoutineChanged()
         return tracker
     }
@@ -145,6 +131,15 @@ class RoutineManager(
         materialize()
         trackers.moveStart(tracker.id, today)
         planToday(practices.getTrackerHabits(tracker.id).filter { it.archivedAt == null })
+        hooks.onRoutineChanged()
+    }
+
+    /** Renames the active routine (widgets show the name, so they refresh). */
+    suspend fun renameRoutine(name: String) {
+        val clean = name.trim()
+        if (clean.isEmpty()) throw RoutineException("Give your routine a name.")
+        val tracker = trackers.getActiveTracker() ?: throw RoutineException("Choose a routine first.")
+        trackers.renameTracker(tracker.id, clean.take(40))
         hooks.onRoutineChanged()
     }
 
@@ -250,11 +245,7 @@ class RoutineManager(
         hooks.onRoutineChanged()
     }
 
-    private suspend fun planToday(habits: List<Habit>) {
-        val today = clock.today()
-        val existing = practices.existingKeys(today, today)
-        practices.insertPlanned(OccurrencePlanner.plan(habits, today, today, existing), clock.nowIso())
-    }
+    private suspend fun planToday(habits: List<Habit>) = materializer.planToday(habits)
 
     private fun validate(h: Habit) {
         if (h.title.isBlank()) throw RoutineException("Give the habit a name.")
@@ -270,185 +261,47 @@ class RoutineManager(
     }
 
     // ------------------------------------------------------------------ check-ins
+    // Implemented by CheckInService; kept here so every entry point uses one object.
 
-    /**
-     * Serializes every check-in write: app taps, widget buttons and notification actions can race,
-     * and read-modify-write updates (e.g. "+1") must never lose a step.
-     */
-    private val checkInLock = Mutex()
-
-    private suspend fun <T> writing(block: suspend () -> T): T = checkInLock.withLock { block() }
-
-    private suspend fun open(occurrenceId: String): Pair<Occurrence, Habit> {
-        val occ = practices.getOccurrence(occurrenceId) ?: throw RoutineException("This habit is no longer scheduled.")
-        if (occ.date > clock.today()) throw RoutineException("Future days can't be checked in yet.")
-        val habit = practices.getHabit(occ.habitId) ?: throw RoutineException("This habit no longer exists.")
-        return occ to habit
-    }
-
-    private suspend fun completeLocked(occurrenceId: String) {
-        val (_, habit) = open(occurrenceId)
-        val value = if (habit.type == HabitType.BOOLEAN) null else habit.targetValue
-        practices.checkIn(occurrenceId, ActionStatus.COMPLETE, value, habit.durationMinutes, clock.nowIso(), clock.nowIso())
-    }
-
-    private suspend fun recordValueLocked(occurrenceId: String, value: Double) {
-        val (_, habit) = open(occurrenceId)
-        val v = value.coerceIn(0.0, 1_000_000.0)
-        val done = v >= habit.targetValue
-        val minutes = if (habit.type == HabitType.DURATION) v.toInt() else null
-        practices.checkIn(
-            occurrenceId,
-            if (done) ActionStatus.COMPLETE else ActionStatus.PENDING,
-            v,
-            minutes,
-            if (done) clock.nowIso() else null,
-            clock.nowIso()
-        )
-    }
+    private val checkIns = CheckInService(practices, clock, hooks)
 
     /** One-tap completion. For measurable habits this records the full target. */
-    suspend fun complete(occurrenceId: String) {
-        writing { completeLocked(occurrenceId) }
-        hooks.onCheckInChanged()
-    }
+    suspend fun complete(occurrenceId: String) = checkIns.complete(occurrenceId)
 
-    /** Minimum version of the habit (Sāma): still counts as done, recorded separately. */
-    suspend fun completeMinimum(occurrenceId: String) {
-        writing {
-            val (_, habit) = open(occurrenceId)
-            practices.checkIn(occurrenceId, ActionStatus.MINIMUM, null, habit.minimumMinutes, clock.nowIso(), clock.nowIso())
-        }
-        hooks.onCheckInChanged()
-    }
+    /** Minimum version of the habit: still counts as done, recorded separately. */
+    suspend fun completeMinimum(occurrenceId: String) = checkIns.completeMinimum(occurrenceId)
 
-    /** Records a value for count / duration / measurable habits; completes when the target is reached. */
-    suspend fun recordValue(occurrenceId: String, value: Double) {
-        writing { recordValueLocked(occurrenceId, value) }
-        hooks.onCheckInChanged()
-    }
+    /** Records a value for count / duration / measurable habits; completes at the target. */
+    suspend fun recordValue(occurrenceId: String, value: Double) = checkIns.recordValue(occurrenceId, value)
 
-    suspend fun increment(occurrenceId: String) {
-        writing {
-            val (occ, habit) = open(occurrenceId)
-            recordValueLocked(occurrenceId, (occ.value ?: 0.0) + habit.quickStep())
-        }
-        hooks.onCheckInChanged()
-    }
+    suspend fun increment(occurrenceId: String) = checkIns.increment(occurrenceId)
 
     /** Finishes a timer session; completes when the session reached the target duration. */
-    suspend fun finishTimer(occurrenceId: String, elapsedMinutes: Int) {
-        writing {
-            val (_, habit) = open(occurrenceId)
-            val minutes = elapsedMinutes.coerceAtLeast(1)
-            val status = when {
-                minutes >= habit.durationMinutes -> ActionStatus.COMPLETE
-                minutes >= habit.minimumMinutes -> ActionStatus.MINIMUM
-                else -> ActionStatus.PENDING
-            }
-            val done = status != ActionStatus.PENDING
-            practices.checkIn(
-                occurrenceId, status, if (habit.type == HabitType.DURATION) minutes.toDouble() else null,
-                minutes, if (done) clock.nowIso() else null, clock.nowIso()
-            )
-        }
-        hooks.onCheckInChanged()
-    }
+    suspend fun finishTimer(occurrenceId: String, elapsedMinutes: Int) = checkIns.finishTimer(occurrenceId, elapsedMinutes)
 
-    /** Undo to open with no recorded value (used when there is no earlier state to restore). */
-    suspend fun reopen(occurrenceId: String) {
-        writing {
-            open(occurrenceId)
-            practices.checkIn(occurrenceId, ActionStatus.PENDING, null, null, null, clock.nowIso())
-        }
-        hooks.onCheckInChanged()
-    }
+    suspend fun reopen(occurrenceId: String) = checkIns.reopen(occurrenceId)
 
-    /** Undo: puts an occurrence back exactly as it was before the last action (status + value). */
-    suspend fun restore(previous: Occurrence) {
-        writing {
-            open(previous.id)
-            if (previous.isSkipped) {
-                practices.skip(previous.id, previous.skipReason, clock.nowIso())
-            } else {
-                val status = if (previous.isOpen) ActionStatus.PENDING else previous.status
-                practices.checkIn(previous.id, status, previous.value, previous.durationMinutes, previous.completedAt, clock.nowIso())
-            }
-        }
-        hooks.onCheckInChanged()
-    }
+    /** Undo: puts an occurrence back as it was (status, value and today's time). */
+    suspend fun restore(previous: Occurrence) = checkIns.restore(previous)
 
     /** Circle tap: completes an open habit, or reopens a done / skipped one. Returns the state before. */
-    suspend fun toggle(occurrenceId: String): Occurrence {
-        val before = writing {
-            val (occ, _) = open(occurrenceId)
-            if (occ.isDone || occ.isSkipped) {
-                practices.checkIn(occurrenceId, ActionStatus.PENDING, null, null, null, clock.nowIso())
-            } else {
-                completeLocked(occurrenceId)
-            }
-            occ
-        }
-        hooks.onCheckInChanged()
-        return before
-    }
+    suspend fun toggle(occurrenceId: String): Occurrence = checkIns.toggle(occurrenceId)
 
-    suspend fun skip(occurrenceId: String, reason: String?) {
-        writing {
-            open(occurrenceId)
-            practices.skip(occurrenceId, reason?.take(80), clock.nowIso())
-        }
-        hooks.onCheckInChanged()
-    }
+    suspend fun skip(occurrenceId: String, reason: String?) = checkIns.skip(occurrenceId, reason)
 
     /** Pushes today's still-open occurrence later without touching the habit definition. */
-    suspend fun snooze(occurrenceId: String, minutes: Int = 15) {
-        writing {
-            val (occ, habit) = open(occurrenceId)
-            if (occ.date != clock.today()) throw RoutineException("Only today's habits can be snoozed.")
-            // A stale notification or widget must never overwrite a completion or a skip.
-            if (!occ.isOpen) throw RoutineException("This habit is already done for today.")
-            val base = maxOf(TimeFormat.toMinutes(occ.scheduledTime ?: habit.time) ?: clock.minuteOfDay(), clock.minuteOfDay())
-            val target = (base + minutes).coerceAtMost(23 * 60 + 59)
-            practices.moveOccurrence(occurrenceId, TimeFormat.fromMinutes(target), ActionStatus.SNOOZED, clock.nowIso())
-        }
-        // Reminders follow today's new time.
-        hooks.onRoutineChanged()
-    }
+    suspend fun snooze(occurrenceId: String, minutes: Int = com.vajrax.domain.BusinessRules.SNOOZE_MINUTES) = checkIns.snooze(occurrenceId, minutes)
 
     /** Moves today's occurrence to a new time (history of other days unchanged). */
-    suspend fun move(occurrenceId: String, time: String) {
-        writing {
-            val (occ, _) = open(occurrenceId)
-            if (occ.date != clock.today()) throw RoutineException("Only today's habits can be moved.")
-            val normalized = TimeFormat.normalize(time) ?: throw RoutineException("Pick a valid time.")
-            val status = if (occ.isOpen) ActionStatus.PENDING else occ.status
-            practices.moveOccurrence(occurrenceId, normalized, status, clock.nowIso())
-        }
-        hooks.onRoutineChanged()
-    }
+    suspend fun move(occurrenceId: String, time: String) = checkIns.move(occurrenceId, time)
 
-    suspend fun setNote(occurrenceId: String, note: String) {
-        writing {
-            open(occurrenceId)
-            practices.setNote(occurrenceId, note.trim().ifBlank { null }, clock.nowIso())
-        }
-    }
+    suspend fun setNote(occurrenceId: String, note: String) = checkIns.setNote(occurrenceId, note)
 
-    /** Explicit correction of a past day's record from the calendar (spec: explicit correction only). */
-    suspend fun correctPastRecord(occurrenceId: String, done: Boolean) {
-        writing {
-            if (done) completeLocked(occurrenceId)
-            else {
-                open(occurrenceId)
-                practices.checkIn(occurrenceId, ActionStatus.PENDING, null, null, null, clock.nowIso())
-            }
-        }
-        hooks.onCheckInChanged()
-    }
+    /** Explicit correction of a past day's record from the calendar. */
+    suspend fun correctPastRecord(occurrenceId: String, done: Boolean) = checkIns.correctPastRecord(occurrenceId, done)
 
     companion object {
-        const val MAX_BACKFILL_DAYS = 400
+        const val MAX_BACKFILL_DAYS = OccurrenceMaterializer.MAX_BACKFILL_DAYS
 
         /** Blank editable habit used by the habit editor. */
         fun blankHabit(time: String? = "09:00") = Habit(

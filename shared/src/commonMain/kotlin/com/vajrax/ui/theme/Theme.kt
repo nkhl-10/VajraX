@@ -69,7 +69,13 @@ object VxSpace {
 /** Semantic corner radii: small controls, medium cards, large sheets. */
 object VxShape {
     val small = RoundedCornerShape(10.dp)
+    /** Calendar cells, small tiles. */
+    val tile = RoundedCornerShape(12.dp)
+    /** Buttons, fields, list rows, snackbars. */
+    val control = RoundedCornerShape(14.dp)
     val medium = RoundedCornerShape(16.dp)
+    /** Cards (VxCard) and the pinned Home dashboard. */
+    val card = RoundedCornerShape(20.dp)
     val large = RoundedCornerShape(24.dp)
     val pill = RoundedCornerShape(50)
 }
@@ -96,7 +102,7 @@ val LuminaColors.accentOnContainer: Color get() = if (isDark) onPrimaryContainer
 /** Habit accent colors keyed by the stored color name. */
 fun habitAccent(key: String?, dark: Boolean): Color {
     val base = when (key) {
-        "violet" -> Color(0xFF7C3AED)
+        "violet" -> BrandViolet
         "sky" -> Color(0xFF0284C7)
         "teal" -> Color(0xFF0D9488)
         "emerald" -> Color(0xFF059669)

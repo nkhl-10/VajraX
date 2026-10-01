@@ -1,15 +1,21 @@
 package com.vajrax.data.remote
 
 /**
- * Phase 17: Supabase Project Configuration.
- * Connected to live project.
+ * Supabase project settings for the (future) cloud sync. Not stored in source: the Android app
+ * fills them at start-up from BuildConfig, which reads `vajrax.supabase.url` and
+ * `vajrax.supabase.key` from the untracked local.properties. Empty means sync stays off.
  */
 object SupabaseConfig {
-    // 1. Supabase Project URL
-    var PROJECT_URL: String = "https://qxjtxjuxpucsgcpjamfi.supabase.co"
+    var PROJECT_URL: String = ""
+        private set
 
-    // 2. Supabase Anon / Publishable Key
-    var ANON_KEY: String = "sb_publishable_ZqpVXKC7iU6OnjPkZgKuYw_IMRcZLPY"
+    var ANON_KEY: String = ""
+        private set
+
+    fun configure(projectUrl: String, anonKey: String) {
+        PROJECT_URL = projectUrl.trim()
+        ANON_KEY = anonKey.trim()
+    }
 
     fun isConfigured(): Boolean {
         return PROJECT_URL.isNotBlank() && ANON_KEY.isNotBlank()

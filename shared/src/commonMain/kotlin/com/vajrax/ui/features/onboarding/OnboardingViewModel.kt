@@ -1,5 +1,7 @@
 package com.vajrax.ui.features.onboarding
 
+import com.vajrax.core.coroutines.AppDispatchers
+import com.vajrax.core.coroutines.runCatchingCancellable
 import com.vajrax.core.time.AppClock
 import com.vajrax.domain.repository.ProfileRepository
 import com.vajrax.domain.repository.SettingsRepository
@@ -7,8 +9,6 @@ import com.vajrax.domain.repository.TemplateRepository
 import com.vajrax.domain.template.DefaultTemplate
 import com.vajrax.domain.template.TemplateCatalog
 import com.vajrax.presentation.mvi.MviViewModel
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.IO
 import kotlinx.coroutines.launch
 
 /**
@@ -20,7 +20,9 @@ class OnboardingViewModel(
     private val settings: SettingsRepository,
     private val profiles: ProfileRepository,
     private val clock: AppClock,
-    private val routineManager: com.vajrax.domain.usecase.RoutineManager
+    private val routineManager: com.vajrax.domain.usecase.RoutineManager,
+    private val preferences: com.vajrax.domain.usecase.PreferencesService,
+    private val profileService: com.vajrax.domain.usecase.ProfileService
 ) : MviViewModel<OnboardingUiState, OnboardingIntent, OnboardingEffect>(OnboardingUiState()) {
 
     init {
@@ -28,18 +30,27 @@ class OnboardingViewModel(
     }
 
     private fun load() {
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching {
+        viewModelScope.launch(AppDispatchers.IO) {
+            runCatchingCancellable {
                 routineManager.startup()
                 val profile = profiles.getProfile()
                 val all = templates.getAllTemplates().filter { !it.isDraft }
+                val saved = preferences.onboardingProgress()?.let { raw ->
+                    runCatchingCancellable { progressJson.decodeFromString(SavedProgress.serializer(), raw) }.getOrNull()
+                }
                 updateState {
-                    copy(
-                        isLoading = false,
-                        templates = all,
-                        name = profile?.displayName ?: name,
-                        wakeTime = wakeTime
-                    )
+                    val base = copy(isLoading = false, templates = all, name = profile?.displayName ?: name)
+                    // Resume where the user left off (the app may have been closed mid-way).
+                    saved?.let { p ->
+                        base.copy(
+                            step = OnboardingStep.entries.firstOrNull { it.name == p.step } ?: step,
+                            name = p.name,
+                            goals = p.goals.toSet(),
+                            wakeTime = p.wakeTime,
+                            morningMinutes = p.morningMinutes,
+                            reminderStyle = ReminderStyle.entries.firstOrNull { it.name == p.reminderStyle } ?: reminderStyle
+                        )
+                    } ?: base
                 }
             }.onFailure {
                 updateState { copy(isLoading = false, error = "Couldn't load templates. Try again.") }
@@ -52,14 +63,17 @@ class OnboardingViewModel(
             OnboardingIntent.Next -> next()
             OnboardingIntent.Restart -> {
                 updateState { OnboardingUiState() }
+                saveProgress()
                 load()
             }
-            OnboardingIntent.Back -> updateState {
-                copy(step = OnboardingStep.entries[(step.ordinal - 1).coerceAtLeast(0)])
+            OnboardingIntent.Back -> {
+                updateState { copy(step = OnboardingStep.entries[(step.ordinal - 1).coerceAtLeast(0)]) }
+                saveProgress()
             }
             OnboardingIntent.SkipPreferences -> {
                 persist(skipPrefs = true)
                 updateState { copy(step = OnboardingStep.TEMPLATE) }
+                saveProgress()
             }
             is OnboardingIntent.SetName -> updateState { copy(name = intent.name.take(40)) }
             is OnboardingIntent.ToggleGoal -> updateState {
@@ -75,16 +89,33 @@ class OnboardingViewModel(
     }
 
     private fun next() {
+        advance()
+        saveProgress()
+    }
+
+    /** Remembers the step and answers so onboarding resumes after the app is closed. */
+    private fun saveProgress() {
+        val s = currentState()
+        val raw = if (s.step == OnboardingStep.WELCOME && s.name.isBlank() && s.goals.isEmpty()) "" else progressJson.encodeToString(
+            SavedProgress.serializer(),
+            SavedProgress(s.step.name, s.name, s.goals.toList(), s.wakeTime, s.morningMinutes, s.reminderStyle.name)
+        )
+        viewModelScope.launch(AppDispatchers.IO) {
+            runCatchingCancellable { preferences.saveOnboardingProgress(raw) }
+                .onFailure { com.vajrax.core.log.VxLog.w("Onboarding", "Couldn't save progress", it) }
+        }
+    }
+
+    private fun advance() {
         val s = currentState()
         when (s.step) {
             OnboardingStep.WELCOME -> updateState { copy(step = OnboardingStep.ABOUT) }
             OnboardingStep.ABOUT -> {
-                viewModelScope.launch(Dispatchers.IO) {
-                    runCatching {
-                        val existing = profiles.getProfile()
-                        profiles.saveProfile(s.name, existing?.email ?: "", clock.nowIso())
-                        settings.put(SettingsRepository.ONBOARDING_GOALS, s.goals.joinToString("|"))
-                    }
+                viewModelScope.launch(AppDispatchers.IO) {
+                    runCatchingCancellable {
+                        profileService.saveName(s.name)
+                        preferences.saveOnboardingGoals(s.goals)
+                    }.onFailure { com.vajrax.core.log.VxLog.w("Onboarding", "Couldn't save name and goals", it) }
                 }
                 updateState { copy(step = OnboardingStep.ROUTINE) }
             }
@@ -98,18 +129,26 @@ class OnboardingViewModel(
 
     private fun persist(skipPrefs: Boolean) {
         val s = currentState()
-        viewModelScope.launch(Dispatchers.IO) {
-            runCatching {
-                if (!skipPrefs) {
-                    settings.put(SettingsRepository.WAKE_TIME, s.wakeTime)
-                    settings.put(SettingsRepository.MORNING_MINUTES, s.morningMinutes.toString())
-                    val style = s.reminderStyle
-                    settings.put(SettingsRepository.REMINDERS_ENABLED, (style != ReminderStyle.OFF).toString())
-                    style.privacy?.let { settings.put(SettingsRepository.NOTIFICATION_PRIVACY, it) }
-                }
-            }
+        viewModelScope.launch(AppDispatchers.IO) {
+            runCatchingCancellable {
+                // Skip keeps the defaults shown on the screen, with reminders off until asked for.
+                val style = if (skipPrefs) ReminderStyle.OFF else s.reminderStyle
+                preferences.saveDayPreferences(s.wakeTime, s.morningMinutes, style != ReminderStyle.OFF, style.privacy)
+            }.onFailure { com.vajrax.core.log.VxLog.w("Onboarding", "Couldn't save day preferences", it) }
         }
     }
+
+    @kotlinx.serialization.Serializable
+    private data class SavedProgress(
+        val step: String,
+        val name: String,
+        val goals: List<String>,
+        val wakeTime: String,
+        val morningMinutes: Int,
+        val reminderStyle: String
+    )
+
+    private val progressJson = kotlinx.serialization.json.Json { ignoreUnknownKeys = true }
 
     /** Templates matching the chosen goals; shorter routines first when mornings are short. */
     fun recommended(state: OnboardingUiState): List<DefaultTemplate> {

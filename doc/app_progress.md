@@ -1,6 +1,6 @@
 # VAJRAX / HabitFlow — App Progress & Context
 
-_Last updated: 2026-09-30 (storyboard pass + global-release readiness) · Branch `feature/habitflow-offline-mvp` (on `main` `0db6da6`; commits `33ff222`, `e3572d5`; later work uncommitted)._
+_Last updated: 2026-10-01 (quality pass: architecture, error handling, strings, accessibility, quality gates) · Branch `feature/habitflow-offline-mvp` (latest commit `4058a42`; the quality pass in section 4f is uncommitted)._
 
 ---
 
@@ -16,7 +16,10 @@ _Last updated: 2026-09-30 (storyboard pass + global-release readiness) · Branch
 | Home-screen widgets (Jetpack Glance): Today list + Now card | ✅ Implemented, builds · ⏳ not yet verified on device |
 | Dark mode / landscape | ✅ Implemented · ⏳ not yet verified on device |
 | Daily-loop & "less effort" polish (section 4a) | ✅ Implemented, builds · ⏳ not yet verified on device (device busy) |
-| Automated tests | ✅ 40 tests, 0 failures (`:shared:testDebugUnitTest`) |
+| Automated tests | ✅ 64 tests, 0 failures (`:shared:testDebugUnitTest`) |
+| Quality gates | ✅ detekt + ktlint formatting, Android lint (both with baselines), CI runs tests + detekt + lint (section 13) |
+| UI text in resources | ✅ All visible text of the live screens, widgets, notifications and nav (section 4f) |
+| Accessibility | ✅ 48 dp targets, dial TalkBack actions, contrast, system animation setting · ⏳ TalkBack / font-scale check on device |
 | Debug APK | ✅ `:androidApp:assembleDebug` BUILD SUCCESSFUL |
 | Release APK (R8) | ✅ `:androidApp:assembleRelease` BUILD SUCCESSFUL, unsigned · ⚠ R8 Kotlin-metadata warnings (AGP 8.5.2 predates Kotlin 2.4) |
 | Global release readiness | ✅ In-app items done · ⏳ Play Console + signing + device QA open — see `doc/release/global-release.md` |
@@ -140,6 +143,24 @@ Privacy policy, terms, health notice and open-source licenses in Profile › Abo
 | Profile header | Hero card: gradient band with soft rings, avatar overlapping its edge, name + email ("On this device · offline"), edit button (also on the name), and Day x/N · Streak · This week stats from `HabitAnalytics` |
 | Widgets | Current habit first, then what's still to do, then a "Done" group (widgets can't scroll to a row). Current card: "NOW / NEXT / STILL OPEN · time", Snooze + Done (icon, not a glyph), "Then · next habit" on taller Now widgets. Only the circle ticks a habit; tapping text opens the app. Launcher corner radius and `appWidgetBackground()` on Android 12+. Generated picker previews with sample habits on Android 15+ (published once per install/update). "Starts tomorrow" and "Day complete" states |
 
+### 4f. Quality pass (2026-10-01)
+
+Checklist audit (architecture, code quality, "human-designed" UX, edge cases, online readiness). Only gaps were changed; nothing already working was redone and no feature was removed.
+
+| Area | What changed |
+|---|---|
+| Startup & loading errors | Startup failure stays on the splash with **Retry** (a returning user is never sent to onboarding). `MviViewModel.launchLoad` turns a failed data pipeline into `loadError` + Retry instead of an endless skeleton; `onUnhandledError` logs |
+| Use cases | `domain/usecase/`: `PreferencesService`, `ProfileService` (+ `ProfileRules`), `GoalService`, `ReflectionService`, `TemplateLibraryService`, `CheckInService`, `OccurrenceMaterializer` (behind the unchanged `RoutineManager` API). Profile / Report / Builder / Onboarding / Routine view models no longer write repositories directly, so every write reaches `AppHooks` (widgets now, sync later) |
+| One rule set for app + widget | `domain/today/TodayPlanner` (phases, counts, wrap-up, weekly-review window) used by Home and `WidgetData`; `domain/habit/CheckInAction` decides Done / +1 / Start / Log everywhere. Widget Done on a timed or measured habit opens the app on that habit instead of logging the full target |
+| Forgiving UX | Discard-changes prompt on edited sheets (`VxBottomSheet`), inline email validation, Undo for dial check-in / snooze / move / +1 / value, confirm for goal delete and discarding a timer session, back on the timer pauses + asks, when the first cycle ends Home shows "N days done — keep it going or pick the next template" (opens Discover) and Profile shows "N-day cycle complete" while the day count keeps going, skipping "Your day" saves explicit defaults and the editor offers **Turn on** for reminders |
+| Coroutines & lifetime | `runCatchingCancellable` (never swallows cancellation), idempotent `startup()`, DB open on IO, `collectAsStateWithLifecycle`, Builder / Routine / Habit-detail view models as Koin factories, onboarding progress survives process death |
+| Config & secrets | `domain/BusinessRules` (snooze minutes, streak threshold, windows), `NotificationPrivacy` enum (stored values unchanged), Supabase URL/key from untracked `local.properties` → `BuildConfig`, hard-coded test login removed from `AuthRepositoryImpl` (sign-in now says it isn't available yet), `VxLog` for every former silent catch |
+| Strings | Compose resources (`shared/src/commonMain/composeResources/values/strings.xml`, ~380 keys, `Res.string.*`) for all live screens and the nav bar; widgets, notifications and the pin-widget toast use Android `res/values/strings.xml` (with a plural for the snooze description). Copy pass: sentence case, one noun set (routine / template / habit) |
+| Accessibility | 48 dp touch targets (chips, segments, swatches, day picker, calendar cells), dial TalkBack actions (Check in / Previous / Next) and auto list view at font scale ≥ 1.5, timer announces per minute, `textTertiary` ≥ 4.5:1, system "remove animations" honoured (Compose follows the animator scale; tilt shadows switch off), long names ellipsize |
+| Design system | `VxShape.card` / `VxShape.control` radius tokens, shared prompt / add-box components, distinct Missed vs Upcoming calendar cells, clock icon on the Snooze notification action |
+| Online-ready groundwork | `core/error/AppError` (Offline, Timeout, Server, SignedOut, Unknown) mapped to plain copy by `userMessage()`; `domain/sync/ConnectivityMonitor` (offline-only implementation for now). Remote data sources, auth, sync columns and the INTERNET permission wait for the API |
+| Quality gates | detekt 1.23.8 + `detekt-formatting` (ktlint rules) with `config/detekt/detekt.yml` and per-module `detekt-baseline.xml`; Android lint with per-module `lint-baseline.xml`; `.editorconfig`; CI runs tests, detekt and lint and uploads the reports. Unused imports removed from the live files |
+
 ### Screens
 
 | Screen | Design | What it does |
@@ -167,7 +188,9 @@ Android widget ─────────────────────�
 Reminder receiver / notification actions ▶ RoutineManager / repositories
 ```
 
-- **`RoutineManager`** (`domain/usecase/RoutineManager.kt`) — the only place that writes schedules and check-ins: activation, materialization, habit add/update/archive, complete, minimum, value/+1, timer, skip, snooze, move, note, undo/restore, past-day correction. Check-in writes are serialized with a mutex.
+- **`RoutineManager`** (`domain/usecase/RoutineManager.kt`) — the only place that writes schedules and check-ins: activation, materialization, habit add/update/archive, complete, minimum, value/+1, timer, skip, snooze, move, note, undo/restore, past-day correction. Check-in writes are serialized with a mutex. Internally it delegates to `CheckInService` and `OccurrenceMaterializer`.
+- **Other use cases** — `PreferencesService`, `ProfileService`, `GoalService`, `ReflectionService`, `TemplateLibraryService`: every non-routine write (settings, profile, goals, reflections, templates) goes through one of them, so `AppHooks` always fire.
+- **`TodayPlanner`** (`domain/today`) — today's phases, counts and current habit for Home and the widgets.
 - **`HabitAnalytics`** (`domain/analytics/HabitAnalytics.kt`) — pure functions for every rate, streak and breakdown.
 - **Repositories** expose SQLDelight `Flow`s, so every screen and the widget update automatically after any write.
 - **`AppHooks`** — platform side effects after changes (Android: reschedule reminders, refresh widget).
@@ -179,9 +202,12 @@ Reminder receiver / notification actions ▶ RoutineManager / repositories
 | Package | Contents |
 |---|---|
 | `core/time` | `AppClock`, `Dates`, `TimeFormat` |
+| `core/log`, `core/error`, `core/coroutines` | `VxLog`, `AppError`, `runCatchingCancellable` |
 | `domain/habit` | `Habit`, `HabitSchedule`, `HabitType`, `Occurrence`, `Tracker`, `ScheduleRules`, `OccurrencePlanner`, `HabitIconResolver` |
 | `domain/analytics` | `HabitAnalytics`, `PeriodStats`, streaks, comparisons |
-| `domain/usecase` | `RoutineManager`, `AppHooks` |
+| `domain/usecase` | `RoutineManager`, `AppHooks`, `CheckInService`, `OccurrenceMaterializer`, `PreferencesService`, `ProfileService` / `ProfileRules`, `GoalService`, `ReflectionService`, `TemplateLibraryService` |
+| `domain/today` | `TodayPlanner`, `DayPhase` |
+| `domain/sync` | `ConnectivityMonitor` |
 | `domain/template` | `TemplateCatalog` (design + library templates), `DefaultTemplates` (library), template↔habit mapping |
 | `domain/repository` | repository interfaces |
 | `data/local` | `.sq` schema, `1.sqm` migration, mappers, seeder |
@@ -270,9 +296,18 @@ Run: `bash ./gradlew :shared:testDebugUnitTest` (commonTest + androidUnitTest on
 |---|---|---|
 | `ScheduleRulesTest` | 6 | daily, weekdays/rest days, interval, archive date, planner skips existing rows, legacy time formats |
 | `HabitAnalyticsTest` | 7 | completion rate rules, no-data periods, habit streaks, weekly targets, day streak, week comparison, consistency ranking |
-| `HabitFlowIntegrationTest` | 14 | template copy isolation, check-in + undo, schedule edit keeps history, no duplicate occurrences, archive, switching templates, delete-all, **v1 → v2 migration**, plus 6 regression tests from the code review |
+| `HabitFlowIntegrationTest` | 16 | template copy isolation, check-in + undo, schedule edit keeps history, no duplicate occurrences, archive, switching templates, delete-all, **v1 → v2 migration**, start today, undo after snooze, review regressions |
+| `NowPickerTest` | 6 | current-habit rule (window, soon, after last completed, snoozed) |
+| `TodayPlannerTest` | 5 | phases, counts without skipped / weekly-met, wrap-up, review window — the app/widget parity rules |
+| `CheckInActionTest` | 3 | Done / +1 / Start / Log per habit type |
+| `PreferencesServiceTest` | 6 | skipped "Your day" saves explicit defaults, reminders / privacy reschedule, widget names only redraw, onboarding progress, home view |
+| `ProfileViewModelTest` | 4 | real DB: active routine + default name, invalid email rejected and not saved, saved profile updates the header, reminders switch |
+| `CoreRulesTest` | 4 | email rule, stored privacy fallback, cancellation never swallowed, `AppError` messages |
+| `TrackerCycleTest` | 1 | days in, end of the first cycle |
+| `TimeFormatTest` | 2 | 12/24-hour display |
+| `ActivationStateTest` | 3 | customize screen state |
 | `SharedCommonTest` | 1 | placeholder (pre-existing) |
-| **Total** | **28** | **0 failures** |
+| **Total** | **64** | **0 failures** |
 
 ### Code review
 
@@ -329,6 +364,9 @@ stale-notification snooze overwriting a completion; weekly-target edits re-scori
 | APK | `androidApp/build/outputs/apk/debug/androidApp-debug.apk` |
 | Install | `adb install -r androidApp/build/outputs/apk/debug/androidApp-debug.apk` |
 | Package / activity | `com.vajrax.android` / `.MainActivity` |
+| Static analysis | `bash ./gradlew detekt` (rules + ktlint formatting; fails only on issues not in `*/detekt-baseline.xml`; refresh with `detektBaseline`) |
+| Android lint | `bash ./gradlew :shared:lintDebug :androidApp:lintDebug` (baselines `*/lint-baseline.xml`; refresh with `updateLintBaseline`) |
+| CI | `.github/workflows/android-ci.yml`: unit tests → detekt → lint → debug APK, reports uploaded as an artifact |
 
 ---
 
@@ -337,7 +375,8 @@ stale-notification snooze overwriting a completion; weekly-target edits re-scori
 - Backup **import/restore** not implemented (export only).
 - Goals can be created and removed, not edited.
 - Notification permission is requested during onboarding and when reminders are switched on; if denied, reminders stay off and Profile offers a shortcut to the system notification settings.
-- English UI only; dates use English names and weeks start on Monday for everyone.
+- English only for now. Visible text is in string resources, so a language is a translation job; still in code: TalkBack-only descriptions inside `semantics {}`, messages raised by view models / use cases, legal texts, enum labels, and the legacy screens. Dates use English names and weeks start on Monday for everyone.
+- Android lint (AGP 8.5.2) cannot read Kotlin 2.4 metadata, so its Kotlin checks are limited; upgrade AGP before shipping (same reason as the R8 warnings).
 - Reminders use inexact alarms (`setAndAllowWhileIdle`) and may be delayed a few minutes by Doze.
 - iOS target not built; the pre-existing iOS app lacks its `MainViewController`.
 - Legacy screens (Learn, Path, Grow, Review) and engines still use their old placeholder data but are unreachable.
@@ -351,7 +390,8 @@ stale-notification snooze overwriting a completion; weekly-target edits re-scori
 2. Commit on a feature branch (e.g. `feature/habitflow-offline-mvp`) and open a PR.
 3. Backup import/restore; goal editing.
 4. Performance measurements from spec 09 (cold start, completion latency, report generation with 1–3 years of data).
-5. **Online phase:** Supabase auth + sync — a queue of local changes, incremental upload, deterministic conflict rules, per-user data isolation.
+5. Translate `strings.xml` (both files) and move the remaining TalkBack descriptions into resources.
+6. **Online phase:** Supabase auth + sync — a queue of local changes, incremental upload, deterministic conflict rules, per-user data isolation.
 
 ---
 
@@ -373,5 +413,7 @@ stale-notification snooze overwriting a completion; weekly-target edits re-scori
 **Removed**
 - `ui/components/NavTabIcon.kt` (replaced by `VxIcons`), `ui/features/discover/DiscoverModels.kt`
 - RemoteViews widget (`widget/VajraTodayWidgetProvider.kt`, `res/layout/vajra_widget_today.xml`) and `shared/.../widget/AndroidWidgetController.kt` — replaced by the Glance widgets
+
+**Quality pass (2026-10-01):** see section 4f; new files `core/{log/VxLog,error/AppError,coroutines/RunCatching}.kt`, `domain/{BusinessRules,habit/CheckInAction,habit/NotificationPrivacy,today/TodayPlanner,sync/ConnectivityMonitor}.kt`, `domain/usecase/{CheckInService,OccurrenceMaterializer,PreferencesService,ProfileService,ProfileRules,GoalService,ReflectionService,TemplateLibraryService}.kt`, `ui/designsystem/{Sheets,ReminderAccess,Haptics,TiltShadow}.kt`, `composeResources/values/strings.xml`, `config/detekt/detekt.yml`, `.editorconfig`, `*/detekt-baseline.xml`, `*/lint-baseline.xml`, tests `PreferencesServiceTest`, `CoreRulesTest`, `ProfileViewModelTest`, `CheckInActionTest`, `TodayPlannerTest`, `TrackerCycleTest`, `ActivationStateTest`.
 
 **Not touched:** the pre-existing uncommitted deletions under `doc/` (`HabitFlow_DocumentAI_Specs.zip`, `stitch_vajrax_life_os_interface/*`) belong to the earlier working tree.

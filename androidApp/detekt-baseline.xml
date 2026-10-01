@@ -1,0 +1,128 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ArgumentListWrapping:GlanceWidgets.kt$("+1", filled = false, onClick = habitAction(row.id, HabitWidgetAction.OP_INCREMENT), description = context.getString(R.string.widget_plus_one_description, title))</ID>
+    <ID>ArgumentListWrapping:GlanceWidgets.kt$(10.dp)</ID>
+    <ID>ArgumentListWrapping:GlanceWidgets.kt$(44.dp)</ID>
+    <ID>ArgumentListWrapping:GlanceWidgets.kt$(LocalContext.current)</ID>
+    <ID>ArgumentListWrapping:GlanceWidgets.kt$(LocalContext.current.getString(R.string.widget_section_done))</ID>
+    <ID>ArgumentListWrapping:GlanceWidgets.kt$(R.string.widget_plus_one_description, title)</ID>
+    <ID>ArgumentListWrapping:GlanceWidgets.kt$(R.string.widget_section_done)</ID>
+    <ID>ArgumentListWrapping:GlanceWidgets.kt$(color = WColors.onSurfaceVariant, fontSize = 12.sp)</ID>
+    <ID>ArgumentListWrapping:GlanceWidgets.kt$(habitAction(row.id, HabitWidgetAction.OP_TOGGLE))</ID>
+    <ID>ArgumentListWrapping:GlanceWidgets.kt$(row.id, HabitWidgetAction.OP_INCREMENT)</ID>
+    <ID>ArgumentListWrapping:GlanceWidgets.kt$(row.id, HabitWidgetAction.OP_TOGGLE)</ID>
+    <ID>ArgumentListWrapping:GlanceWidgets.kt$(row.subtitle(LocalContext.current), style = TextStyle(color = WColors.onSurfaceVariant, fontSize = 12.sp), maxLines = 1)</ID>
+    <ID>ArgumentListWrapping:GlanceWidgets.kt$NowGlanceWidget$(180.dp, 110.dp)</ID>
+    <ID>ArgumentListWrapping:GlanceWidgets.kt$NowGlanceWidget$(250.dp, 110.dp)</ID>
+    <ID>ArgumentListWrapping:GlanceWidgets.kt$NowGlanceWidget$(250.dp, 160.dp)</ID>
+    <ID>ArgumentListWrapping:GlanceWidgets.kt$NowGlanceWidget$(DpSize(180.dp, 110.dp), DpSize(250.dp, 110.dp), DpSize(250.dp, 160.dp))</ID>
+    <ID>ArgumentListWrapping:GlanceWidgets.kt$NowGlanceWidget$(setOf(DpSize(180.dp, 110.dp), DpSize(250.dp, 110.dp), DpSize(250.dp, 160.dp)))</ID>
+    <ID>ArgumentListWrapping:GlanceWidgets.kt$VajraWidgets$("Widget", "Now widget refresh failed", it)</ID>
+    <ID>ArgumentListWrapping:GlanceWidgets.kt$VajraWidgets$("Widget", "Today widget refresh failed", it)</ID>
+    <ID>ArgumentListWrapping:GlanceWidgets.kt$VajraWidgets$(context)</ID>
+    <ID>ArgumentListWrapping:GlanceWidgets.kt$WidgetPreview$( Tracker("preview", "preview", "Morning routine", day, 30, true, TrackerStatus.ACTIVE, null), pairs.map { it.first }, pairs.map { it.second }, hideNames = false, now = 6 * 60 + 36, day = day, nowIso = "2026-01-05T06:41:00Z" )</ID>
+    <ID>ArgumentListWrapping:HabitReminderScheduler.kt$HabitReminderScheduler$(clock.timeZone())</ID>
+    <ID>ArgumentListWrapping:HabitReminderScheduler.kt$HabitReminderScheduler$(day, LocalTime(reminderMinute / 60, reminderMinute % 60))</ID>
+    <ID>ArgumentListWrapping:HabitReminderScheduler.kt$HabitReminderScheduler$(reminderMinute / 60, reminderMinute % 60)</ID>
+    <ID>ArgumentListWrapping:MainActivity.kt$MainActivity$("application/json")</ID>
+    <ID>ArgumentListWrapping:MainActivity.kt$MainActivity$(ActivityResultContracts.CreateDocument("application/json"))</ID>
+    <ID>ArgumentListWrapping:MainActivity.kt$MainActivity.&lt;no name provided&gt;$("package", packageName, null)</ID>
+    <ID>ArgumentListWrapping:MainActivity.kt$MainActivity.&lt;no name provided&gt;$(Color.TRANSPARENT)</ID>
+    <ID>ArgumentListWrapping:MainActivity.kt$MainActivity.&lt;no name provided&gt;$(Color.TRANSPARENT, Color.TRANSPARENT)</ID>
+    <ID>ArgumentListWrapping:MainActivity.kt$MainActivity.&lt;no name provided&gt;$(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.fromParts("package", packageName, null)))</ID>
+    <ID>ArgumentListWrapping:MainActivity.kt$MainActivity.&lt;no name provided&gt;$(Intent(this@MainActivity, ReminderReceiver::class.java).setAction(ReminderReceiver.ACTION_TEST))</ID>
+    <ID>ArgumentListWrapping:MainActivity.kt$MainActivity.&lt;no name provided&gt;$(ReminderReceiver.ACTION_TEST)</ID>
+    <ID>ArgumentListWrapping:MainActivity.kt$MainActivity.&lt;no name provided&gt;$(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, android.net.Uri.fromParts("package", packageName, null))</ID>
+    <ID>ArgumentListWrapping:MainActivity.kt$MainActivity.&lt;no name provided&gt;$(this@MainActivity, ReminderReceiver::class.java)</ID>
+    <ID>ArgumentListWrapping:ReminderReceiver.kt$ReminderReceiver$( context, 0, Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP), PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE )</ID>
+    <ID>ArgumentListWrapping:ReminderReceiver.kt$ReminderReceiver$(ACTION_DONE, 1)</ID>
+    <ID>ArgumentListWrapping:ReminderReceiver.kt$ReminderReceiver$(ACTION_SNOOZE, 2)</ID>
+    <ID>ArgumentListWrapping:ReminderReceiver.kt$ReminderReceiver$(Icon.createWithResource(context, R.drawable.ic_action_check), context.getString(R.string.notification_done), action(ACTION_DONE, 1))</ID>
+    <ID>ArgumentListWrapping:ReminderReceiver.kt$ReminderReceiver$(Icon.createWithResource(context, R.drawable.ic_action_snooze), context.getString(R.string.notification_snooze, com.vajrax.domain.BusinessRules.SNOOZE_MINUTES), action(ACTION_SNOOZE, 2))</ID>
+    <ID>ArgumentListWrapping:ReminderReceiver.kt$ReminderReceiver$(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)</ID>
+    <ID>ArgumentListWrapping:ReminderReceiver.kt$ReminderReceiver$(Notification.Action.Builder(Icon.createWithResource(context, R.drawable.ic_action_check), context.getString(R.string.notification_done), action(ACTION_DONE, 1)).build())</ID>
+    <ID>ArgumentListWrapping:ReminderReceiver.kt$ReminderReceiver$(Notification.Action.Builder(Icon.createWithResource(context, R.drawable.ic_action_snooze), context.getString(R.string.notification_snooze, com.vajrax.domain.BusinessRules.SNOOZE_MINUTES), action(ACTION_SNOOZE, 2)).build())</ID>
+    <ID>ArgumentListWrapping:ReminderReceiver.kt$ReminderReceiver$(R.string.brand_wordmark)</ID>
+    <ID>ArgumentListWrapping:ReminderReceiver.kt$ReminderReceiver$(R.string.notification_done)</ID>
+    <ID>ArgumentListWrapping:ReminderReceiver.kt$ReminderReceiver$(R.string.notification_snooze, com.vajrax.domain.BusinessRules.SNOOZE_MINUTES)</ID>
+    <ID>ArgumentListWrapping:ReminderReceiver.kt$ReminderReceiver$(R.string.notification_test_text)</ID>
+    <ID>ArgumentListWrapping:ReminderReceiver.kt$ReminderReceiver$(SettingsRepository.NOTIFICATION_PRIVACY)</ID>
+    <ID>ArgumentListWrapping:ReminderReceiver.kt$ReminderReceiver$(context, MainActivity::class.java)</ID>
+    <ID>ArgumentListWrapping:ReminderReceiver.kt$ReminderReceiver$(context, R.drawable.ic_action_check)</ID>
+    <ID>ArgumentListWrapping:ReminderReceiver.kt$ReminderReceiver$(context, R.drawable.ic_action_snooze)</ID>
+    <ID>ArgumentListWrapping:ReminderReceiver.kt$ReminderReceiver$(context, context.getString(R.string.brand_wordmark), context.getString(R.string.notification_test_text))</ID>
+    <ID>ArgumentListWrapping:ReminderReceiver.kt$ReminderReceiver$(koin.get&lt;SettingsRepository&gt;().get(SettingsRepository.NOTIFICATION_PRIVACY))</ID>
+    <ID>ArgumentListWrapping:ReminderReceiver.kt$ReminderReceiver.Companion$(CHANNEL_ID, context.getString(R.string.reminder_channel_name), NotificationManager.IMPORTANCE_DEFAULT)</ID>
+    <ID>ArgumentListWrapping:ReminderReceiver.kt$ReminderReceiver.Companion$(R.string.reminder_channel_name)</ID>
+    <ID>ArgumentListWrapping:VajraApplication.kt$AndroidAppHooks$("Reminders", "Couldn't reschedule reminders", it)</ID>
+    <ID>ArgumentListWrapping:VajraApplication.kt$VajraApplication$("App", "Widget previews not published", it)</ID>
+    <ID>ArgumentListWrapping:VajraApplication.kt$VajraApplication$(KEY_WIDGET_PREVIEWS, stamp)</ID>
+    <ID>ArgumentListWrapping:WidgetData.kt$WidgetData$("Widget", "Couldn't plan today", it)</ID>
+    <ID>ArgumentListWrapping:WidgetData.kt$WidgetRow$(R.string.widget_anytime)</ID>
+    <ID>ArgumentListWrapping:WidgetData.kt$WidgetRow$(habit.targetValue)</ID>
+    <ID>ArgumentListWrapping:WidgetData.kt$WidgetRow$(occurrence.scheduledTime ?: habit.time)</ID>
+    <ID>ArgumentListWrapping:WidgetData.kt$WidgetRow$(occurrence.value ?: 0.0)</ID>
+    <ID>ComplexCondition:ReminderReceiver.kt$ReminderReceiver$habit != null &amp;&amp; !habit.isArchived &amp;&amp; occ != null &amp;&amp; occ.isOpen</ID>
+    <ID>CyclomaticComplexMethod:HabitReminderScheduler.kt$HabitReminderScheduler$suspend fun sync()</ID>
+    <ID>CyclomaticComplexMethod:ReminderReceiver.kt$ReminderReceiver$private suspend fun handle(context: Context, intent: Intent)</ID>
+    <ID>ImportOrdering:ReminderReceiver.kt$import com.vajrax.domain.habit.NotificationPrivacy import android.Manifest import android.app.Notification import android.app.NotificationChannel import android.app.NotificationManager import android.app.PendingIntent import android.content.BroadcastReceiver import android.content.Context import android.content.Intent import android.content.pm.PackageManager import android.graphics.drawable.Icon import android.os.Build import com.vajrax.android.MainActivity import com.vajrax.android.R import com.vajrax.core.time.AppClock import com.vajrax.core.time.TimeFormat import com.vajrax.domain.habit.Occurrence import com.vajrax.domain.repository.PracticeRepository import com.vajrax.domain.repository.SettingsRepository import com.vajrax.domain.usecase.RoutineManager import kotlinx.coroutines.CoroutineScope import kotlinx.coroutines.Dispatchers import kotlinx.coroutines.SupervisorJob import kotlinx.coroutines.launch import org.koin.core.context.GlobalContext</ID>
+    <ID>ImportOrdering:VajraApplication.kt$import com.vajrax.core.coroutines.runCatchingCancellable import android.app.Application import android.app.NotificationManager import com.vajrax.core.time.AppClock import com.vajrax.core.time.TimeFormat import com.vajrax.domain.repository.PracticeRepository import com.vajrax.android.reminders.HabitReminderScheduler import com.vajrax.android.reminders.ReminderReceiver import com.vajrax.data.local.DatabaseDriverFactory import com.vajrax.di.initKoin import com.vajrax.domain.usecase.AppHooks import com.vajrax.domain.usecase.RoutineManager import com.vajrax.platform.WidgetController import com.vajrax.android.widget.GlanceWidgetController import com.vajrax.android.widget.VajraWidgets import com.vajrax.domain.repository.SettingsRepository import kotlinx.coroutines.CoroutineScope import kotlinx.coroutines.Dispatchers import kotlinx.coroutines.SupervisorJob import kotlinx.coroutines.launch import org.koin.core.context.GlobalContext import org.koin.dsl.module</ID>
+    <ID>LoopWithTooManyJumpStatements:HabitReminderScheduler.kt$HabitReminderScheduler$for</ID>
+    <ID>MagicNumber:GlanceWidgets.kt$VajraWidgets$35</ID>
+    <ID>MagicNumber:GlanceWidgets.kt$WidgetPreview$20</ID>
+    <ID>MagicNumber:GlanceWidgets.kt$WidgetPreview$30</ID>
+    <ID>MagicNumber:GlanceWidgets.kt$WidgetPreview$5</ID>
+    <ID>MagicNumber:HabitReminderScheduler.kt$HabitReminderScheduler$14</ID>
+    <ID>MagicNumber:HabitReminderScheduler.kt$HabitReminderScheduler$60</ID>
+    <ID>MagicNumber:ReminderReceiver.kt$ReminderReceiver$33</ID>
+    <ID>MagicNumber:TiltSensor.kt$TiltSensor$0.01f</ID>
+    <ID>MagicNumber:TiltSensor.kt$TiltSensor$0.1f</ID>
+    <ID>MagicNumber:TiltSensor.kt$TiltSensor$1_000_000_000f</ID>
+    <ID>MaxLineLength:GlanceWidgets.kt$Chip("+1", filled = false, onClick = habitAction(row.id, HabitWidgetAction.OP_INCREMENT), description = context.getString(R.string.widget_plus_one_description, title))</ID>
+    <ID>MaxLineLength:GlanceWidgets.kt$Text(row.subtitle(LocalContext.current), style = TextStyle(color = WColors.onSurfaceVariant, fontSize = 12.sp), maxLines = 1)</ID>
+    <ID>MaxLineLength:GlanceWidgets.kt$VajraWidgets$runCatchingCancellable { NowGlanceWidget().updateAll(context) }.onFailure { com.vajrax.core.log.VxLog.w("Widget", "Now widget refresh failed", it) }</ID>
+    <ID>MaxLineLength:GlanceWidgets.kt$VajraWidgets$runCatchingCancellable { TodayGlanceWidget().updateAll(context) }.onFailure { com.vajrax.core.log.VxLog.w("Widget", "Today widget refresh failed", it) }</ID>
+    <ID>MaxLineLength:GlanceWidgets.kt$WidgetPreview$pairs.map { it.first }</ID>
+    <ID>MaxLineLength:GlanceWidgets.kt$if (row.id == firstResolved &amp;&amp; current != null) SectionLabel(LocalContext.current.getString(R.string.widget_section_done))</ID>
+    <ID>MaxLineLength:ReminderReceiver.kt$ReminderReceiver$.</ID>
+    <ID>MaxLineLength:ReminderReceiver.kt$ReminderReceiver$NotificationPrivacy.FULL -&gt; habit.title to "${TimeFormat.display(occ.scheduledTime ?: habit.time)} · ${TimeFormat.duration(habit.durationMinutes)}"</ID>
+    <ID>MaxLineLength:ReminderReceiver.kt$ReminderReceiver$private</ID>
+    <ID>MaxLineLength:ReminderReceiver.kt$ReminderReceiver$val</ID>
+    <ID>MaxLineLength:ReminderReceiver.kt$ReminderReceiver.Companion$NotificationChannel(CHANNEL_ID, context.getString(R.string.reminder_channel_name), NotificationManager.IMPORTANCE_DEFAULT)</ID>
+    <ID>MaxLineLength:VajraApplication.kt$AndroidAppHooks$runCatchingCancellable { scheduler.sync() }.onFailure { com.vajrax.core.log.VxLog.w("Reminders", "Couldn't reschedule reminders", it) }</ID>
+    <ID>MaxLineLength:VajraApplication.kt$VajraApplication$runCatchingCancellable { publishWidgetPreviews() }.onFailure { com.vajrax.core.log.VxLog.w("App", "Widget previews not published", it) }</ID>
+    <ID>MaxLineLength:WidgetData.kt$WidgetData$.</ID>
+    <ID>MaximumLineLength:GlanceWidgets.kt$ </ID>
+    <ID>MaximumLineLength:GlanceWidgets.kt$VajraWidgets$ </ID>
+    <ID>MaximumLineLength:GlanceWidgets.kt$WidgetPreview$ </ID>
+    <ID>MaximumLineLength:ReminderReceiver.kt$ReminderReceiver$ </ID>
+    <ID>MaximumLineLength:ReminderReceiver.kt$ReminderReceiver.Companion$ </ID>
+    <ID>MaximumLineLength:VajraApplication.kt$AndroidAppHooks$ </ID>
+    <ID>MaximumLineLength:VajraApplication.kt$VajraApplication$ </ID>
+    <ID>MaximumLineLength:WidgetData.kt$WidgetData$ </ID>
+    <ID>MultiLineIfElse:MainActivity.kt$MainActivity$false</ID>
+    <ID>MultiLineIfElse:ReminderReceiver.kt$ReminderReceiver$emptyList()</ID>
+    <ID>NestedBlockDepth:HabitReminderScheduler.kt$HabitReminderScheduler$suspend fun sync()</ID>
+    <ID>PropertyWrapping:MainActivity.kt$MainActivity$private val createDocument = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri -&gt; val content = pendingExport val ok = if (uri != null &amp;&amp; content != null) { runCatching { contentResolver.openOutputStream(uri)?.use { it.write(content.toByteArray(Charsets.UTF_8)) } != null }.getOrDefault(false) } else false pendingExport = null exportCallback?.invoke(ok) exportCallback = null }</ID>
+    <ID>ReturnCount:ReminderReceiver.kt$ReminderReceiver$private suspend fun handle(context: Context, intent: Intent)</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:GlanceWidgets.kt$WColors$// White keeps 4.5:1 on the indigo button in both themes.</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:MainActivity.kt$MainActivity.Companion$/** Widget "Start" / "Log": open Home on this occurrence (timer or value entry). */</ID>
+    <ID>SpacingBetweenDeclarationsWithComments:ReminderReceiver.kt$ReminderReceiver.Companion$/** Notifications are tagged with the habit id so a check-in anywhere can clear them. */</ID>
+    <ID>TooGenericExceptionCaught:ReminderReceiver.kt$ReminderReceiver$e: Exception</ID>
+    <ID>Wrapping:GlanceWidgets.kt$VajraWidgets$NowGlanceWidget().updateAll(context)</ID>
+    <ID>Wrapping:GlanceWidgets.kt$VajraWidgets$TodayGlanceWidget().updateAll(context)</ID>
+    <ID>Wrapping:GlanceWidgets.kt$VajraWidgets$com.vajrax.core.log.VxLog.w("Widget", "Now widget refresh failed", it)</ID>
+    <ID>Wrapping:GlanceWidgets.kt$VajraWidgets$com.vajrax.core.log.VxLog.w("Widget", "Today widget refresh failed", it)</ID>
+    <ID>Wrapping:GlanceWidgets.kt$WidgetPreview$it.first</ID>
+    <ID>Wrapping:GlanceWidgets.kt$WidgetPreview$it.second</ID>
+    <ID>Wrapping:VajraApplication.kt$AndroidAppHooks$com.vajrax.core.log.VxLog.w("Reminders", "Couldn't reschedule reminders", it)</ID>
+    <ID>Wrapping:VajraApplication.kt$AndroidAppHooks$scheduler.sync()</ID>
+    <ID>Wrapping:VajraApplication.kt$VajraApplication$com.vajrax.core.log.VxLog.w("App", "Widget previews not published", it)</ID>
+    <ID>Wrapping:VajraApplication.kt$VajraApplication$publishWidgetPreviews()</ID>
+    <ID>Wrapping:WidgetData.kt$WidgetData$com.vajrax.core.log.VxLog.w("Widget", "Couldn't plan today", it)</ID>
+    <ID>Wrapping:WidgetData.kt$WidgetData$routine.materialize()</ID>
+    <ID>Wrapping:WidgetData.kt$WidgetData$runCatchingCancellable { routine.materialize() }.onFailure { com.vajrax.core.log.VxLog.w("Widget", "Couldn't plan today", it) }</ID>
+  </CurrentIssues>
+</SmellBaseline>

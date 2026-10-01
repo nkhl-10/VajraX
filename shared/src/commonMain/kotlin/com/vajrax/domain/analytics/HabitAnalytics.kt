@@ -225,7 +225,7 @@ class HabitAnalytics(
      * Days with nothing eligible (rest days, all skipped) neither extend nor break the streak;
      * today only counts once it qualifies.
      */
-    fun dayStreak(threshold: Float = 0.8f): StreakResult {
+    fun dayStreak(threshold: Float = com.vajrax.domain.BusinessRules.STREAK_DAY_THRESHOLD): StreakResult {
         val start = window.start
         val end = minOf(window.endInclusive, today)
         var run = 0

@@ -2,7 +2,6 @@ package com.vajrax.ui.features.calendar
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -20,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -30,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.vajrax.core.time.Dates
 import com.vajrax.core.time.TimeFormat
 import com.vajrax.domain.model.ActionStatus
+import com.vajrax.resources.*
 import com.vajrax.ui.designsystem.*
 import com.vajrax.ui.theme.LuminaTheme
 import com.vajrax.ui.theme.VxShape
@@ -37,6 +36,8 @@ import com.vajrax.ui.theme.VxSpace
 import com.vajrax.ui.theme.habitAccent
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun CalendarScreen(
@@ -51,7 +52,15 @@ fun CalendarScreen(
     var correction by remember { mutableStateOf<Pair<MatrixCell, String>?>(null) }
 
     LaunchedEffect(effects) {
-        effects.collect { e -> if (e is CalendarEffect.ShowMessage) scope.launch { snackbar.showSnackbar(e.message) } }
+        effects.collect { e ->
+            if (e is CalendarEffect.ShowMessage) scope.launch {
+                snackbar.currentSnackbarData?.dismiss()
+                val result = snackbar.showSnackbar(e.message, actionLabel = if (e.undo != null) getString(Res.string.today_undo) else null)
+                if (result == androidx.compose.material3.SnackbarResult.ActionPerformed && e.undo != null) {
+                    onIntent(CalendarIntent.Undo(e.undo))
+                }
+            }
+        }
     }
 
     Column(Modifier.fillMaxSize().background(colors.background).statusBarsPadding()) {
@@ -60,9 +69,9 @@ fun CalendarScreen(
             Modifier.fillMaxWidth().padding(horizontal = VxSpace.gutter),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ScreenTitle("Calendar", Modifier.weight(1f))
+            ScreenTitle(stringResource(Res.string.calendar_calendar), Modifier.weight(1f))
             SegmentedToggle(
-                options = listOf("Week", "Month"),
+                options = listOf(stringResource(Res.string.today_week), stringResource(Res.string.calendar_month)),
                 selectedIndex = state.mode.ordinal,
                 onSelect = { onIntent(CalendarIntent.SetMode(CalendarMode.entries[it])) }
             )
@@ -75,20 +84,21 @@ fun CalendarScreen(
             if (state.isLoading) {
                 LoadingSkeleton()
             } else if (!state.hasTracker && state.rows.isEmpty()) {
-                EmptyState(VxIcons.Calendar, "Your calendar is empty", "Start a routine to see your days.", actionLabel = "Choose a template", onAction = onOpenDiscover)
+                EmptyState(VxIcons.Calendar, stringResource(Res.string.calendar_your_calendar_is_empty), stringResource(Res.string.calendar_start_a_routine_to_see), actionLabel = stringResource(Res.string.today_choose_a_template), onAction = onOpenDiscover)
             } else if (state.mode == CalendarMode.WEEK) {
                 WeekMatrix(
                     state = state,
                     onIntent = onIntent,
-                    onPastTap = { scope.launch { snackbar.showSnackbar("Long-press to correct a past day") } },
+                    onPastTap = { scope.launch { snackbar.showSnackbar(getString(Res.string.calendar_long_press_to_correct_a)) } },
                     onPastLongPress = { cell, title -> correction = cell to title }
                 )
                 Spacer(Modifier.height(VxSpace.md))
                 Legend(
                     listOf(
-                        LegendItem(colors.primary, "Done today", filled = true),
-                        LegendItem(colors.outline, "Done", filled = false, check = true),
-                        LegendItem(colors.outlineVariant, "Not done / upcoming", filled = false)
+                        LegendItem(colors.primary, stringResource(Res.string.calendar_done_today), filled = true),
+                        LegendItem(colors.outline, stringResource(Res.string.calendar_done), filled = false, check = true),
+                        LegendItem(colors.outline, stringResource(Res.string.calendar_missed), filled = false, minus = true),
+                        LegendItem(colors.outlineVariant, stringResource(Res.string.calendar_upcoming), filled = false)
                     )
                 )
             } else {
@@ -101,9 +111,9 @@ fun CalendarScreen(
     correction?.let { (cell, title) ->
         val markDone = cell.kind != CellKind.DONE_PAST
         ConfirmDialog(
-            title = "Correct this record?",
+            title = stringResource(Res.string.calendar_correct_this_record),
             message = "$title · ${Dates.shortLabel(cell.date)} → ${if (markDone) "done" else "not done"}",
-            confirmLabel = if (markDone) "Mark done" else "Mark not done",
+            confirmLabel = if (markDone) stringResource(Res.string.calendar_mark_done) else stringResource(Res.string.calendar_mark_not_done),
             onConfirm = {
                 cell.occurrenceId?.let { onIntent(CalendarIntent.CorrectPast(it, markDone)) }
                 correction = null
@@ -122,12 +132,12 @@ private fun WeekMatrix(
 ) {
     val colors = LuminaTheme.colors
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        RoundIconButton(VxIcons.ChevronLeft, "Previous days", onClick = { onIntent(CalendarIntent.Shift(-5)) })
+        RoundIconButton(VxIcons.ChevronLeft, stringResource(Res.string.calendar_previous_days), onClick = { onIntent(CalendarIntent.Shift(-5)) })
         Text(state.rangeLabel, style = MaterialTheme.typography.labelLarge, color = colors.onSurface, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
         if (state.selected != state.today) {
-            TextButton(onClick = { onIntent(CalendarIntent.GoToday) }) { Text("Today") }
+            TextButton(onClick = { onIntent(CalendarIntent.GoToday) }) { Text(stringResource(Res.string.today_today)) }
         }
-        RoundIconButton(VxIcons.ChevronRight, "Next days", onClick = { onIntent(CalendarIntent.Shift(5)) })
+        RoundIconButton(VxIcons.ChevronRight, stringResource(Res.string.calendar_next_days), onClick = { onIntent(CalendarIntent.Shift(5)) })
     }
     Spacer(Modifier.height(VxSpace.sm))
     var dragTotal by remember { mutableStateOf(0f) }
@@ -156,7 +166,7 @@ private fun WeekMatrix(
             state.weekDays.forEach { d ->
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.width(40.dp).clip(RoundedCornerShape(12.dp))
+                    modifier = Modifier.width(40.dp).clip(VxShape.tile)
                         .hapticClickable(kind = VxHaptic.Select) { onIntent(CalendarIntent.Select(d.date)) }
                         .semantics { contentDescription = "${d.dayName} ${d.dayNumber}${if (d.isToday) ", today" else ""}" }
                 ) {
@@ -165,7 +175,7 @@ private fun WeekMatrix(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "${d.dayNumber}",
+                            stringResource(Res.string.calendar_value_fmt, d.dayNumber),
                             style = MaterialTheme.typography.labelLarge,
                             color = when {
                                 d.isSelected -> colors.onPrimary
@@ -186,7 +196,7 @@ private fun WeekMatrix(
         HorizontalDivider(Modifier.padding(horizontal = VxSpace.lg), color = colors.outlineVariant.copy(alpha = 0.7f))
         if (state.rows.isEmpty()) {
             Text(
-                "No habits in this range.",
+                stringResource(Res.string.calendar_no_habits_in_this_range),
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurfaceVariant,
                 modifier = Modifier.padding(VxSpace.lg)
@@ -222,7 +232,7 @@ private fun MatrixRowView(
                 CellKind.DONE_TODAY -> CheckCircle(CheckState.DONE, { cell.occurrenceId?.let { onIntent(CalendarIntent.ToggleToday(it)) } }, label, size = 24.dp, touchWidth = 40.dp)
                 CellKind.OPEN_TODAY -> CheckCircle(CheckState.OPEN, { cell.occurrenceId?.let { onIntent(CalendarIntent.ToggleToday(it)) } }, label, size = 24.dp, touchWidth = 40.dp)
                 CellKind.DONE_PAST -> CheckCircle(CheckState.DONE_MUTED, onPastTap, label, size = 24.dp, touchWidth = 40.dp, onLongClick = { onPastLongPress(cell, row.habit.title) })
-                CellKind.MISSED -> CheckCircle(CheckState.DISABLED, onPastTap, "$label, not done", size = 24.dp, touchWidth = 40.dp, onLongClick = { onPastLongPress(cell, row.habit.title) })
+                CellKind.MISSED -> CheckCircle(CheckState.MISSED, onPastTap, "$label, not done", size = 24.dp, touchWidth = 40.dp, onLongClick = { onPastLongPress(cell, row.habit.title) })
                 CellKind.SKIPPED -> CheckCircle(CheckState.SKIPPED, null, "$label, skipped", size = 24.dp, touchWidth = 40.dp)
                 CellKind.FUTURE -> CheckCircle(CheckState.DISABLED, null, "$label, upcoming", size = 24.dp, touchWidth = 40.dp)
                 CellKind.REST -> Box(Modifier.width(40.dp).height(48.dp).semantics { contentDescription = "$label, rest day" }, contentAlignment = Alignment.Center) {
@@ -233,19 +243,29 @@ private fun MatrixRowView(
     }
 }
 
-private data class LegendItem(val color: Color, val label: String, val filled: Boolean, val check: Boolean = false)
+private data class LegendItem(val color: Color, val label: String, val filled: Boolean, val check: Boolean = false, val minus: Boolean = false)
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun Legend(items: List<LegendItem>) {
     val colors = LuminaTheme.colors
-    Row(Modifier.fillMaxWidth().padding(horizontal = VxSpace.sm), horizontalArrangement = Arrangement.spacedBy(VxSpace.lg)) {
+    // Wraps on narrow phones instead of running off the edge.
+    FlowRow(
+        Modifier.fillMaxWidth().padding(horizontal = VxSpace.sm),
+        horizontalArrangement = Arrangement.spacedBy(VxSpace.lg),
+        verticalArrangement = Arrangement.spacedBy(VxSpace.xs)
+    ) {
         items.forEach { item ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     Modifier.size(12.dp).clip(CircleShape)
                         .background(if (item.filled) item.color else Color.Transparent)
-                        .border(1.dp, item.color, CircleShape)
-                )
+                        .border(1.dp, item.color, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (item.check) Icon(VxIcons.Check, null, tint = item.color, modifier = Modifier.size(8.dp))
+                    if (item.minus) Icon(VxIcons.Minus, null, tint = item.color, modifier = Modifier.size(8.dp))
+                }
                 Spacer(Modifier.width(6.dp))
                 Text(item.label, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Normal), color = colors.onSurfaceVariant)
             }
@@ -258,16 +278,16 @@ private fun MonthView(state: CalendarUiState, onIntent: (CalendarIntent) -> Unit
     val colors = LuminaTheme.colors
     VxCard(elevated = true) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            RoundIconButton(VxIcons.ChevronLeft, "Previous month", onClick = { onIntent(CalendarIntent.ShiftMonth(-1)) })
+            RoundIconButton(VxIcons.ChevronLeft, stringResource(Res.string.calendar_previous_month), onClick = { onIntent(CalendarIntent.ShiftMonth(-1)) })
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(state.monthLabel, style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
                 Text(
-                    state.monthStats.rate?.let { "$it% completed · ${state.monthStats.completed} of ${state.monthStats.eligible}" } ?: "No completed days yet",
+                    state.monthStats.rate?.let { "$it% completed · ${state.monthStats.completed} of ${state.monthStats.eligible}" } ?: stringResource(Res.string.calendar_no_completed_days_yet),
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.onSurfaceVariant
                 )
             }
-            RoundIconButton(VxIcons.ChevronRight, "Next month", onClick = { onIntent(CalendarIntent.ShiftMonth(1)) })
+            RoundIconButton(VxIcons.ChevronRight, stringResource(Res.string.calendar_next_month), onClick = { onIntent(CalendarIntent.ShiftMonth(1)) })
         }
         Spacer(Modifier.height(VxSpace.md))
         Row(Modifier.fillMaxWidth()) {
@@ -316,7 +336,7 @@ private fun MonthView(state: CalendarUiState, onIntent: (CalendarIntent) -> Unit
                 Icon(icon, null, tint = tint, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(VxSpace.sm))
                 Text(item.habit.title, style = MaterialTheme.typography.bodyMedium, color = colors.onSurface, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("${TimeFormat.display(item.habit.time)} · $text", style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                Text(stringResource(Res.string.today_value_fmt_2, TimeFormat.display(item.habit.time), text), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
             }
         }
     }
@@ -346,14 +366,14 @@ private fun HeatCell(cell: MonthCell, modifier: Modifier, onClick: () -> Unit) {
             else -> "${cell.rate ?: 0} percent completed"
         }
         Box(
-            Modifier.fillMaxSize().clip(RoundedCornerShape(10.dp)).background(bg)
-                .then(if (cell.isSelected) Modifier.border(2.dp, colors.onSurface, RoundedCornerShape(10.dp)) else if (cell.isToday) Modifier.border(1.5.dp, colors.primary, RoundedCornerShape(10.dp)) else Modifier)
+            Modifier.fillMaxSize().clip(VxShape.small).background(bg)
+                .then(if (cell.isSelected) Modifier.border(2.dp, colors.onSurface, VxShape.small) else if (cell.isToday) Modifier.border(1.5.dp, colors.primary, VxShape.small) else Modifier)
                 .hapticClickable(onClick = onClick)
                 .semantics { contentDescription = description },
             contentAlignment = Alignment.Center
         ) {
             Text(
-                "${cell.date.day}",
+                stringResource(Res.string.calendar_value_fmt, cell.date.day),
                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = if (cell.isToday) FontWeight.Bold else FontWeight.Medium),
                 color = when {
                     cell.level == 3 || cell.level == 2 -> colors.onPrimary

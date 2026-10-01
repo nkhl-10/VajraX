@@ -1,5 +1,6 @@
 package com.vajrax.data
 
+import app.cash.sqldelight.async.coroutines.synchronous
 import app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver
 import com.vajrax.data.local.VajraDatabase
 import com.vajrax.data.repository.DataRepositoryImpl
@@ -9,23 +10,23 @@ import com.vajrax.data.repository.SettingsRepositoryImpl
 import com.vajrax.data.repository.TemplateRepositoryImpl
 import com.vajrax.data.repository.TrackerRepositoryImpl
 import com.vajrax.domain.FixedClock
+import com.vajrax.domain.analytics.HabitAnalytics
 import com.vajrax.domain.habit.HabitSchedule
+import com.vajrax.domain.habit.HabitType
 import com.vajrax.domain.habit.ScheduleType
 import com.vajrax.domain.model.ActionStatus
+import com.vajrax.domain.usecase.RoutineException
 import com.vajrax.domain.usecase.RoutineManager
-import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import com.vajrax.domain.analytics.HabitAnalytics
-import com.vajrax.domain.habit.HabitType
-import com.vajrax.domain.usecase.RoutineException
-import kotlin.test.assertFailsWith
+import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.LocalTime
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -37,7 +38,7 @@ import kotlin.test.assertTrue
 class HabitFlowIntegrationTest {
 
     private class Env(day: String) {
-        val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY).also { VajraDatabase.Schema.create(it) }
+        val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY).also { VajraDatabase.Schema.synchronous().create(it) }
         val db = VajraDatabase(driver)
         val clock = FixedClock(LocalDateTime(LocalDate.parse(day), LocalTime(9, 0)))
         val practices = PracticeRepositoryImpl(db)
@@ -91,6 +92,24 @@ class HabitFlowIntegrationTest {
         // Running it again (already started) changes nothing and creates no duplicates.
         env.routine.startToday()
         assertEquals(6, env.practices.getRange(today, today).size)
+    }
+
+    @Test
+    fun undoAfterSnoozePutsTheTimeBack() = runTest {
+        val env = Env("2026-09-28")
+        env.activate()
+        val today = LocalDate.parse("2026-09-28")
+        val occ = env.practices.getRange(today, today).first { it.isOpen }
+        env.routine.snooze(occ.id, 15)
+        val snoozed = assertNotNull(env.practices.getOccurrence(occ.id))
+        assertEquals(ActionStatus.SNOOZED, snoozed.status)
+        assertTrue(snoozed.scheduledTime != occ.scheduledTime)
+
+        env.routine.restore(occ)
+
+        val back = assertNotNull(env.practices.getOccurrence(occ.id))
+        assertEquals(occ.scheduledTime, back.scheduledTime)
+        assertEquals(ActionStatus.PENDING, back.status)
     }
 
     @Test
@@ -183,7 +202,7 @@ class HabitFlowIntegrationTest {
     }
 
     @Test
-    fun migrationFromVersionOneRemovesDemoDataAndAddsNewColumns() {
+    fun migrationFromVersionOneRemovesDemoDataAndAddsNewColumns() = runTest {
         val driver = JdbcSqliteDriver(JdbcSqliteDriver.IN_MEMORY)
         val v1 = javaClass.classLoader!!.getResource("schema_v1.sql")!!.readText()
         v1.lines().filter { it.isNotBlank() }.forEach { driver.execute(null, it, 0) }
@@ -197,7 +216,7 @@ class HabitFlowIntegrationTest {
             "INSERT INTO UserTemplateEntity VALUES ('ut_01','user_lumina_01','morning_discipline',12,30,40,1)"
         ).forEach { driver.execute(null, it, 0) }
 
-        VajraDatabase.Schema.migrate(driver, 1, VajraDatabase.Schema.version)
+        VajraDatabase.Schema.synchronous().migrate(driver, 1, VajraDatabase.Schema.version)
         val q = VajraDatabase(driver).vajraDatabaseQueries
 
         assertNull(q.getCurrentUser().executeAsOneOrNull())

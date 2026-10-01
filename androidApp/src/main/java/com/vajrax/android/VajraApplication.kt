@@ -1,5 +1,6 @@
 package com.vajrax.android
 
+import com.vajrax.core.coroutines.runCatchingCancellable
 import android.app.Application
 import android.app.NotificationManager
 import com.vajrax.core.time.AppClock
@@ -32,6 +33,10 @@ class VajraApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Debug builds log handled failures to logcat; release builds stay silent.
+        if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) {
+            com.vajrax.core.log.VxLog.sink = { tag, message, error -> android.util.Log.w("VajraX/$tag", message, error) }
+        }
         if (GlobalContext.getOrNull() == null) {
             initKoin {
                 modules(
@@ -44,16 +49,17 @@ class VajraApplication : Application() {
                 )
             }
         }
+        com.vajrax.data.remote.SupabaseConfig.configure(BuildConfig.SUPABASE_URL, BuildConfig.SUPABASE_KEY)
         TimeFormat.use24Hour = android.text.format.DateFormat.is24HourFormat(this)
         ReminderReceiver.ensureChannel(this)
         appScope.launch {
-            runCatching {
+            runCatchingCancellable {
                 val koin = GlobalContext.get()
                 koin.get<RoutineManager>().startup()
                 koin.get<HabitReminderScheduler>().sync()
                 koin.get<WidgetController>().refresh()
-            }
-            runCatching { publishWidgetPreviews() }
+            }.onFailure { com.vajrax.core.log.VxLog.w("App", "Startup work failed", it) }
+            runCatchingCancellable { publishWidgetPreviews() }.onFailure { com.vajrax.core.log.VxLog.w("App", "Widget previews not published", it) }
         }
     }
 
@@ -79,7 +85,7 @@ class AndroidAppHooks(
     private val clock: AppClock
 ) : AppHooks {
     override suspend fun onRoutineChanged() {
-        runCatching { scheduler.sync() }
+        runCatchingCancellable { scheduler.sync() }.onFailure { com.vajrax.core.log.VxLog.w("Reminders", "Couldn't reschedule reminders", it) }
         clearResolvedNotifications()
         widget.refresh()
     }
@@ -93,13 +99,13 @@ class AndroidAppHooks(
     private suspend fun clearResolvedNotifications() {
         val manager = context.getSystemService(NotificationManager::class.java) ?: return
         val today = clock.today()
-        runCatching {
+        runCatchingCancellable {
             manager.activeNotifications
                 .filter { it.id == ReminderReceiver.NOTIFICATION_ID && it.tag != null }
                 .forEach { n ->
                     val occ = practices.getOccurrence(n.tag, today)
                     if (occ == null || !occ.isOpen) manager.cancel(n.tag, n.id)
                 }
-        }
+        }.onFailure { com.vajrax.core.log.VxLog.w("Reminders", "Couldn't clear finished reminders", it) }
     }
 }
