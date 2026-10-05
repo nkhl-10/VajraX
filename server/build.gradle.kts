@@ -74,10 +74,35 @@ ktor {
     }
     docker {
         jreVersion.set(JavaVersion.VERSION_17)
+        // Same runtime as server/Dockerfile: small, no shell, runs as a non-root user.
+        customBaseImage.set("gcr.io/distroless/java17-debian12:nonroot")
         localImageName.set("vajrax-server")
         imageTag.set(version.toString())
+        environmentVariable("WEB_DIR", "/app/web")
     }
 }
+
+/*
+ * Jib builds the image without Docker (:server:buildImage → build/jib-image.tar, :server:publishImage).
+ * The Dockerfile is the main path for Cloud Build; this one proves the image on machines without Docker.
+ */
+jib {
+    container {
+        user = "65532"
+        ports = listOf("8080")
+        jvmFlags = listOf("-XX:MaxRAMPercentage=70", "-XX:+ExitOnOutOfMemoryError")
+    }
+    extraDirectories {
+        paths {
+            path {
+                setFrom(layout.buildDirectory.dir("web").get().asFile)
+                into = "/app/web"
+            }
+        }
+    }
+}
+
+tasks.matching { it.name.startsWith("jib") }.configureEach { dependsOn("stageWeb") }
 
 tasks.test {
     useJUnitPlatform()

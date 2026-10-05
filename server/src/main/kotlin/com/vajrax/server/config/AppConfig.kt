@@ -24,6 +24,11 @@ data class AppConfig(
     val version: String,
     val gitSha: String,
     val minAppVersion: String,
+    /**
+     * Proxies that add their own address after the client's in X-Forwarded-For: 0 on plain Cloud Run,
+     * 1 behind an external Application Load Balancer. Rate limits key on the address this points to.
+     */
+    val forwardedSkipLast: Int = 0,
     val rateLimits: RateLimits = RateLimits(),
     val passwordHashing: PasswordHashing = PasswordHashing()
 ) {
@@ -72,6 +77,7 @@ data class AppConfig(
     /** Refuses to start with settings that would be unsafe in production. */
     fun validate(): AppConfig = apply {
         require(port in VALID_PORTS) { "PORT must be 1-65535" }
+        require(forwardedSkipLast in 0..MAX_PROXIES) { "FORWARDED_SKIP_LAST must be 0-$MAX_PROXIES" }
         if (isProduction) {
             require(
                 jwt.secret.toByteArray().size >= MIN_SECRET_BYTES
@@ -83,6 +89,7 @@ data class AppConfig(
 
     companion object {
         const val MIN_SECRET_BYTES = 32
+        private const val MAX_PROXIES = 5
         private val VALID_PORTS = 1..65535
         private const val DEV_SECRET = "dev-only-secret-never-use-in-production-0123456789"
 
@@ -137,6 +144,7 @@ data class AppConfig(
                 version = get("APP_VERSION") ?: "1.0.0",
                 gitSha = get("GIT_SHA") ?: "dev",
                 minAppVersion = get("MIN_APP_VERSION") ?: "1.0",
+                forwardedSkipLast = get("FORWARDED_SKIP_LAST")?.toInt() ?: 0,
                 rateLimits = RateLimits(
                     loginPerMinute = get("RATE_LOGIN_PER_MINUTE")?.toInt() ?: 10,
                     registerPerHour = get("RATE_REGISTER_PER_HOUR")?.toInt() ?: 5,

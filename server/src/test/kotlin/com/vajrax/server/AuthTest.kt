@@ -6,6 +6,7 @@ import com.vajrax.contract.Problem
 import com.vajrax.contract.auth.AuthResponse
 import com.vajrax.contract.auth.ChangePasswordRequest
 import com.vajrax.contract.auth.ForgotPasswordRequest
+import com.vajrax.contract.auth.LoginRequest
 import com.vajrax.contract.auth.LogoutRequest
 import com.vajrax.contract.auth.RefreshRequest
 import com.vajrax.contract.auth.RegisterRequest
@@ -128,6 +129,8 @@ class AuthTest {
         assertTrue(mailer.sent.isEmpty())
 
         assertEquals(HttpStatusCode.Accepted, client.post(ApiPaths.PASSWORD_FORGOT) { json(ForgotPasswordRequest("sam@example.com")) }.status)
+        // The token sits in the link's fragment, which browsers never send to a server (so no request log has it).
+        assertTrue("http://localhost/reset-password#token=" in mailer.sent.single().body)
         val token = Regex("token=([A-Za-z0-9_-]+)").find(mailer.sent.single().body)!!.groupValues[1]
         val newPassword = "quiet morning tea"
         assertEquals(HttpStatusCode.NoContent, client.post(ApiPaths.PASSWORD_RESET) { json(ResetPasswordRequest(token, newPassword)) }.status)
@@ -190,5 +193,19 @@ class AuthTest {
         val limited = client.login(email = "y@example.com")
         assertEquals(HttpStatusCode.TooManyRequests, limited.status)
         assertEquals(ErrorCodes.RATE_LIMITED, limited.body<Problem>().code)
+    }
+
+    @Test
+    fun behindALoadBalancerEachClientAddressHasItsOwnLimit() = server(
+        mapOf("RATE_LOGIN_PER_MINUTE" to "2", "FORWARDED_SKIP_LAST" to "1")
+    ) { client ->
+        // "<forged>, <client>, <load balancer>": the limit follows the client, not the balancer or the forged entry.
+        suspend fun loginFrom(forwardedFor: String) = client.post(ApiPaths.LOGIN) {
+            json(LoginRequest("x@example.com", GOOD_PASSWORD))
+            header(HttpHeaders.XForwardedFor, forwardedFor)
+        }
+        repeat(2) { loginFrom("1.1.1.$it, 10.0.0.1, 34.0.0.9") }
+        assertEquals(HttpStatusCode.TooManyRequests, loginFrom("1.1.1.9, 10.0.0.1, 34.0.0.9").status)
+        assertEquals(HttpStatusCode.Unauthorized, loginFrom("10.0.0.2, 34.0.0.9").status)
     }
 }

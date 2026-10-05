@@ -74,6 +74,10 @@ class SyncTest {
         client.push(s, "device-b", change("hab_1", "B", t0))
         assertEquals(0, client.push(s, "device-a", change("hab_1", "A", t0)).body<PushResponse>().accepted.size)
         assertEquals(1, client.push(s, "device-c", change("hab_1", "C", t0)).body<PushResponse>().accepted.size)
+
+        // Bytes decide, as on the devices (not the database's language rules): "dev_a" > "dev_B".
+        client.push(s, "dev_B", change("hab_2", "upper", t0))
+        assertEquals(1, client.push(s, "dev_a", change("hab_2", "lower", t0)).body<PushResponse>().accepted.size)
     }
 
     @Test

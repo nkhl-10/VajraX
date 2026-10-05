@@ -1,0 +1,25 @@
+# Build context for server/Dockerfile (docker build -f server/Dockerfile .).
+# Build outputs and caches are recreated inside the image.
+.git
+**/build
+**/.gradle
+.kotlin
+**/node_modules
+.idea
+*.iml
+captures
+
+# Never send secrets or signing material into an image.
+local.properties
+**/.env
+**/*.jks
+**/*.keystore
+**/keystore.properties
+
+# Not needed to build the server image.
+doc/VajraXScreen
+iosApp
+stitch_vajrax_life_os
+skills
+**/*.apk
+**/*.aab

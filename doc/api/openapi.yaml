@@ -1,0 +1,613 @@
+openapi: 3.1.0
+info:
+  title: VAJRAX API
+  version: "1.0"
+  summary: Accounts, offline-first sync and the template library of the VAJRAX habit tracker.
+  description: |
+    Rules, procedures and conformance tests are in sync-protocol.md (rule ids R-… are referenced below).
+    Every 4xx/5xx under /v1/ has a Problem body; clients branch on `code`.
+    Browser clients send `X-VajraX-Client: web` on /v1/auth/* calls: the refresh token then travels in the
+    HttpOnly cookie `vx_refresh` (Path=/v1/auth, SameSite=Strict) and is left out of response bodies.
+servers:
+  - url: https://{host}
+    variables:
+      host:
+        default: vajrax.example
+# Public unless an operation lists `bearer`.
+security: []
+tags:
+  - { name: auth, description: "Register, sign in, sessions and passwords" }
+  - { name: account, description: The signed-in account }
+  - { name: sync, description: Offline-first record sync (sync-protocol.md section 6) }
+  - { name: templates, description: Public template library }
+  - { name: admin, description: Template library management (admin accounts only) }
+  - { name: service, description: Version and health }
+
+paths:
+  /v1/auth/register:
+    post:
+      tags: [auth]
+      operationId: register
+      summary: Create an account and a session (rate limit 5/hour per address)
+      parameters: [{ $ref: "#/components/parameters/Client" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/RegisterRequest" } } }
+      responses:
+        "201": { $ref: "#/components/responses/Session" }
+        "409": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+
+  /v1/auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: Sign in (rate limit 10/minute per address; account lock after 5 failures)
+      parameters: [{ $ref: "#/components/parameters/Client" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/LoginRequest" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Session" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+
+  /v1/auth/refresh:
+    post:
+      tags: [auth]
+      operationId: refresh
+      summary: Swap the refresh token for a new session; the old token stops working (R-SES-4, R-SES-5)
+      parameters: [{ $ref: "#/components/parameters/Client" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/RefreshRequest" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Session" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+
+  /v1/auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      summary: End this session (browser cookie is cleared)
+      parameters: [{ $ref: "#/components/parameters/Client" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/LogoutRequest" } } }
+      responses:
+        "204": { description: Signed out }
+        "429": { $ref: "#/components/responses/Problem" }
+
+  /v1/auth/logout-all:
+    post:
+      tags: [auth]
+      operationId: logoutAll
+      summary: End every session of the account, including access tokens (R-SES-6)
+      security: [{ bearer: [] }]
+      parameters: [{ $ref: "#/components/parameters/Client" }]
+      responses:
+        "204": { description: All sessions ended }
+        "401": { $ref: "#/components/responses/Problem" }
+
+  /v1/auth/password/change:
+    post:
+      tags: [auth]
+      operationId: changePassword
+      summary: Change the password; other sessions end, this device gets a new session
+      security: [{ bearer: [] }]
+      parameters: [{ $ref: "#/components/parameters/Client" }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ChangePasswordRequest" } } }
+      responses:
+        "200": { $ref: "#/components/responses/Session" }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+
+  /v1/auth/password/forgot:
+    post:
+      tags: [auth]
+      operationId: forgotPassword
+      summary: Email a reset link (<base>/reset-password#token=…); always 202 (rate limit 3/hour)
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ForgotPasswordRequest" } } }
+      responses:
+        "202": { description: "Accepted, whether or not the email has an account" }
+        "429": { $ref: "#/components/responses/Problem" }
+
+  /v1/auth/password/reset:
+    post:
+      tags: [auth]
+      operationId: resetPassword
+      summary: Set a new password with a reset token (single use, 30 minutes); ends every session
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/ResetPasswordRequest" } } }
+      responses:
+        "204": { description: Password changed }
+        "400": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+
+  /v1/me:
+    get:
+      tags: [account]
+      operationId: getMe
+      summary: The signed-in account
+      security: [{ bearer: [] }]
+      responses:
+        "200": { description: The account, content: { application/json: { schema: { $ref: "#/components/schemas/User" } } } }
+        "401": { $ref: "#/components/responses/Problem" }
+    patch:
+      tags: [account]
+      operationId: updateMe
+      summary: Change the display name
+      security: [{ bearer: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/UpdateMeRequest" } } }
+      responses:
+        "200": { description: The updated account, content: { application/json: { schema: { $ref: "#/components/schemas/User" } } } }
+        "401": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+
+  /v1/account:
+    delete:
+      tags: [account]
+      operationId: deleteAccount
+      summary: Delete the account and everything stored with it (R-DEL-1)
+      security: [{ bearer: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/DeleteAccountRequest" } } }
+      responses:
+        "204": { description: Deleted }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+
+  /v1/sync/push:
+    post:
+      tags: [sync]
+      operationId: syncPush
+      summary: Upload changes; each is kept only if newer by (updatedAt, deviceId) (R-SYNC-2)
+      security: [{ bearer: [] }]
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/PushRequest" } } }
+      responses:
+        "200": { description: Result per change, content: { application/json: { schema: { $ref: "#/components/schemas/PushResponse" } } } }
+        "401": { $ref: "#/components/responses/Problem" }
+        "413": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+
+  /v1/sync/pull:
+    get:
+      tags: [sync]
+      operationId: syncPull
+      summary: Download changes after a version, oldest first
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: since, in: query, schema: { type: integer, format: int64, minimum: 0, default: 0 } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 500, default: 500 } }
+      responses:
+        "200": { description: One page, content: { application/json: { schema: { $ref: "#/components/schemas/PullResponse" } } } }
+        "401": { $ref: "#/components/responses/Problem" }
+        "410": { $ref: "#/components/responses/Problem" }
+        "429": { $ref: "#/components/responses/Problem" }
+
+  /v1/templates:
+    get:
+      tags: [templates]
+      operationId: getTemplateLibrary
+      summary: The public template library (ETag "lib-<version>", Cache-Control public, max-age=3600)
+      parameters:
+        - { name: since, in: query, description: Library version the client has; 304 when it is current, schema: { type: string } }
+        - { name: If-None-Match, in: header, schema: { type: string } }
+      responses:
+        "200":
+          description: The library
+          headers:
+            ETag: { schema: { type: string } }
+            Cache-Control: { schema: { type: string } }
+          content: { application/json: { schema: { $ref: "#/components/schemas/TemplateLibrary" } } }
+        "304": { description: Unchanged }
+
+  /v1/admin/templates/{id}:
+    parameters:
+      - { name: id, in: path, required: true, schema: { type: string } }
+    put:
+      tags: [admin]
+      operationId: saveTemplate
+      summary: Add or change a library template (draft until publish)
+      security: [{ bearer: [] }]
+      parameters:
+        - { name: order, in: query, description: Position in the library, schema: { type: integer } }
+      requestBody:
+        required: true
+        content: { application/json: { schema: { $ref: "#/components/schemas/LibraryTemplate" } } }
+      responses:
+        "204": { description: Saved }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+        "422": { $ref: "#/components/responses/Problem" }
+    delete:
+      tags: [admin]
+      operationId: deleteTemplate
+      summary: Remove a library template (draft until publish)
+      security: [{ bearer: [] }]
+      responses:
+        "204": { description: Removed }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /v1/admin/templates/publish:
+    post:
+      tags: [admin]
+      operationId: publishTemplates
+      summary: Publish the draft library as a new version
+      security: [{ bearer: [] }]
+      responses:
+        "200":
+          description: New version
+          content:
+            application/json:
+              schema: { type: object, required: [version], properties: { version: { type: string } } }
+        "401": { $ref: "#/components/responses/Problem" }
+        "403": { $ref: "#/components/responses/Problem" }
+
+  /v1/version:
+    get:
+      tags: [service]
+      operationId: getVersion
+      summary: Server version and the oldest app version that may sync
+      responses:
+        "200": { description: Server version, content: { application/json: { schema: { $ref: "#/components/schemas/VersionInfo" } } } }
+
+  /healthz:
+    get:
+      tags: [service]
+      operationId: liveness
+      summary: Liveness check
+      responses:
+        "200": { description: Process is running, content: { text/plain: { schema: { const: ok } } } }
+
+  /readyz:
+    get:
+      tags: [service]
+      operationId: readiness
+      summary: Readiness check (database reachable)
+      responses:
+        "200": { description: Database answers within 2 s, content: { text/plain: { schema: { const: ready } } } }
+        "503": { description: Database unavailable }
+
+components:
+  securitySchemes:
+    bearer:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT (opaque to clients, 15 minutes)
+
+  parameters:
+    Client:
+      name: X-VajraX-Client
+      in: header
+      description: "`web` for browser clients only (refresh token in the vx_refresh cookie)."
+      schema: { type: string, enum: [web] }
+
+  responses:
+    Session:
+      description: A session
+      headers:
+        Set-Cookie:
+          description: Browser clients only, vx_refresh=…; HttpOnly; SameSite=Strict; Path=/v1/auth; Secure on HTTPS
+          schema: { type: string }
+      content: { application/json: { schema: { $ref: "#/components/schemas/AuthResponse" } } }
+    Problem:
+      description: Error (see the code table in sync-protocol.md section 4)
+      content: { application/json: { schema: { $ref: "#/components/schemas/Problem" } } }
+
+  schemas:
+    Problem:
+      type: object
+      required: [type, title, status, code]
+      properties:
+        type: { type: string, default: about:blank }
+        title: { type: string }
+        status: { type: integer }
+        code:
+          type: string
+          enum: [validation_failed, invalid_credentials, email_taken, unauthorized, refresh_invalid,
+                 reset_token_invalid, forbidden, not_found, payload_too_large, temporarily_locked,
+                 rate_limited, sync_cursor_expired, server_error, weak_password, token_expired]
+        detail: { type: string }
+        errors: { type: object, additionalProperties: { type: string }, description: Field name → message }
+        requestId: { type: string }
+
+    RegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email, maxLength: 254 }
+        password: { type: string, minLength: 10, maxLength: 128 }
+        displayName: { type: string, maxLength: 40, default: "" }
+        deviceName: { type: string }
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string }
+        password: { type: string }
+        deviceName: { type: string }
+    RefreshRequest:
+      type: object
+      properties:
+        refreshToken: { type: string, description: Mobile clients; browser clients omit it }
+    LogoutRequest:
+      type: object
+      properties:
+        refreshToken: { type: string }
+    ChangePasswordRequest:
+      type: object
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword: { type: string }
+        newPassword: { type: string, minLength: 10, maxLength: 128 }
+    ForgotPasswordRequest:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string }
+    ResetPasswordRequest:
+      type: object
+      required: [token, newPassword]
+      properties:
+        token: { type: string }
+        newPassword: { type: string, minLength: 10, maxLength: 128 }
+    UpdateMeRequest:
+      type: object
+      required: [displayName]
+      properties:
+        displayName: { type: string, maxLength: 40 }
+    DeleteAccountRequest:
+      type: object
+      required: [password]
+      properties:
+        password: { type: string }
+
+    User:
+      type: object
+      required: [id, email, displayName, emailVerified, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string }
+        displayName: { type: string }
+        emailVerified: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    AuthResponse:
+      type: object
+      required: [user, accessToken, accessExpiresIn, refreshExpiresIn]
+      properties:
+        user: { $ref: "#/components/schemas/User" }
+        accessToken: { type: string }
+        accessExpiresIn: { type: integer, format: int64, description: Seconds (900) }
+        refreshToken: { type: string, description: Absent for browser clients }
+        refreshExpiresIn: { type: integer, format: int64, description: Seconds (5184000) }
+
+    Entity:
+      type: string
+      enum: [tracker, habit, occurrence, goal, reflection, template, setting]
+    RecordId:
+      type: string
+      minLength: 1
+      maxLength: 128
+      pattern: "^[A-Za-z0-9_.:|-]+$"
+    SyncChange:
+      type: object
+      required: [entity, id, updatedAt]
+      properties:
+        entity: { $ref: "#/components/schemas/Entity" }
+        id: { $ref: "#/components/schemas/RecordId" }
+        updatedAt: { type: integer, format: int64, minimum: 1, description: ms since epoch on the changing device }
+        deleted: { type: boolean, default: false }
+        schema: { type: integer, default: 1 }
+        payload:
+          type: object
+          description: >-
+            Required unless deleted; at most 32 KiB as UTF-8 JSON. Shape by entity: tracker → TrackerPayload,
+            habit → HabitPayload, occurrence → OccurrencePayload, goal → GoalPayload, reflection → ReflectionPayload,
+            template → TemplatePayload, setting → SettingPayload.
+    SyncRecord:
+      type: object
+      required: [entity, id, updatedAt, deleted, schema, deviceId, version]
+      properties:
+        entity: { $ref: "#/components/schemas/Entity" }
+        id: { $ref: "#/components/schemas/RecordId" }
+        updatedAt: { type: integer, format: int64 }
+        deleted: { type: boolean }
+        schema: { type: integer }
+        payload: { type: object }
+        deviceId: { type: string }
+        version: { type: integer, format: int64 }
+    PushRequest:
+      type: object
+      required: [deviceId, changes]
+      properties:
+        deviceId: { type: string, maxLength: 64, pattern: "^[A-Za-z0-9_.:|-]+$" }
+        changes: { type: array, maxItems: 500, items: { $ref: "#/components/schemas/SyncChange" } }
+    PushResponse:
+      type: object
+      required: [accepted, rejected, serverTime]
+      properties:
+        accepted:
+          type: array
+          items:
+            type: object
+            required: [entity, id, version]
+            properties:
+              entity: { $ref: "#/components/schemas/Entity" }
+              id: { type: string }
+              version: { type: integer, format: int64 }
+        rejected: { type: array, items: { $ref: "#/components/schemas/SyncRecord" }, description: Changes that lost; the stored record }
+        serverTime: { type: integer, format: int64 }
+    PullResponse:
+      type: object
+      required: [changes, next, hasMore]
+      properties:
+        changes: { type: array, items: { $ref: "#/components/schemas/SyncRecord" } }
+        next: { type: integer, format: int64, description: Pass as since on the next pull }
+        hasMore: { type: boolean }
+
+    TrackerPayload:
+      type: object
+      required: [templateId]
+      properties:
+        templateId: { type: string }
+        name: { type: string }
+        startDate: { type: string, format: date }
+        totalDays: { type: integer, default: 30 }
+        currentDay: { type: integer, default: 1 }
+        progressPercent: { type: integer, default: 0 }
+        isActive: { type: boolean, default: true }
+        status: { type: string, enum: [ACTIVE, ARCHIVED], default: ACTIVE }
+        endedAt: { type: string, format: date }
+    HabitPayload:
+      type: object
+      required: [title, targetDurationMinutes, minimumDurationMinutes]
+      properties:
+        trackerId: { type: string }
+        title: { type: string }
+        targetDurationMinutes: { type: integer }
+        minimumDurationMinutes: { type: integer }
+        preferredTime: { type: string, pattern: "^\\d{2}:\\d{2}$" }
+        trackingMode: { type: string, enum: [MANUAL, PASSIVE, TIMER, HYBRID], default: MANUAL }
+        isActive: { type: boolean, default: true }
+        category: { type: string, default: General }
+        icon: { type: string, default: check }
+        color: { type: string, default: indigo }
+        habitType: { type: string, enum: [BOOLEAN, COUNT, DURATION, VALUE], default: BOOLEAN }
+        targetValue: { type: number, default: 1.0 }
+        unit: { type: string }
+        scheduleType: { type: string, enum: [DAILY, WEEKDAYS, WEEKLY_TARGET, INTERVAL], default: DAILY }
+        scheduleDays: { type: string, default: "1,2,3,4,5,6,7", description: "ISO weekdays, 1 = Monday" }
+        weeklyTarget: { type: integer, default: 0 }
+        intervalDays: { type: integer, default: 1 }
+        reminderEnabled: { type: boolean, default: false }
+        reminderTime: { type: string, pattern: "^\\d{2}:\\d{2}$" }
+        startDate: { type: string, format: date }
+        archivedAt: { type: string, format: date }
+        sortOrder: { type: integer, default: 0 }
+        createdAt: { type: string, format: date-time }
+    OccurrencePayload:
+      type: object
+      required: [habitId, date, status]
+      properties:
+        habitId: { type: string }
+        date: { type: string, format: date }
+        scheduledTime: { type: string }
+        status: { type: string, enum: [ONGOING, COMPLETE, MINIMUM, SKIPPED, MISSED, SNOOZED], description: Never PENDING (R-CAP-1) }
+        completedAt: { type: string, format: date-time }
+        durationMinutes: { type: integer }
+        value: { type: number }
+        note: { type: string }
+        skipReason: { type: string }
+    GoalPayload:
+      type: object
+      required: [title, targetValue, startDate, createdAt]
+      properties:
+        title: { type: string }
+        description: { type: string }
+        targetType: { type: string, enum: [COMPLETIONS, RATE], default: COMPLETIONS }
+        targetValue: { type: number }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+        status: { type: string, default: ACTIVE }
+        createdAt: { type: string, format: date-time }
+        habitIds: { type: array, items: { type: string }, default: [] }
+    ReflectionPayload:
+      type: object
+      required: [periodType, periodStart, createdAt, updatedAt]
+      properties:
+        periodType: { type: string, enum: [WEEK, MONTH] }
+        periodStart: { type: string, format: date }
+        achievements: { type: string, default: "" }
+        obstacles: { type: string, default: "" }
+        nextActions: { type: string, default: "" }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    TemplatePayload:
+      type: object
+      required: [title, description]
+      properties:
+        title: { type: string }
+        description: { type: string }
+        category: { type: string, default: General }
+        frequency: { type: string, default: Daily }
+        author: { type: string }
+        durationDays: { type: integer, default: 30 }
+        isDraft: { type: boolean, default: false }
+        recommendedFor: { type: string }
+        updatedAt: { type: string, format: date-time }
+        habits: { type: array, items: { $ref: "#/components/schemas/TemplateHabit" }, default: [] }
+    TemplateHabit:
+      type: object
+      required: [name, startTime, durationMinutes]
+      properties:
+        name: { type: string }
+        startTime: { type: string }
+        durationMinutes: { type: integer }
+        trackingMode: { type: string, default: MANUAL }
+        target: { type: string, default: "" }
+        repeatDays: { type: string, default: "" }
+        reminderEnabled: { type: boolean, default: true }
+        sortOrder: { type: integer, default: 0 }
+        category: { type: string }
+        icon: { type: string }
+        color: { type: string }
+        habitType: { type: string, default: BOOLEAN }
+        targetValue: { type: number, default: 1.0 }
+        unit: { type: string }
+        scheduleType: { type: string, default: DAILY }
+        weeklyTarget: { type: integer, default: 0 }
+        intervalDays: { type: integer, default: 1 }
+    SettingPayload:
+      type: object
+      required: [value]
+      properties:
+        value: { type: string }
+
+    TemplateLibrary:
+      type: object
+      required: [version, templates]
+      properties:
+        version: { type: string }
+        templates: { type: array, items: { $ref: "#/components/schemas/LibraryTemplate" } }
+    LibraryTemplate:
+      type: object
+      required: [id, title, description, category, habits]
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string }
+        category: { type: string }
+        frequency: { type: string, default: Daily }
+        author: { type: string }
+        isCommunity: { type: boolean, default: false }
+        durationDays: { type: integer, default: 30 }
+        recommendedFor: { type: string }
+        habits: { type: array, items: { $ref: "#/components/schemas/TemplateHabit" } }
+
+    VersionInfo:
+      type: object
+      required: [version, gitSha, minAppVersion, serverTime]
+      properties:
+        version: { type: string }
+        gitSha: { type: string }
+        minAppVersion: { type: string, description: Older apps should update before syncing (R-VER-1) }
+        serverTime: { type: string, format: date-time }

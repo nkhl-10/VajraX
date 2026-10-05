@@ -1,0 +1,13 @@
+# What `gcloud builds submit` leaves out of the upload: everything .gitignore ignores, plus the below.
+#!include:.gitignore
+.git
+doc/VajraXScreen
+iosApp
+stitch_vajrax_life_os
+skills
+**/.env
+**/*.jks
+**/*.keystore
+**/keystore.properties
+**/*.apk
+**/*.aab

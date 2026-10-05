@@ -94,7 +94,10 @@ class SyncService(private val db: Db, private val clock: Clock) {
         purged.size
     }
 
-    /** Inserts or replaces the record in one statement, only when the incoming change is newer. */
+    /**
+     * Inserts or replaces the record in one statement, only when the incoming change is newer.
+     * Device ids compare byte by byte (COLLATE "C"), as clients do; the database's own collation may differ.
+     */
     private fun upsertIfNewer(
         c: Connection,
         userId: UUID,
@@ -114,7 +117,7 @@ class SyncService(private val db: Db, private val clock: Clock) {
             device_id = EXCLUDED.device_id,
             server_version = EXCLUDED.server_version,
             updated_at = now()
-        WHERE (EXCLUDED.client_updated_at, EXCLUDED.device_id) > (sync_records.client_updated_at, sync_records.device_id)
+        WHERE (EXCLUDED.client_updated_at, EXCLUDED.device_id COLLATE "C") > (sync_records.client_updated_at, sync_records.device_id COLLATE "C")
         RETURNING server_version
         """.trimIndent(),
         userId, change.entity, change.id,

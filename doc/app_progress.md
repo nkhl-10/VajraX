@@ -1,6 +1,6 @@
 # VAJRAX / HabitFlow — App Progress & Context
 
-_Last updated: 2026-10-01 (quality pass: architecture, error handling, strings, accessibility, quality gates) · Branch `feature/habitflow-offline-mvp` (latest commit `4058a42`; the quality pass in section 4f is uncommitted)._
+_Last updated: 2026-10-05 (online phase: own server, accounts + cloud sync, website, web app, Google Cloud deploy kit — section 4g) · Branch `feature/habitflow-offline-mvp`._
 
 ---
 
@@ -16,14 +16,18 @@ _Last updated: 2026-10-01 (quality pass: architecture, error handling, strings, 
 | Home-screen widgets (Jetpack Glance): Today list + Now card | ✅ Implemented, builds · ⏳ not yet verified on device |
 | Dark mode / landscape | ✅ Implemented · ⏳ not yet verified on device |
 | Daily-loop & "less effort" polish (section 4a) | ✅ Implemented, builds · ⏳ not yet verified on device (device busy) |
-| Automated tests | ✅ 64 tests, 0 failures (`:shared:testDebugUnitTest`) |
+| Automated tests | ✅ App 84 (`:shared:testDebugUnitTest`), server 36 on a real PostgreSQL (`:server:test`), contract 2 (`:contract:jvmTest`) — 0 failures |
 | Quality gates | ✅ detekt + ktlint formatting, Android lint (both with baselines), CI runs tests + detekt + lint (section 13) |
 | UI text in resources | ✅ All visible text of the live screens, widgets, notifications and nav (section 4f) |
 | Accessibility | ✅ 48 dp targets, dial TalkBack actions, contrast, system animation setting · ⏳ TalkBack / font-scale check on device |
 | Debug APK | ✅ `:androidApp:assembleDebug` BUILD SUCCESSFUL |
 | Release APK (R8) | ✅ `:androidApp:assembleRelease` BUILD SUCCESSFUL, unsigned · ⚠ R8 Kotlin-metadata warnings (AGP 8.5.2 predates Kotlin 2.4) |
 | Global release readiness | ✅ In-app items done · ⏳ Play Console + signing + device QA open — see `doc/release/global-release.md` |
-| Online / Supabase sync | ⏸ Out of scope for this phase (code untouched) |
+| Accounts + cloud sync (own server, section 4g) | ✅ Implemented; server + browser end-to-end verified · ⏳ phone ↔ web sync not yet verified (device busy) |
+| Server (Ktor + PostgreSQL) | ✅ Implemented, production-mode jar and Jib image verified on the box |
+| Website + web app (browser) | ✅ Implemented, verified in headless Chrome (sign in, check in, reload, reset password, delete account) |
+| Google Cloud deploy kit (`deploy/`) | ✅ Ready for you to run (Cloud Run + Cloud SQL + Secret Manager); nothing deployed yet |
+| Legacy Supabase code | ⏸ Untouched and unused |
 | iOS | ⏸ Not built or verified (the iOS entry point `MainViewController` was already missing) |
 
 ---
@@ -160,6 +164,23 @@ Checklist audit (architecture, code quality, "human-designed" UX, edge cases, on
 | Design system | `VxShape.card` / `VxShape.control` radius tokens, shared prompt / add-box components, distinct Missed vs Upcoming calendar cells, clock icon on the Snooze notification action |
 | Online-ready groundwork | `core/error/AppError` (Offline, Timeout, Server, SignedOut, Unknown) mapped to plain copy by `userMessage()`; `domain/sync/ConnectivityMonitor` (offline-only implementation for now). Remote data sources, auth, sync columns and the INTERNET permission wait for the API |
 | Quality gates | detekt 1.23.8 + `detekt-formatting` (ktlint rules) with `config/detekt/detekt.yml` and per-module `detekt-baseline.xml`; Android lint with per-module `lint-baseline.xml`; `.editorconfig`; CI runs tests, detekt and lint and uploads the reports. Unused imports removed from the live files |
+
+### 4g. Online phase (2026-10-02 → 2026-10-05)
+
+The app stays fully usable without an account; an account adds backup, sync between devices and the web app. One server (Cloud Run) serves the website at `/`, the web app at `/app/` and the API at `/v1/`.
+
+| Area | What exists |
+|---|---|
+| `:contract` (KMP: JVM, wasmJs, iOS) | API paths, limits, error codes, DTOs and sync payloads shared by app, web app and server |
+| `server/` (Ktor 3.5.2, JDK 17) | Accounts (Argon2id passwords, 15-min JWT access + rotating 60-day refresh tokens with reuse detection, lock-out, per-address rate limits), forgot/reset password by email (link token in the URL fragment), account deletion, sync push/pull (last writer wins by `(updatedAt, deviceId)`, byte-order tie-break, per-account ordering, 180-day deletion markers, `410` for expired cursors), public template library with ETag + admin publish, health/readiness/version, Prometheus metrics behind a token, daily maintenance, JSON logs with `severity`, security headers. PostgreSQL via HikariCP + Flyway; Cloud SQL connector when `DB_INSTANCE` is set |
+| App sync (`:shared`) | Triggers queue changes in `SyncOutbox` (planned days, built-in templates and device-only settings never travel), `SyncEngine` (push in batches of 200, pull pages of 500, apply under an `applying` guard, one active routine across devices), `AccountService` + account screens (sign in, create account, forgot password, first-sync choice, sign out, sign out everywhere, change password, delete account), Profile › Backup & sync card |
+| Android | INTERNET + network state, Keystore-encrypted token store (excluded from backup), hourly WorkManager sync, `vajrax.api.url` in `local.properties` → `BuildConfig.API_BASE_URL` (debug default the box) |
+| Web app (`webApp/`, Kotlin/Wasm) | Same Compose UI in the browser; SQLite (sql.js) in a web worker, in memory, reloaded from the account on each visit; account required; refresh token in an HttpOnly cookie |
+| Website (`web/site/`) | Home, privacy policy and terms (generated from `doc/legal/*.md` at build), delete account (Play's data-deletion URL), reset password, support, 404; light/dark, responsive, no trackers |
+| Legal | Privacy policy and terms rewritten for accounts (effective 5 October 2026, Google Cloud Mumbai, retention, rights); in-app copies generated and kept equal by a unit test; Data-safety answers in `doc/release/global-release.md` |
+| Deploy kit (`deploy/`) | `server/Dockerfile` (multi-stage, distroless, non-root; no Android SDK needed), `cloudbuild.yaml` (tests → image → Artifact Registry → Cloud Run), `gcp-setup.sh` (one-time: APIs, registry, Cloud SQL Postgres 17 with 7-day backups + PITR, region-pinned secrets, least-privilege service accounts, scheduler), `.env.example`, `DEPLOY.md` (first deploy, email, custom domain, release checklist, rollback, restore, logs, cost) |
+| API docs (`doc/api/`) | `sync-protocol.md` (protocol spec with rule ids and conformance tests) and `openapi.yaml` (valid OpenAPI 3.1) |
+| CI | New jobs: server + contract tests and web bundle; Docker image build + production-mode smoke test against PostgreSQL 17 |
 
 ### Screens
 
@@ -366,7 +387,11 @@ stale-notification snooze overwriting a completion; weekly-target edits re-scori
 | Package / activity | `com.vajrax.android` / `.MainActivity` |
 | Static analysis | `bash ./gradlew detekt` (rules + ktlint formatting; fails only on issues not in `*/detekt-baseline.xml`; refresh with `detektBaseline`) |
 | Android lint | `bash ./gradlew :shared:lintDebug :androidApp:lintDebug` (baselines `*/lint-baseline.xml`; refresh with `updateLintBaseline`) |
-| CI | `.github/workflows/android-ci.yml`: unit tests → detekt → lint → debug APK, reports uploaded as an artifact |
+| CI | `.github/workflows/android-ci.yml`: unit tests → detekt → lint → debug APK, reports uploaded as an artifact; server/contract tests + web bundle; Docker image smoke test |
+| Server locally | `bash ./gradlew :server:stageWeb :server:runDev` → `http://localhost:8080` (site), `/app/` (web app), `/v1/*` (API); embedded PostgreSQL, data in `~/.vajrax-dev/pg` |
+| Server tests | `bash ./gradlew :server:test :contract:jvmTest` |
+| Server image | `docker build -f server/Dockerfile -t vajrax-server .` (repository root), or without Docker `bash ./gradlew :server:buildImage` → `server/build/jib-image.tar` |
+| Deploy | `deploy/DEPLOY.md` (Google Cloud: Cloud Run + Cloud SQL, region `asia-south1`) |
 
 ---
 
@@ -381,6 +406,11 @@ stale-notification snooze overwriting a completion; weekly-target edits re-scori
 - iOS target not built; the pre-existing iOS app lacks its `MainViewController`.
 - Legacy screens (Learn, Path, Grow, Review) and engines still use their old placeholder data but are unreachable.
 - Deprecation warnings for `rememberModalBottomSheetState` (Material3 alpha) remain; no functional impact.
+- Web app keeps its data in memory: each visit downloads the account again, and changes not yet uploaded are lost if the tab closes within the 5-second upload delay while offline.
+- Clients don't read `minAppVersion` from `/v1/version` yet; email addresses are not verified (stored, not enforced).
+- Rate limits are per server instance; with several Cloud Run instances the effective limit is higher.
+- The server answers `HEAD` with 405 (only `GET` is routed).
+- iOS has no account or sync wiring yet (no `TokenStore` implementation); the iOS app itself is not built (see above).
 
 ---
 
@@ -391,7 +421,8 @@ stale-notification snooze overwriting a completion; weekly-target edits re-scori
 3. Backup import/restore; goal editing.
 4. Performance measurements from spec 09 (cold start, completion latency, report generation with 1–3 years of data).
 5. Translate `strings.xml` (both files) and move the remaining TalkBack descriptions into resources.
-6. **Online phase:** Supabase auth + sync — a queue of local changes, incremental upload, deterministic conflict rules, per-user data isolation.
+6. **Deploy:** run `deploy/gcp-setup.sh init`, the first `gcloud builds submit`, then `gcp-setup.sh scheduler` (`deploy/DEPLOY.md`); set the Play link and support email on the website (`SET at release`) and `vajrax.api.url` for the release build.
+7. Phone ↔ web sync test on the device once it is free (two devices, conflict, offline edits, sign out, delete account).
 
 ---
 
@@ -415,5 +446,7 @@ stale-notification snooze overwriting a completion; weekly-target edits re-scori
 - RemoteViews widget (`widget/VajraTodayWidgetProvider.kt`, `res/layout/vajra_widget_today.xml`) and `shared/.../widget/AndroidWidgetController.kt` — replaced by the Glance widgets
 
 **Quality pass (2026-10-01):** see section 4f; new files `core/{log/VxLog,error/AppError,coroutines/RunCatching}.kt`, `domain/{BusinessRules,habit/CheckInAction,habit/NotificationPrivacy,today/TodayPlanner,sync/ConnectivityMonitor}.kt`, `domain/usecase/{CheckInService,OccurrenceMaterializer,PreferencesService,ProfileService,ProfileRules,GoalService,ReflectionService,TemplateLibraryService}.kt`, `ui/designsystem/{Sheets,ReminderAccess,Haptics,TiltShadow}.kt`, `composeResources/values/strings.xml`, `config/detekt/detekt.yml`, `.editorconfig`, `*/detekt-baseline.xml`, `*/lint-baseline.xml`, tests `PreferencesServiceTest`, `CoreRulesTest`, `ProfileViewModelTest`, `CheckInActionTest`, `TodayPlannerTest`, `TrackerCycleTest`, `ActivationStateTest`.
+
+**Online phase (2026-10-02 → 10-05):** see section 4g; new modules `contract/`, `server/`, `webApp/`, plus `web/site/`, `deploy/`, `doc/api/`, `.dockerignore`, `.gcloudignore`; app side `data/local/SyncTriggers.kt`, `data/sync/*`, `data/remote/*`, `domain/sync/*`, `domain/account/*`, `ui/features/account/*`, Android `account/{KeystoreTokenStore,SyncWork}.kt`.
 
 **Not touched:** the pre-existing uncommitted deletions under `doc/` (`HabitFlow_DocumentAI_Specs.zip`, `stitch_vajrax_life_os_interface/*`) belong to the earlier working tree.

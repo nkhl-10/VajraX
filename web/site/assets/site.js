@@ -21,10 +21,12 @@
     el.textContent = text;
   }
 
-  // ---- Reset password (link from the email: /reset-password?token=…)
+  // ---- Reset password (link from the email: /reset-password#token=…; ?token=… also accepted)
   const reset = document.getElementById("reset-form");
   if (reset) {
-    const token = new URLSearchParams(location.search).get("token");
+    const token = new URLSearchParams(location.hash.slice(1)).get("token") || new URLSearchParams(location.search).get("token");
+    // Keep the single-use token out of the address bar and the browser history.
+    if (token) history.replaceState(null, "", location.pathname);
     const pw = document.getElementById("new-password");
     const again = document.getElementById("confirm-password");
     const status = document.getElementById("reset-status");

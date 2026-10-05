@@ -186,7 +186,8 @@ class AuthService(
             AuditLog.record(c, user.id, "password_reset_requested", ctx.ipHash, now)
             user
         } ?: return
-        val link = "${config.publicBaseUrl}/reset-password?token=$token"
+        // In the fragment, the token never reaches a server, so no request log (ours or Cloud Run's) records it.
+        val link = "${config.publicBaseUrl}/reset-password#token=$token"
         mailer.send(
             to = user.email,
             subject = "Reset your VAJRAX password",

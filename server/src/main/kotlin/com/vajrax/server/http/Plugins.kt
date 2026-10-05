@@ -37,7 +37,8 @@ import java.util.UUID
 fun Application.installHttp(config: AppConfig) {
     install(XForwardedHeaders) {
         // Cloud Run's front end appends the real client address last; earlier entries can be forged.
-        useLastProxy()
+        // A load balancer in front adds its own address after it (FORWARDED_SKIP_LAST=1).
+        if (config.forwardedSkipLast == 0) useLastProxy() else skipLastProxies(config.forwardedSkipLast)
     }
     install(ContentNegotiation) { json(ContractJson) }
     install(CallId) {

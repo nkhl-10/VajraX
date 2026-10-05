@@ -25,6 +25,7 @@ object Database {
             minimumIdle = 1
             // Cloud Run instances scale to zero; short lifetimes avoid stale connections.
             maxLifetime = MAX_CONNECTION_LIFETIME_MS
+            idleTimeout = IDLE_TIMEOUT_MS
             connectionTimeout = CONNECT_TIMEOUT_MS
             poolName = "vajrax"
             config.instanceConnectionName?.let {
@@ -35,6 +36,7 @@ object Database {
     )
 
     private const val MAX_CONNECTION_LIFETIME_MS = 10 * 60_000L
+    private const val IDLE_TIMEOUT_MS = 5 * 60_000L
     private const val CONNECT_TIMEOUT_MS = 10_000L
 
     /** Applies db/migration/V*.sql in order; safe to call on every start (one instance migrates at a time). */
