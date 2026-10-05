@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Delete your account · VAJRAX</title>
+<meta name="description" content="Delete your VAJRAX account and the data stored with it.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="wrap">
+<header class="top">
+  <a class="brand" href="/" aria-label="VAJRAX home"><img src="/assets/logo.svg" alt="" width="36" height="36">VAJRAX</a>
+  <nav aria-label="Main">
+    <a href="/#features">Features</a>
+    <a href="/privacy-policy">Privacy</a>
+    <a href="/support">Support</a>
+    <a class="btn btn-primary" href="/app/">Open web app</a>
+  </nav>
+</header>
+</div>
+<main id="main" class="narrow">
+  <h1>Delete your account</h1>
+  <p>This permanently deletes your VAJRAX account and everything backed up with it: routines, habits, check-ins, notes, goals, reflections and your templates. Our database backups expire within 7 days. It can't be undone.</p>
+  <p>Your phone keeps working: the habits on it stay there until you remove them in the app. You can also delete the account in the app under <strong>Profile › Backup &amp; sync › Delete account</strong>.</p>
+  <form class="panel" id="delete-form" novalidate>
+    <div class="field">
+      <label for="delete-email">Email</label>
+      <input id="delete-email" name="email" type="email" autocomplete="username" required aria-describedby="delete-email-error">
+      <div class="error" id="delete-email-error" role="alert"></div>
+    </div>
+    <div class="field">
+      <label for="delete-password">Password</label>
+      <input id="delete-password" name="password" type="password" autocomplete="current-password" required aria-describedby="delete-password-error">
+      <div class="error" id="delete-password-error" role="alert"></div>
+      <div class="hint">Forgot it? Use "Forgot password?" in the app to get a reset link first.</div>
+    </div>
+    <div class="field">
+      <label class="check"><input type="checkbox" id="delete-confirm" required> I understand my account and its data will be deleted permanently.</label>
+      <div class="error" id="delete-confirm-error" role="alert"></div>
+    </div>
+    <button class="btn btn-danger" type="submit" id="delete-submit">Delete my account</button>
+    <div class="status" id="delete-status" role="status" aria-live="polite"></div>
+  </form>
+</main>
+<div class="wrap">
+<footer>
+  <div class="links">
+    <a href="/privacy-policy">Privacy policy</a>
+    <a href="/terms-of-use">Terms of use</a>
+    <a href="/delete-account">Delete account</a>
+    <a href="/support">Support</a>
+  </div>
+  <div>VAJRAX — a calm habit tracker. Free, no ads, no tracking.</div>
+</footer>
+</div>
+<script src="/assets/site.js" defer></script>
+</body>
+</html>

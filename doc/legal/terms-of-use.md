@@ -1,8 +1,8 @@
-<!-- Public copy of the in-app Terms of use (LegalTexts.kt). Change both copies together. -->
+<!-- Public copy of the in-app Terms of use (LegalTexts.kt, generated from this file). Change both together. -->
 
 # VAJRAX Terms of Use
 
-Effective 30 September 2026
+Effective 5 October 2026
 
 ## Using VAJRAX
 
@@ -10,7 +10,19 @@ You may use VAJRAX for your own personal habit tracking. You must be at least 13
 
 ## Your data
 
-Your data stays on your device and belongs to you. Because we never receive it, we cannot restore it if it is lost. Use Export my data or your device backup to keep a copy.
+Your data belongs to you. Without an account it stays on your device, so we cannot restore it if it is lost; use Export my data or your device backup to keep a copy. With an account, your data is also backed up on our server until you delete it.
+
+## Your account
+
+An account is optional. Keep your password to yourself and use one you don't use elsewhere. You are responsible for what happens in your account. You can delete it at any time in the app or on the website.
+
+## Fair use
+
+Don't misuse the service: no attempts to break into accounts or the server, to overload it, or to use it for anything unlawful. We may suspend accounts that do, and we may limit unusually heavy use to keep the service working for everyone.
+
+## The service
+
+We work to keep backup and sync available, but we can't promise it will always be. We may change the service. If we ever stop it, we will give notice in the app first, and the app keeps working on your device.
 
 ## Templates and health
 
@@ -30,7 +42,7 @@ VAJRAX is provided as is, without warranties of any kind, to the extent the law 
 
 ## Liability
 
-To the extent the law allows, we are not liable for indirect or consequential losses from using the app, including lost data.
+To the extent the law allows, we are not liable for indirect or consequential losses from using the app or the service, including lost data.
 
 ## Your rights
 
@@ -38,4 +50,4 @@ Nothing in these terms limits rights you have under the consumer laws of your co
 
 ## Changes
 
-These terms may change in a new version of the app. The effective date above changes when they do.
+These terms may change. The effective date above changes when they do, and we tell you in the app about significant changes.

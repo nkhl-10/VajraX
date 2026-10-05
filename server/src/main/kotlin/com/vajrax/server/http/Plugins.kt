@@ -4,6 +4,7 @@ import com.vajrax.contract.ContractJson
 import com.vajrax.contract.ErrorCodes
 import com.vajrax.contract.Problem
 import com.vajrax.server.config.AppConfig
+import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -27,7 +28,9 @@ import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.request.httpMethod
 import io.ktor.server.request.path
 import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
 import org.slf4j.event.Level
+import java.io.File
 import java.util.UUID
 
 /** Plugins every response goes through: JSON, errors, request ids, logs, security headers, gzip. */
@@ -87,7 +90,12 @@ fun Application.installHttp(config: AppConfig) {
             )
         }
         status(HttpStatusCode.NotFound) { call, status ->
-            if (call.request.path().startsWith("/v1/")) call.respondProblem(status, ErrorCodes.NOT_FOUND, "Not found.")
+            val page = config.webDir?.let { File(it, "site/404.html") }?.takeIf { it.isFile }
+            when {
+                call.request.path().startsWith("/v1/") -> call.respondProblem(status, ErrorCodes.NOT_FOUND, "Not found.")
+                // A mistyped website address gets the friendly page, still with a 404 status.
+                page != null -> call.respondText(page.readText(), ContentType.Text.Html, status)
+            }
         }
         status(HttpStatusCode.TooManyRequests) { call, status ->
             call.respondProblem(

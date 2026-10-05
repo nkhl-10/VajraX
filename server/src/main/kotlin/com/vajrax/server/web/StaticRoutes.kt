@@ -35,8 +35,13 @@ fun Route.staticRoutes(webDir: String) {
         }
     }
     if (site.isDirectory) {
+        // The home page is served explicitly: a default file would also answer every unknown address.
+        get("/") {
+            call.response.header("Content-Security-Policy", SITE_CSP)
+            call.response.header(HttpHeaders.CacheControl, "no-cache")
+            call.respondFile(File(site, "index.html"))
+        }
         staticFiles("/", site) {
-            default("index.html")
             extensions("html")
             cacheControl { file -> listOf(cacheFor(file)) }
             modify { file, call ->

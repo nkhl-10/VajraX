@@ -119,7 +119,10 @@ val stageWeb by tasks.registering(Sync::class) {
     description = "Collects the website and the web app into build/web for the server."
     dependsOn(":webApp:wasmJsBrowserDistribution", generateLegalPages)
     into(layout.buildDirectory.dir("web"))
-    from(rootProject.file("web/site")) { into("site") }
+    from(rootProject.file("web/site")) {
+        into("site")
+        exclude("legal-template.html")
+    }
     from(generateLegalPages) { into("site") }
     from(project(":webApp").layout.buildDirectory.dir("dist/wasmJs/productionExecutable")) { into("app") }
 }

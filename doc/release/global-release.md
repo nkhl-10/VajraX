@@ -12,16 +12,16 @@ Legend: **Done** = in the app/build now · **Console** = a Play Console step, no
 | 16 KB pages | Native libraries MUST be 16 KB aligned (apps targeting API 35+). | Done | Only `libandroidx.graphics.path.so`; all LOAD segments align to 0x4000 on 4 ABIs. |
 | Permissions | Request only what the core features need. | Done | Declared: `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`. `INTERNET` (from the unused sync client) and `FOREGROUND_SERVICE` (WorkManager) are removed with `tools:node="remove"`. `WAKE_LOCK` and `ACCESS_NETWORK_STATE` stay: normal permissions WorkManager needs for widgets. No exact alarms, location, storage or restricted permissions. |
 | Privacy policy | MUST be linked in Play Console and readable in the app. | Done / Console | In app: Profile › About › Privacy policy, and linked from the Welcome screen. Public copy: `doc/legal/privacy-policy.md`; host it and paste the URL into App content › Privacy policy. |
-| Data safety | The form MUST match what the app does. | Console | Answer: collects no data, shares no data. Basis: no network permission, all data stays in app-private storage. If cloud sync ships, re-add `INTERNET`, update the policy and this form in the same release. |
+| Data safety | The form MUST match what the app does. | Console | The optional account changes the answers. **Collected** (only when the user creates an account; optional): Personal info › Email address, Name; App activity › Other user-generated content (habits, check-ins, notes, goals, reflections); App info and performance: none. **Purpose:** App functionality, Account management. **Shared:** No (Google Cloud and the email provider are service providers, not sharing). **Encrypted in transit:** Yes. **Users can request deletion:** Yes (in app and at `/delete-account`). Without an account nothing is collected. |
 | User data | Personal data MUST be stored securely and its handling disclosed. | Done | App-private storage only; device backup scope set by `data_extraction_rules.xml` / `backup_rules.xml`; export goes only to a file the user picks (SAF) after a warning. |
-| Account deletion | Required only when users can create accounts. | N/A | No accounts. The local profile is on-device data; Profile › Delete all data erases everything. Answer "No" to account creation. |
+| Account deletion | Apps with accounts MUST offer in-app deletion and a web link. | Done / Console | In app: Profile › Backup & sync › Delete account (password confirm; removes the account and all server data at once, backups expire in 7 days). Web: `https://<your domain>/delete-account`; enter that URL in Play Console › Data safety › Data deletion. |
 | Content rating | The IARC questionnaire MUST be completed. | Console | Utility/productivity app: no violence, sexual content, language, drugs, gambling, user interaction, data sharing, location sharing or purchases. Expected result: Everyone / PEGI 3. |
 | Target audience | Apps not designed for children MUST NOT target them. | Done / Console | Terms set a minimum age of 13; select 13+ age groups only, so the Families policy does not apply. |
 | Health | Health features MUST be declared; wellness content MUST NOT be presented as medical advice. | Done / Console | Health notice in Profile › About; wellness templates show "General wellness ideas, not medical advice." Complete the Health apps declaration as general wellness (habit tracking with fitness, sleep and meditation habits), with no medical function and no Health Connect. |
 | Intellectual property | Third-party material MUST carry its licence. | Done | Profile › About › Open-source licenses lists the Apache-2.0 libraries and the full Lucide ISC notice (icons use Lucide geometry). Confirm the VAJRAX name and icon are yours to use. |
 | Deceptive behaviour | Content MUST NOT misrepresent its source. | Done | Bundled templates no longer credit invented "@sarah" / "@mike" authors; the section is "Featured templates" (library version 4 reseeds existing installs). |
 | Device and network abuse | Background work MUST be proportionate. | Done | Inexact `setAndAllowWhileIdle` reminders, rescheduled only on data change, boot, package update, time or time-zone change. No services. |
-| Metadata | Store listing MUST describe the real app. | Console | Screenshots from this build only; don't mention sync, AI or community features. |
+| Metadata | Store listing MUST describe the real app. | Console | Screenshots from this build only. Backup & sync and the web app may be mentioned as optional; don't mention AI or community features. |
 | Developer account | Identity and contact MUST be verified and current. | Console | The in-app policy points users to the Play listing's developer contact, so that contact must be monitored. |
 
 ## 2. Not applicable to this release
@@ -34,8 +34,8 @@ Legend: **Done** = in the app/build now · **Console** = a Play Console step, no
 | User-generated content | Nothing is posted or shared; custom templates stay on the device. |
 | AI-generated content | No generative features in the shipped screens. |
 | Analytics and consent | No analytics or crash SDK, so there is no consent screen. Adding one later requires opt-in consent plus Data safety and policy updates. |
-| Network handling | Offline app with nothing to retry or time out. |
-| Fraud and abuse protection | No backend, accounts or sign-ups to protect. |
+| Network handling | Moved to section 1: the app is offline-first; sync retries in the background (WorkManager, network constraint) and every failure keeps the change on the device. |
+| Fraud and abuse protection | Server: Argon2id passwords, per-address rate limits, account lock-out with back-off, rotating refresh tokens with reuse detection, audit log (see doc/api). |
 | Regional features and restrictions | Same features everywhere; nothing is geo-restricted. Release in all countries. |
 
 ## 3. Global quality (done in the app)
