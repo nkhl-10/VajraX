@@ -3,4 +3,6 @@
 <full-backup-content>
     <include domain="database" path="." />
     <include domain="sharedpref" path="." />
+    <!-- The sign-in is bound to this phone's Keystore key; a new phone signs in again. -->
+    <exclude domain="sharedpref" path="vajrax_session.xml" />
 </full-backup-content>

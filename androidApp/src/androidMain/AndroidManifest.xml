@@ -6,10 +6,11 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
-    <!-- Offline release: the app never goes online, so the network permission pulled in by the
-         (unused) sync client is removed. Re-add it together with the Data safety update when
-         cloud sync ships. Nothing here runs a foreground service either. -->
-    <uses-permission android:name="android.permission.INTERNET" tools:node="remove" />
+    <!-- Optional account: backup and sync with the VAJRAX server (signed-in users only; the app
+         works fully offline without it). Keep doc/release/global-release.md (Data safety) in step.
+         Nothing here runs a foreground service. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
 
     <application

@@ -54,7 +54,18 @@ style:
     active: false
 
 formatting:
+  # One line limit everywhere (the wrapping rules default to 120).
   MaximumLineLength:
+    maxLineLength: 140
+  ArgumentListWrapping:
+    maxLineLength: 140
+  ParameterListWrapping:
+    maxLineLength: 140
+  Wrapping:
+    maxLineLength: 140
+  PropertyWrapping:
+    maxLineLength: 140
+  FunctionSignature:
     maxLineLength: 140
   NoWildcardImports:
     active: false

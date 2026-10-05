@@ -84,6 +84,9 @@ kotlin {
 
         getByName("androidUnitTest").dependencies {
             implementation(libs.sqldelight.sqlite.driver)
+            // End-to-end tests start the real server jar on an embedded PostgreSQL (ServerEndToEndTest).
+            implementation(libs.embedded.postgres)
+            implementation(project.dependencies.enforcedPlatform(libs.embedded.postgres.binaries.bom))
         }
         
         iosMain.dependencies {
@@ -122,6 +125,12 @@ sqldelight {
             generateAsync.set(true)
         }
     }
+}
+
+// ServerEndToEndTest runs the server exactly as deployed: `java -jar vajrax-server.jar`.
+tasks.withType<Test>().configureEach {
+    dependsOn(":server:buildFatJar")
+    systemProperty("vajrax.serverJar", project(":server").layout.buildDirectory.file("libs/vajrax-server.jar").get().asFile.absolutePath)
 }
 
 tasks.whenTaskAdded {

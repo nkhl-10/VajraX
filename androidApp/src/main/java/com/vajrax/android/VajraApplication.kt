@@ -1,21 +1,28 @@
 package com.vajrax.android
 
-import com.vajrax.core.coroutines.runCatchingCancellable
 import android.app.Application
 import android.app.NotificationManager
-import com.vajrax.core.time.AppClock
-import com.vajrax.core.time.TimeFormat
-import com.vajrax.domain.repository.PracticeRepository
+import android.os.Build
+import com.vajrax.android.account.KeystoreTokenStore
+import com.vajrax.android.account.SyncWork
 import com.vajrax.android.reminders.HabitReminderScheduler
 import com.vajrax.android.reminders.ReminderReceiver
+import com.vajrax.android.widget.GlanceWidgetController
+import com.vajrax.android.widget.VajraWidgets
+import com.vajrax.core.coroutines.runCatchingCancellable
+import com.vajrax.core.time.AppClock
+import com.vajrax.core.time.TimeFormat
 import com.vajrax.data.local.DatabaseDriverFactory
+import com.vajrax.data.remote.ApiConfig
+import com.vajrax.data.remote.TokenStore
 import com.vajrax.di.initKoin
+import com.vajrax.domain.account.AccountService
+import com.vajrax.domain.account.AccountState
+import com.vajrax.domain.repository.PracticeRepository
+import com.vajrax.domain.repository.SettingsRepository
 import com.vajrax.domain.usecase.AppHooks
 import com.vajrax.domain.usecase.RoutineManager
 import com.vajrax.platform.WidgetController
-import com.vajrax.android.widget.GlanceWidgetController
-import com.vajrax.android.widget.VajraWidgets
-import com.vajrax.domain.repository.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -44,7 +51,19 @@ class VajraApplication : Application() {
                         single { DatabaseDriverFactory(applicationContext) }
                         single<WidgetController> { GlanceWidgetController(applicationContext) }
                         single { HabitReminderScheduler(applicationContext, get(), get(), get(), get()) }
-                        single<AppHooks> { AndroidAppHooks(applicationContext, get(), get(), get(), get()) }
+                        single<AppHooks> {
+                            AndroidAppHooks(applicationContext, get(), get(), get(), get(), signedIn = ::isSignedIn)
+                        }
+                        // Optional account + sync: only when a server is configured (BuildConfig.API_BASE_URL).
+                        single<TokenStore> { KeystoreTokenStore(applicationContext) }
+                        if (BuildConfig.API_BASE_URL.isNotBlank()) {
+                            single {
+                                ApiConfig(
+                                    BuildConfig.API_BASE_URL,
+                                    deviceName = "${Build.MANUFACTURER} ${Build.MODEL}".take(DEVICE_NAME_MAX)
+                                )
+                            }
+                        }
                     }
                 )
             }
@@ -59,20 +78,41 @@ class VajraApplication : Application() {
                 koin.get<HabitReminderScheduler>().sync()
                 koin.get<WidgetController>().refresh()
             }.onFailure { com.vajrax.core.log.VxLog.w("App", "Startup work failed", it) }
-            runCatchingCancellable { publishWidgetPreviews() }.onFailure { com.vajrax.core.log.VxLog.w("App", "Widget previews not published", it) }
+            runCatchingCancellable { publishWidgetPreviews() }.onFailure {
+                com.vajrax.core.log.VxLog.w(
+                    "App",
+                    "Widget previews not published",
+                    it
+                )
+            }
+        }
+        // Background sync runs only while signed in.
+        appScope.launch {
+            GlobalContext.get().get<AccountService>().state.collect { state ->
+                val app = this@VajraApplication
+                if (state is AccountState.SignedIn) SyncWork.schedulePeriodic(app) else SyncWork.cancel(app)
+            }
         }
     }
+
+    private fun isSignedIn(): Boolean = GlobalContext.getOrNull()?.getOrNull<AccountService>()?.state?.value is AccountState.SignedIn
 
     /** Widget-picker previews (Android 15+) are rate-limited, so publish once per install or update. */
     private suspend fun publishWidgetPreviews() {
         val settings = GlobalContext.get().get<SettingsRepository>()
         val stamp = packageManager.getPackageInfo(packageName, 0).lastUpdateTime.toString()
         val done = settings.get(KEY_WIDGET_PREVIEWS) == stamp
-        if (VajraWidgets.publishPreviews(this, alreadyPublished = done) && !done) settings.put(KEY_WIDGET_PREVIEWS, stamp)
+        if (VajraWidgets.publishPreviews(this, alreadyPublished = done) && !done) {
+            settings.put(
+                KEY_WIDGET_PREVIEWS,
+                stamp
+            )
+        }
     }
 
     private companion object {
         const val KEY_WIDGET_PREVIEWS = "widget_previews_published"
+        const val DEVICE_NAME_MAX = 80
     }
 }
 
@@ -82,17 +122,31 @@ class AndroidAppHooks(
     private val scheduler: HabitReminderScheduler,
     private val widget: WidgetController,
     private val practices: PracticeRepository,
-    private val clock: AppClock
+    private val clock: AppClock,
+    private val signedIn: () -> Boolean = { false }
 ) : AppHooks {
     override suspend fun onRoutineChanged() {
-        runCatchingCancellable { scheduler.sync() }.onFailure { com.vajrax.core.log.VxLog.w("Reminders", "Couldn't reschedule reminders", it) }
+        runCatchingCancellable { scheduler.sync() }.onFailure {
+            com.vajrax.core.log.VxLog.w(
+                "Reminders",
+                "Couldn't reschedule reminders",
+                it
+            )
+        }
         clearResolvedNotifications()
         widget.refresh()
+        uploadSoon()
     }
 
     override suspend fun onCheckInChanged() {
         clearResolvedNotifications()
         widget.refresh()
+        uploadSoon()
+    }
+
+    /** A change made from a widget or notification reaches the account even if the app isn't opened. */
+    private fun uploadSoon() {
+        if (signedIn()) SyncWork.requestSoon(context)
     }
 
     /** A reminder whose habit was completed or skipped elsewhere (app, widget) is removed from the shade. */

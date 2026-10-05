@@ -225,6 +225,38 @@ CREATE INDEX idx_practice_tracker ON PracticeEntity(trackerId);
 CREATE UNIQUE INDEX idx_reflection_period ON ReflectionEntity(periodType, periodStart);
 
 -- ==========================================
+-- SYNC (schema v3): change capture for cloud backup and sync.
+-- While signed in, triggers (installed at runtime by SyncTriggers.kt, because SQLDelight
+-- cannot compile trigger bodies that use NEW/OLD) note every changed record in SyncOutbox;
+-- the sync engine uploads them and applies downloaded records with SyncState.applying = 1.
+-- ==========================================
+
+CREATE TABLE SyncOutbox (
+    entity TEXT NOT NULL,
+    entityId TEXT NOT NULL,
+    changedAt INTEGER NOT NULL, -- epoch ms of the latest local change
+    PRIMARY KEY (entity, entityId)
+);
+
+CREATE TABLE SyncMeta (
+    entity TEXT NOT NULL,
+    entityId TEXT NOT NULL,
+    updatedAt INTEGER NOT NULL, -- change time of the version this device has
+    version INTEGER NOT NULL,   -- server version of that change
+    PRIMARY KEY (entity, entityId)
+);
+
+CREATE TABLE SyncState (
+    id INTEGER NOT NULL PRIMARY KEY CHECK (id = 1),
+    enabled INTEGER NOT NULL DEFAULT 0,  -- 1 while signed in
+    applying INTEGER NOT NULL DEFAULT 0, -- 1 while writing downloaded records
+    cursor INTEGER NOT NULL DEFAULT 0,   -- last server version pulled
+    deviceId TEXT NOT NULL,
+    lastSyncAt INTEGER
+);
+
+
+-- ==========================================
 -- QUERIES
 -- ==========================================
 
@@ -615,4 +647,116 @@ wipePersonalData {
     -- Keep the library version, and the scheduled-reminder ids so the next sync can cancel those alarms.
     DELETE FROM SettingEntity WHERE key NOT IN ('template_library_version', 'reminder_scheduled_ids');
     UPDATE LifePathEntity SET isActive = 0;
+}
+
+-- Sync
+syncState:
+SELECT * FROM SyncState WHERE id = 1;
+
+syncStateInit:
+INSERT OR IGNORE INTO SyncState(id, enabled, applying, cursor, deviceId) VALUES (1, 0, 0, 0, ?);
+
+syncSetEnabled:
+UPDATE SyncState SET enabled = ? WHERE id = 1;
+
+syncSetApplying:
+UPDATE SyncState SET applying = ? WHERE id = 1;
+
+syncSetCursor:
+UPDATE SyncState SET cursor = ? WHERE id = 1;
+
+syncSetLastSync:
+UPDATE SyncState SET lastSyncAt = ? WHERE id = 1;
+
+-- A fresh id per sign-in, so a database restored onto another phone never shares one.
+syncSetDeviceId:
+UPDATE SyncState SET deviceId = ? WHERE id = 1;
+
+outboxCount:
+SELECT count(*) FROM SyncOutbox;
+
+outboxBatch:
+SELECT * FROM SyncOutbox ORDER BY changedAt, entity, entityId LIMIT ?;
+
+outboxChangedAt:
+SELECT changedAt FROM SyncOutbox WHERE entity = ? AND entityId = ?;
+
+outboxRemoveIfUnchanged:
+DELETE FROM SyncOutbox WHERE entity = ? AND entityId = ? AND changedAt = ?;
+
+outboxRemove:
+DELETE FROM SyncOutbox WHERE entity = ? AND entityId = ?;
+
+outboxClear:
+DELETE FROM SyncOutbox;
+
+-- Queues everything already on the device (first sign-in uploads the existing history).
+outboxSnapshot {
+    INSERT OR REPLACE INTO SyncOutbox SELECT 'tracker', id, :now FROM UserTemplateEntity;
+    INSERT OR REPLACE INTO SyncOutbox SELECT 'habit', id, :now FROM PracticeEntity WHERE trackerId IS NOT NULL;
+    INSERT OR REPLACE INTO SyncOutbox SELECT 'occurrence', id, :now FROM ActionRecordEntity WHERE status <> 'PENDING';
+    INSERT OR REPLACE INTO SyncOutbox SELECT 'goal', id, :now FROM GoalEntity;
+    INSERT OR REPLACE INTO SyncOutbox SELECT 'reflection', id, :now FROM ReflectionEntity;
+    INSERT OR REPLACE INTO SyncOutbox SELECT 'template', id, :now FROM TemplateEntity WHERE id LIKE 'custom_%';
+    INSERT OR REPLACE INTO SyncOutbox SELECT 'setting', key, :now FROM SettingEntity WHERE key IN ('onboarding_goals', 'wake_time', 'morning_minutes');
+}
+
+metaPut:
+INSERT OR REPLACE INTO SyncMeta(entity, entityId, updatedAt, version) VALUES (?, ?, ?, ?);
+
+metaUpdatedAt:
+SELECT updatedAt FROM SyncMeta WHERE entity = ? AND entityId = ?;
+
+metaClear:
+DELETE FROM SyncMeta;
+
+personalRecordCount:
+SELECT (SELECT count(*) FROM UserTemplateEntity) + (SELECT count(*) FROM GoalEntity) + (SELECT count(*) FROM ReflectionEntity) AS total;
+
+getActiveTrackers:
+SELECT * FROM UserTemplateEntity WHERE isActive = 1;
+
+archiveTracker:
+UPDATE UserTemplateEntity SET isActive = 0, status = 'ARCHIVED', endedAt = ? WHERE id = ?;
+
+deleteTrackerById:
+DELETE FROM UserTemplateEntity WHERE id = ?;
+
+deleteHabitById:
+DELETE FROM PracticeEntity WHERE id = ?;
+
+upsertOccurrence:
+INSERT OR REPLACE INTO ActionRecordEntity(id, practiceId, date, scheduledTime, status, completedAt, durationMinutes, value, note, skipReason, updatedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteOccurrenceById:
+DELETE FROM ActionRecordEntity WHERE id = ?;
+
+getGoalById:
+SELECT * FROM GoalEntity WHERE id = ?;
+
+getGoalHabitIds:
+SELECT habitId FROM GoalHabitEntity WHERE goalId = ?;
+
+getReflectionById:
+SELECT * FROM ReflectionEntity WHERE id = ?;
+
+deleteReflectionById:
+DELETE FROM ReflectionEntity WHERE id = ?;
+
+deleteSetting:
+DELETE FROM SettingEntity WHERE key = ?;
+
+-- Removes only what the account holds (first sign-in with "use my account's data");
+-- device settings such as theme, reminders and onboarding stay.
+wipeSyncedData {
+    DELETE FROM ActionRecordEntity;
+    DELETE FROM PracticeEntity WHERE trackerId IS NOT NULL;
+    DELETE FROM UserTemplateEntity;
+    DELETE FROM GoalHabitEntity;
+    DELETE FROM GoalEntity;
+    DELETE FROM ReflectionEntity;
+    DELETE FROM TemplateHabitEntity WHERE templateId LIKE 'custom_%';
+    DELETE FROM TemplateEntity WHERE id LIKE 'custom_%';
+    DELETE FROM SettingEntity WHERE key IN ('onboarding_goals', 'wake_time', 'morning_minutes');
 }

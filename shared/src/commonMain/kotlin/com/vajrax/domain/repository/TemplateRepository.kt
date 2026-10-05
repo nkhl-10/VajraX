@@ -15,6 +15,7 @@ interface TemplateRepository {
 
     /** Published (non-draft) templates, system + custom. */
     fun observeLibrary(): Flow<List<DefaultTemplate>>
+
     /** User custom templates including drafts. */
     fun observeCustomTemplates(): Flow<List<DefaultTemplate>>
 
@@ -24,4 +25,10 @@ interface TemplateRepository {
 
     /** Re-seeds system templates when the bundled catalog version changes. */
     suspend fun seedSystemTemplatesIfNeeded()
+
+    /** Version of the library last downloaded from the server, or null. */
+    suspend fun remoteLibraryVersion(): String?
+
+    /** Replaces the built-in templates with the server's library (the user's own templates stay). */
+    suspend fun replaceSystemTemplates(templates: List<DefaultTemplate>, version: String)
 }

@@ -2,10 +2,12 @@ package com.vajrax.app
 
 import com.vajrax.core.coroutines.AppDispatchers
 import com.vajrax.core.coroutines.runCatchingCancellable
+import com.vajrax.core.log.VxLog
 import com.vajrax.core.time.AppClock
 import com.vajrax.core.time.minuteTicks
 import com.vajrax.domain.repository.SettingsRepository
 import com.vajrax.domain.repository.TrackerRepository
+import com.vajrax.domain.sync.OnlineStartup
 import com.vajrax.domain.usecase.RoutineManager
 import com.vajrax.ui.theme.ThemeMode
 import kotlinx.coroutines.CoroutineExceptionHandler
@@ -32,7 +34,9 @@ class AppViewModel(
     private val routineManager: RoutineManager,
     private val trackers: TrackerRepository,
     private val settings: SettingsRepository,
-    private val clock: AppClock
+    private val clock: AppClock,
+    /** Account session, sync and template refresh; null in offline-only builds. */
+    private val online: OnlineStartup? = null
 ) {
     // A failure in one app-wide job is logged, never crashes the app.
     private val scope = CoroutineScope(
@@ -53,7 +57,9 @@ class AppViewModel(
             var lastDay: LocalDate? = null
             clock.minuteTicks().collect { (day, _) ->
                 if (lastDay != null && day != lastDay) {
-                    runCatchingCancellable { routineManager.materialize() }.onFailure { com.vajrax.core.log.VxLog.w("App", "Day rollover failed", it) }
+                    runCatchingCancellable {
+                        routineManager.materialize()
+                    }.onFailure { com.vajrax.core.log.VxLog.w("App", "Day rollover failed", it) }
                 }
                 lastDay = day
             }
@@ -76,6 +82,10 @@ class AppViewModel(
                     startupError = route.exceptionOrNull()?.let { "We couldn't open your data on this phone." }
                 )
             }
+            // Online work follows the local start and never delays the first screen.
+            if (route.isSuccess) {
+                runCatchingCancellable { online?.start() }.onFailure { VxLog.w("App", "Online start failed", it) }
+            }
         }
     }
 
@@ -90,7 +100,9 @@ class AppViewModel(
     fun resetToOnboarding() {
         _state.update { it.copy(startRoute = "onboarding") }
         scope.launch(AppDispatchers.IO) {
-            runCatchingCancellable { routineManager.startup(force = true) }.onFailure { com.vajrax.core.log.VxLog.w("App", "Restart after wipe failed", it) }
+            runCatchingCancellable {
+                routineManager.startup(force = true)
+            }.onFailure { com.vajrax.core.log.VxLog.w("App", "Restart after wipe failed", it) }
         }
     }
 }

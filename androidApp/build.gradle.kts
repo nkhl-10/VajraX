@@ -22,6 +22,7 @@ kotlin {
             implementation(libs.coroutines.core)
             implementation(libs.datetime)
             implementation(libs.glance.appwidget)
+            implementation(libs.work.runtime)
         }
     }
 }
@@ -49,6 +50,8 @@ android {
         versionName = "1.0"
         buildConfigField("String", "SUPABASE_URL", "\"${localSetting("vajrax.supabase.url")}\"")
         buildConfigField("String", "SUPABASE_KEY", "\"${localSetting("vajrax.supabase.key")}\"")
+        // VAJRAX server for accounts and sync (local.properties `vajrax.api.url`); empty = offline-only.
+        buildConfigField("String", "API_BASE_URL", "\"${localSetting("vajrax.api.url")}\"")
     }
 
     sourceSets {
@@ -60,6 +63,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Debug talks to the development server on the box unless local.properties says otherwise.
+            buildConfigField("String", "API_BASE_URL", "\"${localSetting("vajrax.api.url").ifEmpty { "http://192.168.203.180:8080" }}\"")
+        }
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")

@@ -1,0 +1,26 @@
+-- Migration 2 -> 3: cloud sync change capture (see VajraDatabase.sq, SYNC section).
+
+CREATE TABLE SyncOutbox (
+    entity TEXT NOT NULL,
+    entityId TEXT NOT NULL,
+    changedAt INTEGER NOT NULL, -- epoch ms of the latest local change
+    PRIMARY KEY (entity, entityId)
+);
+
+CREATE TABLE SyncMeta (
+    entity TEXT NOT NULL,
+    entityId TEXT NOT NULL,
+    updatedAt INTEGER NOT NULL, -- change time of the version this device has
+    version INTEGER NOT NULL,   -- server version of that change
+    PRIMARY KEY (entity, entityId)
+);
+
+CREATE TABLE SyncState (
+    id INTEGER NOT NULL PRIMARY KEY CHECK (id = 1),
+    enabled INTEGER NOT NULL DEFAULT 0,  -- 1 while signed in
+    applying INTEGER NOT NULL DEFAULT 0, -- 1 while writing downloaded records
+    cursor INTEGER NOT NULL DEFAULT 0,   -- last server version pulled
+    deviceId TEXT NOT NULL,
+    lastSyncAt INTEGER
+);
+

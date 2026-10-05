@@ -134,6 +134,31 @@ class TemplateRepositoryImpl(
             queries.deleteSystemTemplates()
             TemplateCatalog.all.forEach { writeTemplate(it, isCustom = false, updatedAt = "") }
             queries.putSetting(SettingsRepository.LIBRARY_VERSION, TemplateCatalog.VERSION)
+            // A new bundled library replaced a downloaded one: download again on the next refresh.
+            queries.deleteSetting(REMOTE_LIBRARY_VERSION)
         }
+    }
+
+    override suspend fun remoteLibraryVersion(): String? = io {
+        queries.getSetting(
+            REMOTE_LIBRARY_VERSION
+        ).awaitAsOneOrNull()
+    }
+
+    override suspend fun replaceSystemTemplates(templates: List<DefaultTemplate>, version: String): Unit = io {
+        database.transaction {
+            queries.deleteSystemTemplateHabits()
+            queries.deleteSystemTemplates()
+            templates.filterNot {
+                it.id.startsWith(
+                    "custom_"
+                )
+            }.forEach { writeTemplate(it, isCustom = false, updatedAt = "") }
+            queries.putSetting(REMOTE_LIBRARY_VERSION, version)
+        }
+    }
+
+    private companion object {
+        const val REMOTE_LIBRARY_VERSION = "template_library_remote_version"
     }
 }
