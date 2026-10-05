@@ -34,6 +34,15 @@ interface PlatformActions {
     /** Posts a reminder for the current habit right away so the user can check how reminders look. */
     fun sendTestReminder() {}
     val appVersion: String
+
+    /** The web keeps data in the account (no lasting local storage), so it starts at sign-in. */
+    val requiresAccount: Boolean get() = false
+
+    /** Home-screen widgets exist (Android). */
+    val supportsWidgets: Boolean get() = true
+
+    /** Habit reminders can ring (not in the browser). */
+    val supportsReminders: Boolean get() = true
 }
 
 private val NoOpenRequest: StateFlow<String?> = MutableStateFlow(null)

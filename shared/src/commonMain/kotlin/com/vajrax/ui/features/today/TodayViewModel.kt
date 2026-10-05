@@ -326,14 +326,20 @@ class TodayViewModel(
 
     private fun snapshot(id: String): Occurrence? = currentState().items.firstOrNull { it.id == id }?.occurrence
 
-    /** "✓ Wake up · Next: Drink water, 6:35 AM", naming the habit that becomes current next. */
+    /**
+     * "Done: Wake up · Next: Drink water, 6:35 AM", naming the habit that becomes current next.
+     * Plain words, no check-mark glyph: the web font has none and would fetch one from a third party.
+     */
     private fun doneMessage(id: String): String {
         val items = currentState().items
-        val current = items.firstOrNull { it.id == id } ?: return "✓ Done"
+        val current = items.firstOrNull { it.id == id } ?: return "Done"
         val nextId = NowPicker.next(candidates(items), clock.minuteOfDay(), id, clock.nowIso())
         val next = items.firstOrNull { it.id == nextId }
-        return if (next == null) "✓ ${current.habit.title} · All done"
-        else "✓ ${current.habit.title} · Next: ${next.habit.title}, ${next.timeLabel}"
+        return if (next == null) {
+            "Done: ${current.habit.title} · All done"
+        } else {
+            "Done: ${current.habit.title} · Next: ${next.habit.title}, ${next.timeLabel}"
+        }
     }
 
     companion object {

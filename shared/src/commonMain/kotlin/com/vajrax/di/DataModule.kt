@@ -187,6 +187,7 @@ fun dataModule() = module {
     single { DiscoverViewModel(get(), get()) }
     single { com.vajrax.ui.features.templates.ActivationViewModel(get(), get(), get(), get(), get()) }
     single { ReportViewModel(get(), get(), get(), get(), get(), get(), get()) }
+    single { com.vajrax.ui.features.account.AccountViewModel(get(), get(), get()) }
     single { ProfileViewModel(get(), get(), get(), get(), get(), get(), get(), get(), get(), get(), getOrNull<AppHooks>()) }
     // Screens opened on top of a tab get a fresh view model each time (cleared when they close).
     factory { (templateId: String?) ->

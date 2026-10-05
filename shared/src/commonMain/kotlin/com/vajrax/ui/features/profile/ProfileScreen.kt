@@ -47,7 +47,13 @@ fun ProfileScreen(
     onEditTemplate: (String) -> Unit,
     onUseTemplate: (String) -> Unit,
     onOpenLegal: (LegalDoc) -> Unit,
-    onDataWiped: () -> Unit
+    onDataWiped: () -> Unit,
+    /** "Backup & sync" (hidden in builds without a server). */
+    accountSection: (@Composable () -> Unit)? = null,
+    accountSignedIn: Boolean = false,
+    /** Signed in, "Delete all data" clears this device only (signing out), so nothing is deleted from the account. */
+    onClearDeviceAndSignOut: () -> Unit = {},
+    onRenameAccount: (String) -> Unit = {}
 ) {
     val colors = LuminaTheme.colors
     val snackbar = LocalVxSnackbar.current
@@ -92,6 +98,11 @@ fun ProfileScreen(
 
         ProfileHero(state, onEdit = { editProfile = true })
 
+        accountSection?.let {
+            Spacer(Modifier.height(VxSpace.xxl))
+            it()
+        }
+
         Spacer(Modifier.height(VxSpace.xxl))
         SectionLabel(stringResource(Res.string.profile_current_routine))
         Spacer(Modifier.height(VxSpace.sm))
@@ -128,30 +139,49 @@ fun ProfileScreen(
             }
         }
 
-        Spacer(Modifier.height(VxSpace.xxl))
-        SectionLabel(stringResource(Res.string.profile_home_screen_widget))
-        Spacer(Modifier.height(VxSpace.sm))
-        VxCard {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                IconBadge(VxIcons.Smartphone, colors.primary, size = 44.dp)
-                Spacer(Modifier.width(VxSpace.md))
-                Column(Modifier.weight(1f)) {
-                    Text(stringResource(Res.string.profile_check_in_from_your_home), style = MaterialTheme.typography.titleMedium, color = colors.onSurface)
-                    Text(
-                        stringResource(Res.string.profile_check_in_without_opening_the),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant
+        if (platform.supportsWidgets) {
+            Spacer(Modifier.height(VxSpace.xxl))
+            SectionLabel(stringResource(Res.string.profile_home_screen_widget))
+            Spacer(Modifier.height(VxSpace.sm))
+            VxCard {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconBadge(VxIcons.Smartphone, colors.primary, size = 44.dp)
+                    Spacer(Modifier.width(VxSpace.md))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            stringResource(Res.string.profile_check_in_from_your_home),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = colors.onSurface
+                        )
+                        Text(
+                            stringResource(Res.string.profile_check_in_without_opening_the),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant
+                        )
+                    }
+                }
+                Spacer(Modifier.height(VxSpace.lg))
+                val addWidget: (Boolean) -> Unit = { list ->
+                    if (platform.canPinWidget()) {
+                        platform.requestPinWidget(list)
+                    } else {
+                        scope.launch { snackbar.showSnackbar(getString(Res.string.profile_long_press_your_home_screen)) }
+                    }
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(VxSpace.md)) {
+                    SecondaryButton(
+                        stringResource(Res.string.profile_now_card),
+                        onClick = { addWidget(false) },
+                        modifier = Modifier.weight(1f),
+                        icon = VxIcons.Check
+                    )
+                    SecondaryButton(
+                        stringResource(Res.string.profile_today_list),
+                        onClick = { addWidget(true) },
+                        modifier = Modifier.weight(1f),
+                        icon = VxIcons.ListChecks
                     )
                 }
-            }
-            Spacer(Modifier.height(VxSpace.lg))
-            val addWidget: (Boolean) -> Unit = { list ->
-                if (platform.canPinWidget()) platform.requestPinWidget(list)
-                else scope.launch { snackbar.showSnackbar(getString(Res.string.profile_long_press_your_home_screen)) }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(VxSpace.md)) {
-                SecondaryButton(stringResource(Res.string.profile_now_card), onClick = { addWidget(false) }, modifier = Modifier.weight(1f), icon = VxIcons.Check)
-                SecondaryButton(stringResource(Res.string.profile_today_list), onClick = { addWidget(true) }, modifier = Modifier.weight(1f), icon = VxIcons.ListChecks)
             }
         }
 
@@ -175,8 +205,15 @@ fun ProfileScreen(
         Spacer(Modifier.height(VxSpace.sm))
         VxCard(contentPadding = PaddingValues(vertical = VxSpace.xs)) {
             // "On" only when reminders can really ring (setting on and Android permission granted).
-            ListRow(stringResource(Res.string.profile_notifications), onClick = { notifications = true }, value = if (LocalReminderAccess.current.on) stringResource(Res.string.profile_on) else stringResource(Res.string.profile_off), icon = VxIcons.Bell)
-            RowDivider()
+            if (platform.supportsReminders) {
+                ListRow(
+                    stringResource(Res.string.profile_notifications),
+                    onClick = { notifications = true },
+                    value = stringResource(if (LocalReminderAccess.current.on) Res.string.profile_on else Res.string.profile_off),
+                    icon = VxIcons.Bell
+                )
+                RowDivider()
+            }
             ListRow(
                 stringResource(Res.string.profile_appearance),
                 onClick = { appearance = true },
@@ -220,10 +257,12 @@ fun ProfileScreen(
         Spacer(Modifier.height(VxSpace.navClearance))
     }
 
-    if (editProfile) EditProfileDialog(state, onDismiss = { editProfile = false }, onSave = { n, e ->
-        onIntent(ProfileIntent.SaveProfile(n, e))
-        editProfile = false
-    })
+    if (editProfile) {
+        EditProfileDialog(state, onDismiss = { editProfile = false }, onSave = { n, e ->
+            if (accountSignedIn) onRenameAccount(n) else onIntent(ProfileIntent.SaveProfile(n, e))
+            editProfile = false
+        })
+    }
 
     if (appearance) {
         OptionDialog(
@@ -306,12 +345,14 @@ fun ProfileScreen(
     if (confirmDelete) {
         ConfirmDialog(
             title = stringResource(Res.string.profile_delete_all_data),
-            message = stringResource(Res.string.profile_removes_all_routines_history_and),
+            message = stringResource(
+                if (accountSignedIn) Res.string.profile_delete_all_signed_in_body else Res.string.profile_removes_all_routines_history_and
+            ),
             confirmLabel = stringResource(Res.string.profile_delete_everything),
             destructive = true,
             onConfirm = {
                 confirmDelete = false
-                onIntent(ProfileIntent.DeleteAllData)
+                if (accountSignedIn) onClearDeviceAndSignOut() else onIntent(ProfileIntent.DeleteAllData)
             },
             onDismiss = { confirmDelete = false }
         )

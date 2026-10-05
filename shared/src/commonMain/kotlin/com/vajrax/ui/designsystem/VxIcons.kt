@@ -247,6 +247,36 @@ object VxIcons {
         )
     }
     val Info by lazy { icon("info", circle(12f, 12f, 10f), "M12 16v-4", "M12 8h.01") }
+    val AlertCircle by lazy { icon("circle-alert", circle(12f, 12f, 10f), "M12 8v4", "M12 16h.01") }
+    val Cloud by lazy { icon("cloud", "M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z") }
+    val CloudOff by lazy {
+        icon(
+            "cloud-off",
+            "m2 2 20 20",
+            "M5.782 5.782A7 7 0 0 0 9 19h8.5a4.5 4.5 0 0 0 1.307-.193",
+            "M21.532 16.5A4.5 4.5 0 0 0 17.5 10h-1.79A7.008 7.008 0 0 0 10 5.07"
+        )
+    }
+    val Refresh by lazy {
+        icon(
+            "refresh-cw",
+            "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8",
+            "M21 3v5h-5",
+            "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16",
+            "M8 16H3v5"
+        )
+    }
+    val EyeOff by lazy {
+        icon(
+            "eye-off",
+            "M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49",
+            "M14.084 14.158a3 3 0 0 1-4.242-4.242",
+            "M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143",
+            "m2 2 20 20"
+        )
+    }
+    val LogOut by lazy { directional("log-out", "m16 17 5-5-5-5", "M21 12H9", "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4") }
+    val Lock by lazy { icon("lock", rect(3f, 11f, 18f, 11f, 2f), "M7 11V7a5 5 0 0 1 10 0v4") }
     val Archive by lazy { icon("archive", rect(2f, 3f, 20f, 5f, 1f), "M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8", "M10 12h4") }
     val Copy by lazy { icon("copy", rect(8f, 8f, 14f, 14f, 2f), "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2") }
     val TrendingUp by lazy { icon("trending-up", "M16 7h6v6", "m22 7-8.5 8.5-5-5L2 17") }

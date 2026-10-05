@@ -14,6 +14,11 @@ object WebPlatformActions : PlatformActions {
     override fun requestNotificationPermission(onResult: (Boolean) -> Unit) = onResult(false)
 
     override val appVersion: String = WEB_APP_VERSION
+
+    /** Browser storage here doesn't last, so the web app works from the account. */
+    override val requiresAccount: Boolean = true
+    override val supportsWidgets: Boolean = false
+    override val supportsReminders: Boolean = false
 }
 
 const val WEB_APP_VERSION = "1.0"

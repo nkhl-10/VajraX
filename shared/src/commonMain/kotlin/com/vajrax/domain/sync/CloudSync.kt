@@ -45,6 +45,8 @@ interface CloudSync {
     /** After sign-out or account deletion; [removeLocalData] also clears this device. */
     suspend fun disable(removeLocalData: Boolean)
 
+    suspend fun isEnabled(): Boolean
+
     suspend fun hasLocalData(): Boolean
 
     /** Whether the signed-in account already holds synced data (decides the first-sync question). */

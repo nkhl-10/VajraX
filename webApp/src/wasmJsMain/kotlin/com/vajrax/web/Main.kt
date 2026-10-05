@@ -7,8 +7,10 @@ import com.vajrax.core.log.VxLog
 import com.vajrax.core.time.TimeFormat
 import com.vajrax.data.local.DatabaseDriverFactory
 import com.vajrax.data.local.createWebDatabaseDriver
+import com.vajrax.data.remote.ApiConfig
 import com.vajrax.di.initKoin
 import kotlinx.browser.document
+import kotlinx.browser.window
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import org.koin.dsl.module
@@ -33,7 +35,15 @@ fun main() {
             document.getElementById("loading")?.textContent = "VAJRAX couldn't start in this browser. Please reload the page."
             return@launch
         }
-        initKoin { modules(module { single { DatabaseDriverFactory(driver) } }) }
+        initKoin {
+            modules(
+                module {
+                    single { DatabaseDriverFactory(driver) }
+                    // Same origin as the page: the server serves the app at /app/ and the API at /v1/.
+                    single { ApiConfig(baseUrl = window.location.origin, isWeb = true, deviceName = "Web browser") }
+                }
+            )
+        }
         document.getElementById("loading")?.remove()
         ComposeViewport(document.body!!) { VajraApp(WebPlatformActions) }
     }

@@ -2,15 +2,15 @@
 
 package com.vajrax.data.sync
 
+import app.cash.sqldelight.Query
 import app.cash.sqldelight.async.coroutines.awaitAsList
 import app.cash.sqldelight.async.coroutines.awaitAsOne
 import app.cash.sqldelight.async.coroutines.awaitAsOneOrNull
-import app.cash.sqldelight.coroutines.asFlow
-import app.cash.sqldelight.coroutines.mapToOne
 import app.cash.sqldelight.db.SqlDriver
 import com.vajrax.contract.ErrorCodes
 import com.vajrax.contract.sync.PAYLOAD_SCHEMA
 import com.vajrax.contract.sync.PushRequest
+import com.vajrax.contract.sync.PushResponse
 import com.vajrax.contract.sync.SyncChange
 import com.vajrax.contract.sync.SyncRecord
 import com.vajrax.core.coroutines.AppDispatchers
@@ -32,7 +32,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -60,8 +59,14 @@ class SyncEngine(
     private val _status = MutableStateFlow<SyncStatus>(SyncStatus.Off)
     override val status: StateFlow<SyncStatus> = _status.asStateFlow()
     private var debounce: Job? = null
-    private var watcher: Job? = null
     private var triggersInstalled = false
+
+    /** True while this engine writes downloaded records (those changes must not schedule an upload). */
+    private var applyingRemote = false
+    private var watching = false
+
+    // Trigger writes to SyncOutbox are invisible to SQLDelight, so the synced tables themselves are watched.
+    private val localChange = Query.Listener { if (!applyingRemote) requestSync() }
 
     override suspend fun start() {
         val state = prepare()
@@ -133,7 +138,7 @@ class SyncEngine(
 
     override suspend fun disable(removeLocalData: Boolean) {
         debounce?.cancel()
-        watcher?.cancel()
+        stopWatching()
         mutex.withLock {
             prepare()
             database.transaction {
@@ -148,6 +153,8 @@ class SyncEngine(
         _status.value = SyncStatus.Off
         if (removeLocalData) onRemoteChanges()
     }
+
+    override suspend fun isEnabled(): Boolean = q.syncState().awaitAsOneOrNull()?.enabled == 1L
 
     override suspend fun hasLocalData(): Boolean = q.personalRecordCount().awaitAsOne() > 0
 
@@ -167,30 +174,39 @@ class SyncEngine(
                 SyncChange(e.entity, e.entityId, e.changedAt, deleted = payload == null, payload = payload)
             }
             val response = api.push(PushRequest(deviceId, changes))
-            database.transaction {
-                val handled = HashSet<Pair<String, String>>()
-                response.accepted.forEach { a ->
-                    val at = sentAt[a.entity to a.id] ?: return@forEach
-                    handled += a.entity to a.id
-                    q.metaPut(a.entity, a.id, at, a.version)
-                    // A change made while uploading stays queued for the next round.
-                    q.outboxRemoveIfUnchanged(a.entity, a.id, at)
-                }
-                q.syncSetApplying(1)
-                response.rejected.forEach { r ->
-                    // The account already has a newer version of this record: take it.
-                    handled += r.entity to r.id
-                    if (applySafely(r)) replaced = true
-                    sentAt[r.entity to r.id]?.let { q.outboxRemoveIfUnchanged(r.entity, r.id, it) }
-                }
-                q.syncSetApplying(0)
-                // Nothing came back for these (unknown to the server and not stored): don't resend forever.
-                sentAt.filterKeys { it !in handled }.forEach { (key, at) ->
-                    q.outboxRemoveIfUnchanged(key.first, key.second, at)
-                }
+            applyingRemote = true
+            try {
+                applyPushResult(response, sentAt, onReplaced = { replaced = true })
+            } finally {
+                applyingRemote = false
             }
         }
         return replaced
+    }
+
+    /** Accepted changes leave the outbox; for refused ones the account's newer version is taken. */
+    private suspend fun applyPushResult(response: PushResponse, sentAt: Map<Pair<String, String>, Long>, onReplaced: () -> Unit) {
+        database.transaction {
+            val handled = HashSet<Pair<String, String>>()
+            response.accepted.forEach { a ->
+                val at = sentAt[a.entity to a.id] ?: return@forEach
+                handled += a.entity to a.id
+                q.metaPut(a.entity, a.id, at, a.version)
+                // A change made while uploading stays queued for the next round.
+                q.outboxRemoveIfUnchanged(a.entity, a.id, at)
+            }
+            q.syncSetApplying(1)
+            response.rejected.forEach { r ->
+                handled += r.entity to r.id
+                if (applySafely(r)) onReplaced()
+                sentAt[r.entity to r.id]?.let { q.outboxRemoveIfUnchanged(r.entity, r.id, it) }
+            }
+            q.syncSetApplying(0)
+            // Nothing came back for these (unknown to the server and not stored): don't resend forever.
+            sentAt.filterKeys { it !in handled }.forEach { (key, at) ->
+                q.outboxRemoveIfUnchanged(key.first, key.second, at)
+            }
+        }
     }
 
     /** Returns true when anything was applied. */
@@ -199,11 +215,16 @@ class SyncEngine(
         var cursor = q.syncState().awaitAsOne().cursor
         do {
             val page = fetchPage(cursor)
-            database.transaction {
-                q.syncSetApplying(1)
-                page.changes.forEach { if (applyIfNewer(it, deviceId)) applied = true }
-                q.syncSetApplying(0)
-                q.syncSetCursor(page.next)
+            applyingRemote = true
+            try {
+                database.transaction {
+                    q.syncSetApplying(1)
+                    page.changes.forEach { if (applyIfNewer(it, deviceId)) applied = true }
+                    q.syncSetApplying(0)
+                    q.syncSetCursor(page.next)
+                }
+            } finally {
+                applyingRemote = false
             }
             cursor = page.next
         } while (page.hasMore)
@@ -284,11 +305,18 @@ class SyncEngine(
 
     private fun newDeviceId() = "dev_" + Uuid.random().toString().take(DEVICE_ID_CHARS)
 
+    @Suppress("SpreadOperator") // nine table names, once per sign-in
     private fun watchLocalChanges() {
-        if (watcher?.isActive == true) return
-        watcher = scope.launch {
-            q.outboxCount().asFlow().mapToOne(AppDispatchers.IO).drop(1).collect { if (it > 0) requestSync() }
-        }
+        if (watching) return
+        watching = true
+        driver.addListener(*SYNCED_TABLES, listener = localChange)
+    }
+
+    @Suppress("SpreadOperator")
+    private fun stopWatching() {
+        if (!watching) return
+        watching = false
+        driver.removeListener(*SYNCED_TABLES, listener = localChange)
     }
 
     private companion object {
@@ -298,5 +326,9 @@ class SyncEngine(
         const val PULL_PAGE = 500
         const val MAX_PUSH_ROUNDS = 50
         const val DEVICE_ID_CHARS = 23
+        val SYNCED_TABLES = arrayOf(
+            "PracticeEntity", "UserTemplateEntity", "ActionRecordEntity", "GoalEntity", "GoalHabitEntity",
+            "ReflectionEntity", "TemplateEntity", "TemplateHabitEntity", "SettingEntity"
+        )
     }
 }

@@ -45,6 +45,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.vajrax.app.AppViewModel
+import com.vajrax.domain.repository.TrackerRepository
 import com.vajrax.domain.usecase.PreferencesService
 import com.vajrax.platform.LocalPlatformActions
 import com.vajrax.presentation.mvi.MviViewModel
@@ -53,6 +54,13 @@ import com.vajrax.ui.components.FloatingPillNavBar
 import com.vajrax.ui.designsystem.LocalReminderAccess
 import com.vajrax.ui.designsystem.LocalVxSnackbar
 import com.vajrax.ui.designsystem.ReminderAccess
+import com.vajrax.ui.features.account.AccountEffect
+import com.vajrax.ui.features.account.AccountIntent
+import com.vajrax.ui.features.account.AccountScreen
+import com.vajrax.ui.features.account.AccountSection
+import com.vajrax.ui.features.account.AccountUiState
+import com.vajrax.ui.features.account.AccountViewModel
+import com.vajrax.ui.features.account.AuthMode
 import com.vajrax.ui.features.builder.TemplateBuilderScreen
 import com.vajrax.ui.features.builder.TemplateBuilderViewModel
 import com.vajrax.ui.features.calendar.CalendarScreen
@@ -113,6 +121,9 @@ data class NavTabItem(val label: String, val type: NavTabType, val route: Any, v
 @Serializable data class HabitRoute(val id: String)
 @Serializable data class LegalRoute(val doc: String)
 
+/** Sign in / create account / reset password; [gate] = the web app's start screen (no way back). */
+@Serializable data class AccountRoute(val mode: String = "SIGN_IN", val fromOnboarding: Boolean = false, val gate: Boolean = false)
+
 private val tabs = listOf(
     NavTabItem("Home", NavTabType.HOME, HomeRoute, Res.string.nav_home),
     NavTabItem("Calendar", NavTabType.CALENDAR, CalendarRoute, Res.string.nav_calendar),
@@ -136,7 +147,8 @@ private fun <T : MviViewModel<*, *, *>> rememberScreenViewModel(key: Any?, facto
  */
 private fun NavDestination.isDrillIn(): Boolean =
     hasRoute(TemplateRoute::class) || hasRoute(CustomizeRoute::class) || hasRoute(BuilderRoute::class) ||
-        hasRoute(RoutineRoute::class) || hasRoute(HabitRoute::class) || hasRoute(LegalRoute::class)
+        hasRoute(RoutineRoute::class) || hasRoute(HabitRoute::class) || hasRoute(LegalRoute::class) ||
+        hasRoute(AccountRoute::class)
 
 /**
  * Apps targeting API 36 can't lock orientation on tablets and unfolded foldables, so wide
@@ -198,6 +210,8 @@ fun MainNavigation(appViewModel: AppViewModel) {
     val profileVm = koinInject<ProfileViewModel>()
     val onboardingVm = koinInject<OnboardingViewModel>()
     val activationVm = koinInject<ActivationViewModel>()
+    val accountVm = koinInject<AccountViewModel>()
+    val accountState by accountVm.uiState.collectAsStateWithLifecycle()
     val koin = getKoin()
 
     // A widget asked to open a habit: go to Home (after splash / onboarding), which handles it.
@@ -205,6 +219,28 @@ fun MainNavigation(appViewModel: AppViewModel) {
         val d = destination ?: return@LaunchedEffect
         if (openHabitRequest == null || d.hasRoute(SplashRoute::class) || d.hasRoute(OnboardingRoute::class)) return@LaunchedEffect
         if (!d.hasRoute(HomeRoute::class)) navController.switchTab(HomeRoute)
+    }
+
+    // Account messages (signed in, signed out elsewhere, deleted) wherever the user is.
+    LaunchedEffect(accountVm) {
+        accountVm.effect.collect { e ->
+            when (e) {
+                is AccountEffect.Message -> launch { snackbarHost.showSnackbar(e.text) }
+                AccountEffect.LocalDataRemoved -> {
+                    appViewModel.resetToOnboarding()
+                    onboardingVm.sendIntent(OnboardingIntent.Restart)
+                    navController.resetTo(if (platform.requiresAccount) AccountRoute(gate = true) else OnboardingRoute)
+                }
+                else -> Unit
+            }
+        }
+    }
+
+    // The web app keeps its data in the account: signed out, it shows sign-in.
+    LaunchedEffect(accountState.signedIn, destination) {
+        val d = destination ?: return@LaunchedEffect
+        val exempt = d.hasRoute(SplashRoute::class) || d.hasRoute(LegalRoute::class) || d.hasRoute(AccountRoute::class)
+        if (platform.requiresAccount && !accountState.signedIn && !exempt) navController.resetTo(AccountRoute(gate = true))
     }
 
     LaunchedEffect(activationVm) {
@@ -280,7 +316,14 @@ fun MainNavigation(appViewModel: AppViewModel) {
             ) {
                 composable<SplashRoute> {
                     SplashScreen(appState.startRoute, appState.startupError, onRetry = appViewModel::retryStart) { route ->
-                        navController.resetTo(if (route == "home") HomeRoute else OnboardingRoute)
+                        navController.resetTo(
+                            when {
+                                // The web decides after the session check and first download (see AccountDestination).
+                                platform.requiresAccount -> AccountRoute(gate = true)
+                                route == "home" -> HomeRoute
+                                else -> OnboardingRoute
+                            }
+                        )
                     }
                 }
                 composable<OnboardingRoute> {
@@ -294,7 +337,12 @@ fun MainNavigation(appViewModel: AppViewModel) {
                         onIntent = onboardingVm::sendIntent,
                         onOpenTemplate = { id -> navController.navigate(TemplateRoute(id, fromOnboarding = true)) },
                         onUseTemplate = { id -> navController.navigate(CustomizeRoute(id, fromOnboarding = true)) },
-                        onOpenLegal = { doc -> navController.navigate(LegalRoute(doc.name)) }
+                        onOpenLegal = { doc -> navController.navigate(LegalRoute(doc.name)) },
+                        onSignIn = if (accountState.available) {
+                            { navController.navigate(AccountRoute(AuthMode.SIGN_IN.name, fromOnboarding = true)) }
+                        } else {
+                            null
+                        }
                     )
                 }
                 composable<HomeRoute> {
@@ -354,7 +402,22 @@ fun MainNavigation(appViewModel: AppViewModel) {
                             appViewModel.resetToOnboarding()
                             onboardingVm.sendIntent(OnboardingIntent.Restart)
                             navController.resetTo(OnboardingRoute)
-                        }
+                        },
+                        accountSection = if (accountState.available) {
+                            {
+                                AccountSection(
+                                    state = accountState,
+                                    effects = accountVm.effect,
+                                    onIntent = accountVm::sendIntent,
+                                    onOpenAccount = { mode -> navController.navigate(AccountRoute(mode.name)) }
+                                )
+                            }
+                        } else {
+                            null
+                        },
+                        accountSignedIn = accountState.signedIn,
+                        onClearDeviceAndSignOut = { accountVm.sendIntent(AccountIntent.SignOut(removeLocalData = true)) },
+                        onRenameAccount = { accountVm.sendIntent(AccountIntent.Rename(it)) }
                     )
                 }
                 composable<TemplateRoute> { backStack ->
@@ -406,6 +469,10 @@ fun MainNavigation(appViewModel: AppViewModel) {
                         onChangeTemplate = { navController.switchTab(DiscoverRoute) }
                     )
                 }
+                composable<AccountRoute> { backStack ->
+                    val route = backStack.toRoute<AccountRoute>()
+                    AccountDestination(route, accountState, accountVm, navController, koin.get())
+                }
                 composable<LegalRoute> { backStack ->
                     val route = backStack.toRoute<LegalRoute>()
                     LegalScreen(LegalDoc.of(route.doc), onBack = { navController.popBackStack() })
@@ -447,4 +514,40 @@ fun MainNavigation(appViewModel: AppViewModel) {
             }
         }
     }
+}
+
+/** Sign in / create / reset; after signing in, back where the user came from (or into the app). */
+@Composable
+private fun AccountDestination(
+    route: AccountRoute,
+    state: AccountUiState,
+    accountVm: AccountViewModel,
+    navController: NavHostController,
+    trackers: TrackerRepository
+) {
+    LaunchedEffect(route) { accountVm.sendIntent(AccountIntent.SetMode(AuthMode.valueOf(route.mode))) }
+    LaunchedEffect(route) {
+        accountVm.effect.collect { e ->
+            if (e is AccountEffect.SignedIn) {
+                if (route.gate || route.fromOnboarding) {
+                    navController.resetTo(if (e.hasRoutine) HomeRoute else OnboardingRoute)
+                } else {
+                    navController.popBackStack()
+                }
+            }
+        }
+    }
+    // A web visit whose session came back from the cookie goes in once its data has downloaded.
+    LaunchedEffect(route.gate, state.signedIn, state.syncSettled) {
+        if (route.gate && state.signedIn && state.syncSettled) {
+            navController.resetTo(if (trackers.getActiveTracker() != null) HomeRoute else OnboardingRoute)
+        }
+    }
+    AccountScreen(
+        state = state,
+        onIntent = accountVm::sendIntent,
+        onBack = if (route.gate) null else ({ navController.popBackStack() }),
+        onOpenLegal = { doc -> navController.navigate(LegalRoute(doc.name)) },
+        webGate = route.gate
+    )
 }

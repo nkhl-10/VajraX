@@ -15,6 +15,7 @@ object NoCloudSync : CloudSync {
     override fun requestSync() = Unit
     override suspend fun enable(firstSync: FirstSync) = Unit
     override suspend fun disable(removeLocalData: Boolean) = Unit
+    override suspend fun isEnabled(): Boolean = false
     override suspend fun hasLocalData(): Boolean = false
     override suspend fun accountHasData(): Boolean = false
 }

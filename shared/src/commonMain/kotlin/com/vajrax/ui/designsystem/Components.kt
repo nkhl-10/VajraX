@@ -1,7 +1,5 @@
 package com.vajrax.ui.designsystem
 
-import org.jetbrains.compose.resources.stringResource
-import com.vajrax.resources.*
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -11,22 +9,24 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.*
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
@@ -36,22 +36,29 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.vajrax.core.time.TimeFormat
+import com.vajrax.resources.*
 import com.vajrax.ui.theme.LuminaTheme
 import com.vajrax.ui.theme.VxShape
 import com.vajrax.ui.theme.VxSpace
 import com.vajrax.ui.theme.accentOnContainer
+import org.jetbrains.compose.resources.stringResource
 
 // ---------------------------------------------------------------- surfaces
 
@@ -301,15 +308,18 @@ fun PrimaryButton(
     enabled: Boolean = true,
     loading: Boolean = false,
     icon: ImageVector? = null,
-    haptic: VxHaptic = VxHaptic.Tap
+    haptic: VxHaptic = VxHaptic.Tap,
+    /** Irreversible actions (delete account): error color instead of the brand color. */
+    destructive: Boolean = false
 ) {
     val haptics = rememberHaptics()
+    val container = if (destructive) LuminaTheme.colors.statusError else LuminaTheme.colors.primary
     Button(
         onClick = { haptics(haptic); onClick() },
         enabled = enabled && !loading,
         modifier = modifier.heightIn(min = 52.dp),
         shape = VxShape.control,
-        colors = ButtonDefaults.buttonColors(containerColor = LuminaTheme.colors.primary, contentColor = LuminaTheme.colors.onPrimary)
+        colors = ButtonDefaults.buttonColors(containerColor = container, contentColor = LuminaTheme.colors.onPrimary)
     ) {
         if (loading) {
             CircularProgressIndicator(Modifier.size(18.dp), color = LuminaTheme.colors.onPrimary, strokeWidth = 2.dp)
@@ -475,23 +485,34 @@ fun VxTextField(
     maxChars: Int? = null,
     singleLine: Boolean = true,
     minLines: Int = 1,
-    keyboardType: KeyboardType = KeyboardType.Text
+    keyboardType: KeyboardType = KeyboardType.Text,
+    /** Masks the text (passwords); pair with a show/hide [trailing] action. */
+    visualTransformation: VisualTransformation = VisualTransformation.None,
+    trailing: (@Composable () -> Unit)? = null,
+    imeAction: ImeAction = ImeAction.Default,
+    onImeAction: (() -> Unit)? = null,
+    /** Lets the system offer saved emails / passwords. */
+    autofill: ContentType? = null
 ) {
     val colors = LuminaTheme.colors
+    val autofillHint = if (autofill != null) Modifier.semantics { contentType = autofill } else Modifier
     Column(modifier = modifier) {
         Text(label, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Medium), color = colors.onSurface)
         Spacer(Modifier.height(6.dp))
         OutlinedTextField(
             value = value,
             onValueChange = { v -> onValueChange(if (maxChars != null) v.take(maxChars) else v) },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier.fillMaxWidth().then(autofillHint),
             placeholder = { if (placeholder.isNotEmpty()) Text(placeholder, color = colors.textTertiary) },
             singleLine = singleLine,
             minLines = minLines,
             isError = error != null,
             shape = VxShape.control,
             textStyle = MaterialTheme.typography.bodyLarge,
-            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            visualTransformation = visualTransformation,
+            trailingIcon = trailing,
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
+            keyboardActions = KeyboardActions(onAny = { onImeAction?.invoke() }),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = colors.primary,
                 unfocusedBorderColor = colors.outlineVariant,
@@ -503,11 +524,13 @@ fun VxTextField(
         if (bottom != null || maxChars != null) {
             Spacer(Modifier.height(4.dp))
             Row(Modifier.fillMaxWidth()) {
+                // Errors are read out as they appear, not only shown in red.
+                val announce = if (error != null) Modifier.semantics { liveRegion = LiveRegionMode.Polite } else Modifier
                 Text(
                     bottom ?: "",
                     style = MaterialTheme.typography.bodySmall,
                     color = if (error != null) colors.statusError else colors.onSurfaceVariant,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).then(announce)
                 )
                 if (maxChars != null) {
                     Text(stringResource(Res.string.common_value_fmt, value.length, maxChars), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)

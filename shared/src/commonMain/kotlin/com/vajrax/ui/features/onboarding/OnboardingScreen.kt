@@ -50,7 +50,9 @@ fun OnboardingScreen(
     onIntent: (OnboardingIntent) -> Unit,
     onOpenTemplate: (String) -> Unit,
     onUseTemplate: (String) -> Unit,
-    onOpenLegal: (LegalDoc) -> Unit
+    onOpenLegal: (LegalDoc) -> Unit,
+    /** "I already have an account" (restore on a new phone); null in builds without a server. */
+    onSignIn: (() -> Unit)? = null
 ) {
     val colors = LuminaTheme.colors
     val platform = LocalPlatformActions.current
@@ -85,7 +87,11 @@ fun OnboardingScreen(
             label = "onboarding"
         ) { step ->
             when (step) {
-                OnboardingStep.WELCOME -> WelcomeStep(onStart = { onIntent(OnboardingIntent.Next) }, onOpenLegal = onOpenLegal)
+                OnboardingStep.WELCOME -> WelcomeStep(
+                    onStart = { onIntent(OnboardingIntent.Next) },
+                    onOpenLegal = onOpenLegal,
+                    onSignIn = onSignIn
+                )
                 OnboardingStep.ABOUT -> AboutStep(state, onIntent)
                 OnboardingStep.ROUTINE -> RoutineStep(state, onIntent, onPickWake = { pickWake = true }, onContinue = {
                     if (state.reminderStyle != ReminderStyle.OFF && !platform.notificationsPermitted()) {
@@ -127,7 +133,7 @@ private fun StepDots(current: Int, total: Int) {
 }
 
 @Composable
-private fun WelcomeStep(onStart: () -> Unit, onOpenLegal: (LegalDoc) -> Unit) {
+private fun WelcomeStep(onStart: () -> Unit, onOpenLegal: (LegalDoc) -> Unit, onSignIn: (() -> Unit)?) {
     val colors = LuminaTheme.colors
     Column(Modifier.fillMaxSize()) {
         Column(
@@ -151,6 +157,11 @@ private fun WelcomeStep(onStart: () -> Unit, onOpenLegal: (LegalDoc) -> Unit) {
         }
         BottomBar {
             PrimaryButton(stringResource(Res.string.onboarding_get_started), onStart, Modifier.fillMaxWidth())
+            if (onSignIn != null) {
+                TextButton(onClick = onSignIn, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
+                    Text(stringResource(Res.string.account_have_account), style = MaterialTheme.typography.labelLarge)
+                }
+            }
             Spacer(Modifier.height(VxSpace.xs))
             // Stated up front: nothing leaves the phone. Links open the full documents.
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {

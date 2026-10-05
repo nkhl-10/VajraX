@@ -60,7 +60,15 @@ class AccountService(
         runCatchingCancellable { g.restore() }
             .onSuccess { account ->
                 when {
-                    account != null -> _state.value = AccountState.SignedIn(account)
+                    account != null -> {
+                        _state.value = AccountState.SignedIn(account)
+                        // Name and email follow the account (a fresh browser or reinstall has no local profile).
+                        if (profiles.getProfile()?.let { it.displayName to it.email } != account.displayName to account.email) {
+                            profiles.saveProfile(account.displayName, account.email, clock.nowIso())
+                        }
+                        // A session without sync on (the browser's fresh database, a restored backup): turn it on.
+                        if (!sync.isEnabled()) sync.enable(if (sync.hasLocalData()) FirstSync.MERGE else FirstSync.USE_ACCOUNT)
+                    }
                     cached != null -> endedElsewhere()
                     // No session here (e.g. a database restored from a backup): make sure nothing is captured.
                     else -> sync.disable(removeLocalData = false)
